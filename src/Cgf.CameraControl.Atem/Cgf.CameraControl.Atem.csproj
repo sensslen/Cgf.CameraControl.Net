@@ -10,6 +10,7 @@
     <PackageReference Include="AtemSharp" Version="0.3.0" />
     <PackageReference Include="AtemSharp.MSDependencyInjection" Version="0.3.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
+    <PackageReference Include="System.Reactive" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>
