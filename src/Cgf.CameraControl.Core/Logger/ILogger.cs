@@ -1,4 +1,4 @@
-namespace Cgf.CameraControl.Core.Logging;
+namespace Cgf.CameraControl.Core.Logger;
 
 public interface ILogger
 {

@@ -1,9 +1,9 @@
 using Cgf.CameraControl.Core.Configuration;
-using Cgf.CameraControl.Core.Logging;
+using Cgf.CameraControl.Core.Logger;
 
 namespace Cgf.CameraControl.Core.GenericFactory;
 
-public class Factory<T>(string section) : IAsyncDisposable
+public abstract class Factory<T>(string section) : IAsyncDisposable
     where T : IAsyncDisposable
 {
     private readonly Dictionary<string, IBuilder<T>> _builders = new(StringComparer.OrdinalIgnoreCase);

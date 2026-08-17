@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.GenericFactory;
-using Cgf.CameraControl.Core.Logging;
+using Cgf.CameraControl.Core.Logger;
 using NSubstitute;
 
 namespace Cgf.CameraControl.Core.Tests;
@@ -9,7 +9,7 @@ namespace Cgf.CameraControl.Core.Tests;
 public class FactoryTests
 {
     private readonly ILogger _logger = Substitute.For<ILogger>();
-    private readonly Factory<Thing> _factory = new("cams");
+    private readonly ThingFactory _factory = new();
 
     [Fact]
     public async Task BuildsAnInstanceAndKeysItByInstanceNumber()
@@ -112,6 +112,8 @@ public class FactoryTests
         using var document = JsonDocument.Parse($$"""{ "instance": {{instance}}, "type": "{{type}}" }""");
         return new ConfigEntry(instance, type, document.RootElement.Clone());
     }
+
+    private sealed class ThingFactory() : Factory<Thing>("cams");
 
     private sealed class Thing(int instance) : IAsyncDisposable
     {

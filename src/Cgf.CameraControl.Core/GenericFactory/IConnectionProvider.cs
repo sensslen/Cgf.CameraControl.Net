@@ -1,4 +1,4 @@
-namespace Cgf.CameraControl.Core.Connections;
+namespace Cgf.CameraControl.Core.GenericFactory;
 
 public interface IConnectionProvider
 {

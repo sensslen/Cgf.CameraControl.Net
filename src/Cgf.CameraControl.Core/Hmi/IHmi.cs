@@ -1,4 +1,4 @@
-using Cgf.CameraControl.Core.Connections;
+using Cgf.CameraControl.Core.GenericFactory;
 
 namespace Cgf.CameraControl.Core.Hmi;
 

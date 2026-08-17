@@ -1,56 +1,57 @@
-using Cgf.CameraControl.Core.Cameras;
+using Cgf.CameraControl.Core.CameraConnection;
 using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.GenericFactory;
 using Cgf.CameraControl.Core.Hmi;
-using Cgf.CameraControl.Core.Logging;
-using Cgf.CameraControl.Core.VideoMixers;
+using Cgf.CameraControl.Core.Logger;
+using Cgf.CameraControl.Core.VideoMixer;
 
 namespace Cgf.CameraControl.Core;
 
 public sealed class CameraControlCore(ILogger logger) : IAsyncDisposable
 {
-    public Factory<ICameraConnection> Cameras { get; } = new("cams");
+    public CameraConnectionFactory CameraFactory { get; } = new();
 
-    public Factory<IVideoMixer> VideoMixers { get; } = new("videoMixers");
+    public VideoMixerFactory MixerFactory { get; } = new();
 
-    public Factory<IHmi> Interfaces { get; } = new("interfaces");
+    public HmiFactory HmiFactory { get; } = new();
 
-    // Teardown drops the built instances but keeps the registered builders, so the same core can
-    // take a new configuration without the host re-registering everything.
-    public async Task<IReadOnlyList<LoadIssue>> ReconfigureAsync(RootConfig config, CancellationToken cancellationToken)
-    {
-        await DisposeAsync().ConfigureAwait(false);
-        return await BootstrapAsync(config, cancellationToken).ConfigureAwait(false);
-    }
-
-    // Cameras before mixers before interfaces: an interface resolves its mixer and cameras while it builds.
+    // Cameras before mixers before interfaces: an interface resolves its mixer and its cameras while
+    // it is being built.
     public async Task<IReadOnlyList<LoadIssue>> BootstrapAsync(RootConfig config, CancellationToken cancellationToken)
     {
         var issues = new List<LoadIssue>();
 
         foreach (var entry in config.Cams)
         {
-            Collect(issues, await Cameras.ParseConfigAsync(entry, logger, cancellationToken).ConfigureAwait(false));
+            Collect(issues, await CameraFactory.ParseConfigAsync(entry, logger, cancellationToken).ConfigureAwait(false));
         }
 
         foreach (var entry in config.VideoMixers)
         {
-            Collect(issues, await VideoMixers.ParseConfigAsync(entry, logger, cancellationToken).ConfigureAwait(false));
+            Collect(issues, await MixerFactory.ParseConfigAsync(entry, logger, cancellationToken).ConfigureAwait(false));
         }
 
         foreach (var entry in config.Interfaces)
         {
-            Collect(issues, await Interfaces.ParseConfigAsync(entry, logger, cancellationToken).ConfigureAwait(false));
+            Collect(issues, await HmiFactory.ParseConfigAsync(entry, logger, cancellationToken).ConfigureAwait(false));
         }
 
         return issues;
     }
 
+    // Teardown drops the built instances but keeps the registered builders, so the same core can take
+    // a new configuration without the host re-registering everything.
+    public async Task<IReadOnlyList<LoadIssue>> ReconfigureAsync(RootConfig config, CancellationToken cancellationToken)
+    {
+        await DisposeAsync().ConfigureAwait(false);
+        return await BootstrapAsync(config, cancellationToken).ConfigureAwait(false);
+    }
+
     public async ValueTask DisposeAsync()
     {
-        await Interfaces.DisposeAsync().ConfigureAwait(false);
-        await VideoMixers.DisposeAsync().ConfigureAwait(false);
-        await Cameras.DisposeAsync().ConfigureAwait(false);
+        await HmiFactory.DisposeAsync().ConfigureAwait(false);
+        await MixerFactory.DisposeAsync().ConfigureAwait(false);
+        await CameraFactory.DisposeAsync().ConfigureAwait(false);
     }
 
     private static void Collect(List<LoadIssue> issues, LoadIssue? issue)
