@@ -1,16 +1,19 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using Cgf.CameraControl.Core.Configuration.Converters;
 
 namespace Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 
 /// atemConfigurationSchema: configSchema.extend({ ip: z.string(), mixEffectBlock: z.int().nonnegative() })
+/// On the `get; set;` and [JsonRequired] conventions, see WebsocketPtzLancCameraConfiguration.
 public sealed record AtemConfiguration
 {
+    [JsonRequired]
     [JsonConverter(typeof(HostConverter))]
-    public required string Ip { get; init; }
+    public string Ip { get; set; } = null!;
 
+    [JsonRequired]
     [JsonConverter(typeof(NonNegativeIntConverter))]
-    public required int MixEffectBlock { get; init; }
+    public int MixEffectBlock { get; set; }
 }
 
 [JsonSourceGenerationOptions(

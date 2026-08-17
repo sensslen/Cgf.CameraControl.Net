@@ -122,8 +122,6 @@ public sealed class WebsocketPtzLancCamera : ICameraConnection
     /// Squares the stick position while keeping its sign, so small movements are fine grained.
     private static double Interpolate(double value) => value > 0 ? value * value : -(value * value);
 
-    // JavaScript's Math.round breaks ties towards positive infinity, which Math.Round does not, and
-    // the difference is visible at exactly half a step.
     private static int MultiplyRoundAndCrop(double value, int maximumAbsolute) =>
-        (int)Math.Floor(Math.Clamp(value, -maximumAbsolute, maximumAbsolute) + 0.5);
+        (int)Math.Round(Math.Clamp(value, -maximumAbsolute, maximumAbsolute));
 }
