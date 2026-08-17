@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Cgf.CameraControl.App/Cgf.CameraControl.App.csproj" />
+    <Project Path="src/Cgf.CameraControl.Atem/Cgf.CameraControl.Atem.csproj" />
+    <Project Path="src/Cgf.CameraControl.Cameras.WebsocketPtzLanc/Cgf.CameraControl.Cameras.WebsocketPtzLanc.csproj" />
+    <Project Path="src/Cgf.CameraControl.Core/Cgf.CameraControl.Core.csproj" />
+    <Project Path="src/Cgf.CameraControl.Input.Sdl/Cgf.CameraControl.Input.Sdl.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Cgf.CameraControl.Atem.Tests/Cgf.CameraControl.Atem.Tests.csproj" />
+    <Project Path="tests/Cgf.CameraControl.Core.Tests/Cgf.CameraControl.Core.Tests.csproj" />
+  </Folder>
+</Solution>

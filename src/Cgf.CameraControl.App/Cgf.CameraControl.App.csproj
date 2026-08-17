@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>CgfCameraControl</AssemblyName>
+    <RootNamespace>Cgf.CameraControl.App</RootNamespace>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+
+  <PropertyGroup Label="NativeAOT">
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <StripSymbols>true</StripSymbols>
+    <TrimMode>full</TrimMode>
+    <IsAotCompatible>true</IsAotCompatible>
+    <!--
+      AtemSharp builds its command registry with Assembly.GetTypes() and then reflects over the
+      resolved command type. ILLink.Descriptors.xml in Cgf.CameraControl.Atem preserves that
+      assembly whole, so the pattern is safe here but still trips the analyzer. The published
+      binary is checked with the aot-probe switch, which fails loudly if the registry ever comes
+      up empty.
+    -->
+    <NoWarn>$(NoWarn);IL2026;IL2075;IL2104</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <TrimmerRootAssembly Include="AtemSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\" />
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cgf.CameraControl.Core\Cgf.CameraControl.Core.csproj" />
+    <ProjectReference Include="..\Cgf.CameraControl.Atem\Cgf.CameraControl.Atem.csproj" />
+    <ProjectReference Include="..\Cgf.CameraControl.Cameras.WebsocketPtzLanc\Cgf.CameraControl.Cameras.WebsocketPtzLanc.csproj" />
+    <ProjectReference Include="..\Cgf.CameraControl.Input.Sdl\Cgf.CameraControl.Input.Sdl.csproj" />
+  </ItemGroup>
+</Project>

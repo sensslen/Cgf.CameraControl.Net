@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SDL3-CS" Version="3.4.14.1" />
+    <PackageReference Include="SDL3-CS.Linux" Version="3.4.14.1" />
+    <PackageReference Include="SDL3-CS.MacOS" Version="3.4.14.1" />
+    <PackageReference Include="SDL3-CS.Windows" Version="3.4.14.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cgf.CameraControl.Core\Cgf.CameraControl.Core.csproj" />
+  </ItemGroup>
+
+</Project>
