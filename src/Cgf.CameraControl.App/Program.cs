@@ -1,24 +1,44 @@
-﻿using Avalonia;
-using System;
+using System.CommandLine;
+using Avalonia;
 
 namespace Cgf.CameraControl.App;
 
-sealed class Program
+internal sealed class Program
 {
-    // Initialization code. Don't use any Avalonia, third-party APIs or any
-    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-    // yet and stuff might break.
+    // Everything a user needs is in the window. The only switches are the config file to open and a
+    // release-gate probe CI runs against each published binary.
     [STAThread]
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
-        if (args is ["--aot-probe"])
+        var configOption = new Option<FileInfo?>("--config")
         {
-            Console.WriteLine(Atem.AotProbe.Touch().GetAwaiter().GetResult());
-            Console.WriteLine(Input.Sdl.AotProbe.Touch());
-            return;
-        }
+            Description = "Configuration file to open instead of the last used one.",
+        };
 
+        var aotProbeOption = new Option<bool>("--aot-probe")
+        {
+            Description = "Verify the trimmed build still decodes ATEM commands, then exit.",
+            Hidden = true,
+        };
+
+        var root = new RootCommand("Gamepad control for ATEM switchers and their cameras.")
+        {
+            configOption,
+            aotProbeOption,
+        };
+
+        root.SetAction(parseResult => parseResult.GetValue(aotProbeOption)
+            ? AotProbes.Run()
+            : Launch(parseResult.GetValue(configOption), args));
+
+        return root.Parse(args).Invoke();
+    }
+
+    private static int Launch(FileInfo? config, string[] args)
+    {
+        AppEnvironment.ConfigFile = config;
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        return 0;
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.

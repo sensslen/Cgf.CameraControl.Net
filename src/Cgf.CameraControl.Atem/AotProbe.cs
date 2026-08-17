@@ -4,11 +4,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Cgf.CameraControl.Atem;
 
+public readonly record struct AotProbeResult(bool RegistryAlive, string Report);
+
 // AtemSharp discovers its command types via Assembly.GetTypes(). Trimming can empty that registry
-// without any error, so a published build has to prove the parser still decodes a real command.
+// with no error at all, so a published build has to prove the parser still decodes a real command.
+// Keeping AtemSharp is what TrimmerRootAssembly in the app project is for.
 public static class AotProbe
 {
-    public static async Task<string> Touch()
+    public static async Task<AotProbeResult> Touch()
     {
         var services = new ServiceCollection().AddAtemSharp().BuildServiceProvider().GetRequiredService<IServices>();
 
@@ -17,11 +20,13 @@ public static class AotProbe
         var unknown = Describe(parser, "ZZZZ", [0, 0, 0, 0]);
 
         await using var client = services.CreateAtemClient();
-        var verdict = known.StartsWith("null", StringComparison.Ordinal) || known == unknown
-            ? "FAIL: command registry is empty, trimming removed the command types"
-            : "OK: command registry survived trimming";
 
-        return $"parser PrgI -> {known}, ZZZZ -> {unknown}\n{verdict}";
+        var alive = known != "null" && known != unknown;
+        var verdict = alive
+            ? "OK: command registry survived trimming"
+            : "FAIL: command registry is empty, trimming removed the command types";
+
+        return new AotProbeResult(alive, $"parser PrgI -> {known}, ZZZZ -> {unknown}{Environment.NewLine}{verdict}");
     }
 
     private static string Describe(ICommandParser parser, string name, byte[] payload)
@@ -32,7 +37,7 @@ public static class AotProbe
         }
         catch (Exception ex)
         {
-            return $"{ex.GetType().Name}";
+            return ex.GetType().Name;
         }
     }
 }
