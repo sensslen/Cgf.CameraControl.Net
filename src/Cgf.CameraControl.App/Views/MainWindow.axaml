@@ -9,7 +9,7 @@
         x:Class="Cgf.CameraControl.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Width="1100" Height="700"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/appicon.ico"
         Title="{Binding Strings[app.title]^}"
         FlowDirection="{Binding Strings.FlowDirection^}"
         Background="Transparent"
@@ -71,7 +71,7 @@
          theme's own drag panel sits underneath the window content. -->
     <Grid Grid.Row="0" Name="CaptionStrip" Height="40" ColumnDefinitions="Auto,Auto,*,Auto"
           Background="Transparent" WindowDecorationProperties.ElementRole="TitleBar">
-      <Image Grid.Column="0" Source="/Assets/avalonia-logo.ico" Width="16" Height="16"
+      <Image Grid.Column="0" Source="/Assets/appicon.png" Width="16" Height="16"
              Margin="14,0,10,0" VerticalAlignment="Center" />
       <TextBlock Grid.Column="1" Classes="detail" Text="{Binding Strings[app.title]^}"
                  VerticalAlignment="Center" Margin="0,0,12,0" />

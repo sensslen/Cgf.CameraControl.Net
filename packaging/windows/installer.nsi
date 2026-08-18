@@ -51,6 +51,8 @@ VIAddVersionKey "LegalCopyright" "Copyright (c) 2026 ${PUBLISHER} and others"
 VIAddVersionKey "FileDescription" "${APPNAME} setup"
 
 !define MUI_ABORTWARNING
+!define MUI_ICON "..\icon\installer.ico"
+!define MUI_UNICON "..\icon\installer.ico"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${EXENAME}"
 
 !insertmacro MUI_PAGE_LICENSE "..\..\LICENSE"

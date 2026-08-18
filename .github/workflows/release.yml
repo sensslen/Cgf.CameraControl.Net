@@ -176,6 +176,7 @@ jobs:
           cp publish/CgfCameraControl packaging/linux/payload/
           cp publish/*.so packaging/linux/payload/ 2>/dev/null || true
           cp packaging/linux/*.desktop packaging/linux/*.metainfo.xml packaging/linux/payload/
+          cp packaging/icon/icon-256.png packaging/icon/icon.svg packaging/linux/payload/
 
           flatpak-builder --repo=repo --force-clean build \
             packaging/linux/io.github.sensslen.CgfCameraControl.yml

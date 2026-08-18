@@ -22,6 +22,8 @@ find "$source_dir" -maxdepth 1 -type f ! -name '*.pdb' ! -name '*.dSYM' \
     -exec cp {} "$bundle/Contents/MacOS/" \;
 chmod +x "$bundle/Contents/MacOS/$executable"
 
+cp "$(dirname "$0")/../icon/AppIcon.icns" "$bundle/Contents/Resources/AppIcon.icns"
+
 cat > "$bundle/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -31,6 +33,7 @@ cat > "$bundle/Contents/Info.plist" <<PLIST
   <key>CFBundleDisplayName</key><string>Camera Control</string>
   <key>CFBundleIdentifier</key><string>$identifier</string>
   <key>CFBundleExecutable</key><string>$executable</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleVersion</key><string>$version</string>
   <key>CFBundleShortVersionString</key><string>$version</string>
   <key>CFBundlePackageType</key><string>APPL</string>
