@@ -66,17 +66,14 @@ VIAddVersionKey "FileDescription" "${APPNAME} setup"
 !insertmacro MUI_LANGUAGE "English"
 
 Function .onInit
-  ; The installer is a 32 bit process, so a 64 bit host reports its real architecture through
-  ; PROCESSOR_ARCHITEW6432 and only the emulated value through PROCESSOR_ARCHITECTURE.
-  ReadEnvStr $0 "PROCESSOR_ARCHITEW6432"
-  ${If} $0 == ""
-    ReadEnvStr $0 "PROCESSOR_ARCHITECTURE"
-  ${EndIf}
-
   ; An ARM64 payload on anything else installs and then refuses to start. The other direction is
   ; fine: Windows on ARM runs the x64 build under emulation.
+  ;
+  ; IsNativeARM64 asks the operating system through IsWow64Process2 rather than reading
+  ; PROCESSOR_ARCHITEW6432, whose value from an emulated 32 bit process is not something to stake the
+  ; only ARM64 installer on.
   !if "${ARCH}" == "arm64"
-    ${If} $0 != "ARM64"
+    ${IfNot} ${IsNativeARM64}
       MessageBox MB_ICONSTOP "This is the ARM64 build. Install the x64 build on this computer."
       Abort
     ${EndIf}
