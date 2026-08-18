@@ -1,22 +1,199 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Cgf.CameraControl.App.ViewModels"
+        xmlns:hosting="using:Cgf.CameraControl.App.Hosting"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
         x:Class="Cgf.CameraControl.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
+        Width="1100" Height="700"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Cgf.CameraControl.App">
+        Title="Camera Control">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainViewModel />
-    </Design.DataContext>
+  <Window.Styles>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+    <Style Selector="TextBlock.detail">
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="SelectableTextBlock.detail">
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+    <Style Selector="Border.lamp">
+      <Setter Property="Width" Value="10" />
+      <Setter Property="Height" Value="10" />
+      <Setter Property="CornerRadius" Value="5" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+      <Setter Property="Background" Value="#4d4d4d" />
+    </Style>
+    <Style Selector="Border.lamp.connected">
+      <Setter Property="Background" Value="#2ecc71" />
+    </Style>
+    <Style Selector="Border.lamp.preview">
+      <Setter Property="Background" Value="#2ecc71" />
+    </Style>
+    <Style Selector="Border.lamp.program">
+      <Setter Property="Background" Value="#e74c3c" />
+    </Style>
+  </Window.Styles>
 
-    <TextBox Text="{Binding Greeting}"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center" />
+  <Grid RowDefinitions="Auto,2*,Auto,*">
+
+    <Border Grid.Row="0" Classes="card" Margin="8">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto" RowDefinitions="Auto,Auto">
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding ConfigPath}" VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis" />
+        <Button Grid.Row="0" Grid.Column="1" Content="Import" Margin="8,0,0,0"
+                Command="{Binding ImportCommand}" IsEnabled="{Binding !IsBusy}" />
+        <Button Grid.Row="0" Grid.Column="2" Content="Export" Margin="8,0,0,0"
+                Command="{Binding ExportCommand}" IsEnabled="{Binding !IsBusy}" />
+        <Button Grid.Row="0" Grid.Column="3" Content="Reload" Margin="8,0,0,0"
+                Command="{Binding ReloadCommand}" IsEnabled="{Binding !IsBusy}" />
+
+        <ItemsControl Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4" Margin="0,8,0,0"
+                      ItemsSource="{Binding Issues}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Text="{Binding}" Foreground="#e74c3c" TextWrapping="Wrap" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,*,*" Margin="8,0,8,0">
+
+        <DockPanel Grid.Column="0" Margin="0,0,4,0">
+          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="Video mixers" />
+          <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding Mixers}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MixerViewModel">
+                  <Border Classes="card">
+                    <StackPanel>
+                      <StackPanel Orientation="Horizontal">
+                        <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
+                        <TextBlock Text="{Binding ConnectionString}" />
+                      </StackPanel>
+                      <TextBlock Classes="detail" Margin="16,2,0,0">
+                        <Run Text="preview " /><Run Text="{Binding Preview}" />
+                        <Run Text="   program " /><Run Text="{Binding Program}" />
+                      </TextBlock>
+                      <TextBlock Classes="detail" Margin="16,0,0,0" Text="preview is on air"
+                                 IsVisible="{Binding IsPreviewOnAir}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+
+        <DockPanel Grid.Column="1" Margin="4,0">
+          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="Cameras" />
+          <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding Cameras}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:CameraViewModel">
+                  <Border Classes="card">
+                    <StackPanel>
+                      <StackPanel Orientation="Horizontal">
+                        <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
+                        <Border Classes="lamp" Classes.preview="{Binding IsOnPreview}"
+                                Classes.program="{Binding IsOnProgram}" />
+                        <TextBlock Text="{Binding ConnectionString}" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                      <TextBlock Classes="detail" Margin="16,2,0,0" Text="{Binding MovementText}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+
+        <DockPanel Grid.Column="2" Margin="4,0,0,0">
+          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="Interfaces" />
+          <ScrollViewer>
+            <StackPanel>
+              <ItemsControl ItemsSource="{Binding Interfaces}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:InterfaceViewModel">
+                    <Border Classes="card">
+                      <StackPanel Orientation="Horizontal">
+                        <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
+                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <TextBlock Classes="heading" Margin="0,8,0,6" Text="Connected pads" />
+              <TextBlock Classes="detail" Text="none" IsVisible="{Binding !Gamepads.Count}" />
+              <ItemsControl ItemsSource="{Binding Gamepads}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:GamepadViewModel">
+                    <Border Classes="card">
+                      <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                          <Border Classes="lamp" Classes.connected="{Binding IsClaimed}" />
+                          <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <SelectableTextBlock Classes="detail" Margin="16,2,0,0" Text="{Binding Serial}" />
+                        <TextBlock Classes="detail" Margin="16,0,0,0" Text="{Binding ClaimedBy}" />
+                        <TextBlock Classes="detail" Margin="16,0,0,0" Text="no rumble motors"
+                                   IsVisible="{Binding !SupportsRumble}" />
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+
+    </Grid>
+
+    <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" Background="Transparent" />
+
+    <DockPanel Grid.Row="3" DataContext="{Binding Log}" x:DataType="vm:LogViewModel" Margin="8,0,8,8">
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*">
+          <TextBlock Grid.Column="0" Classes="heading" Text="Log" VerticalAlignment="Center" />
+          <ComboBox Grid.Column="1" HorizontalAlignment="Right" MinWidth="160" Margin="0,0,0,6"
+                    ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" />
+        </Grid>
+        <Border Classes="card">
+          <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding Entries}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="hosting:LogEntry">
+                  <Grid ColumnDefinitions="Auto,Auto,*">
+                    <TextBlock Grid.Column="0" Classes="detail" Text="{Binding Time}" Margin="0,0,8,0" />
+                    <TextBlock Grid.Column="1" Classes="detail" Text="{Binding Source}" Margin="0,0,8,0"
+                               MinWidth="140" />
+                    <SelectableTextBlock Grid.Column="2" Text="{Binding Message}" TextWrapping="Wrap" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Border>
+    </DockPanel>
+
+  </Grid>
 
 </Window>

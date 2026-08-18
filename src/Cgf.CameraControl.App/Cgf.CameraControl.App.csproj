@@ -7,6 +7,8 @@
     <AssemblyName>CgfCameraControl</AssemblyName>
     <RootNamespace>Cgf.CameraControl.App</RootNamespace>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <!-- Reflection-based bindings are silently dropped by trimming, so every binding compiles. -->
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
   <PropertyGroup Label="NativeAOT">

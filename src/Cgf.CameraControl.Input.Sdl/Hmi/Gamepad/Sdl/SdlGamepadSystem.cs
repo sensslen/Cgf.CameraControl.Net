@@ -241,7 +241,7 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
         foreach (var device in unbound.Where(Unmatched))
         {
             device.ReportedUnmatched = true;
-            _logger.Error($"{device.Label}: no connected pad reports serial {device.SerialNumber}. Seen: {Seen()}");
+            _logger.Error($"SDL:{device.Label} matches no connected pad with serial {device.SerialNumber}. Seen: {Seen()}");
         }
 
         _presence.OnNext(_pads.Values

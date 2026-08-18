@@ -7,6 +7,7 @@
     <Project Path="src/Cgf.CameraControl.Input.Sdl/Cgf.CameraControl.Input.Sdl.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Cgf.CameraControl.App.Tests/Cgf.CameraControl.App.Tests.csproj" />
     <Project Path="tests/Cgf.CameraControl.Atem.Tests/Cgf.CameraControl.Atem.Tests.csproj" />
     <Project Path="tests/Cgf.CameraControl.Cameras.WebsocketPtzLanc.Tests/Cgf.CameraControl.Cameras.WebsocketPtzLanc.Tests.csproj" />
     <Project Path="tests/Cgf.CameraControl.Core.Tests/Cgf.CameraControl.Core.Tests.csproj" />

@@ -1,0 +1,50 @@
+{
+  "cams": [
+    {
+      "type": "Websocket.PtzLanc",
+      "instance": 1,
+      "ip": "10.0.0.11",
+      "showTallyLight": false
+    },
+    {
+      "type": "Websocket.PtzLanc",
+      "instance": 2,
+      "ip": "10.0.0.12",
+      "showTallyLight": false
+    }
+  ],
+  "videoMixers": [
+    {
+      "type": "passthrough/default",
+      "instance": 1
+    }
+  ],
+  "interfaces": [
+    {
+      "type": "gamepad",
+      "instance": 1,
+      "videoMixer": 1,
+      "connectionChange": {
+        "type": "direct",
+        "default": {
+          "up": 1,
+          "right": 2,
+          "down": 3,
+          "left": 4
+        }
+      },
+      "specialFunction": {
+        "default": {
+          "down": {
+            "type": "key",
+            "index": 1
+          }
+        }
+      },
+      "cameraMap": {
+        "1": 1,
+        "2": 2
+      }
+    }
+  ]
+}

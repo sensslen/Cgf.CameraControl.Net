@@ -178,9 +178,9 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
         }
     }
 
-    private void Log(string message) => _logger.Log($"Atem-{_ip}:{message}");
+    private void Log(string message) => _logger.Log($"Atem({_ip}):{message}");
 
-    private void Error(string message) => _logger.Error($"Atem-{_ip}:{message}");
+    private void Error(string message) => _logger.Error($"Atem({_ip}):{message}");
 }
 
 /// One connection per switcher address, shared by every mix effect block configured against it.
