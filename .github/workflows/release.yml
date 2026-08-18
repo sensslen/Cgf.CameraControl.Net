@@ -50,6 +50,11 @@ jobs:
             runs-on: ubuntu-24.04-arm
             native: true
     runs-on: ${{ matrix.runs-on }}
+    # Lifted to the job so the signing steps can test for them: an if condition cannot read secrets
+    # directly, only through env.
+    env:
+      WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
     steps:
       - uses: actions/checkout@v7
 
@@ -100,10 +105,11 @@ jobs:
           if (-not (Test-Path $out)) { throw "makensis produced no installer" }
 
       - name: Sign (Windows)
-        if: ${{ startsWith(matrix.rid, 'win-') && secrets.WINDOWS_CERTIFICATE_BASE64 != '' }}
+        if: ${{ startsWith(matrix.rid, 'win-') && env.WINDOWS_CERTIFICATE_BASE64 != '' }}
         env:
           CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+
         shell: pwsh
         run: |
           [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:CERTIFICATE))
@@ -121,7 +127,7 @@ jobs:
           packaging/macos/make-bundle.sh publish "${{ needs.version.outputs.full }}" "staging/Camera Control.app"
 
       - name: Sign and notarize (macOS)
-        if: ${{ startsWith(matrix.rid, 'osx-') && secrets.APPLE_CERTIFICATE_BASE64 != '' }}
+        if: ${{ startsWith(matrix.rid, 'osx-') && env.APPLE_CERTIFICATE_BASE64 != '' }}
         env:
           CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -219,11 +225,11 @@ jobs:
     needs: [version, release]
     if: ${{ needs.version.outputs.prerelease == '' }}
     runs-on: windows-latest
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
     steps:
       - name: Submit to winget
-        if: ${{ secrets.WINGET_TOKEN != '' }}
-        env:
-          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        if: ${{ env.WINGET_TOKEN != '' }}
         shell: pwsh
         run: |
           $version = "${{ needs.version.outputs.full }}"
@@ -235,5 +241,5 @@ jobs:
                    "$base/CameraControl-$version-win-arm64-setup.exe|arm64"
 
       - name: Note the skipped submission
-        if: ${{ secrets.WINGET_TOKEN == '' }}
+        if: ${{ env.WINGET_TOKEN == '' }}
         run: echo "::warning::winget submission skipped, WINGET_TOKEN is not configured"
