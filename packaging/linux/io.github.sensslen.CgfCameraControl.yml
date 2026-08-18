@@ -17,8 +17,9 @@ finish-args:
   # The switcher and the cameras are on the local network.
   - --share=network
   # Gamepads are read straight from /dev/input by SDL. Without this the interfaces are built, report
-  # themselves waiting for a pad, and never bind to one.
-  - --device=input
+  # themselves waiting for a pad, and never bind to one. The narrower --device=input would say the
+  # same thing but only flatpak 1.15 and later understand it, and the build runners are older.
+  - --device=all
   # The configuration file lives wherever the operator keeps it, which is not inside the sandbox.
   - --filesystem=home
 

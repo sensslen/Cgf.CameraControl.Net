@@ -103,13 +103,19 @@ jobs:
             choco install nsis -y --no-progress
           }
           New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          $source = [System.IO.Path]::GetFullPath("publish")
-          $out = [System.IO.Path]::GetFullPath("artifacts/CameraControl-${{ needs.version.outputs.full }}-${{ matrix.rid }}-setup.exe")
-          & $nsis /DVERSION=${{ needs.version.outputs.full }} `
-                  /DFILEVERSION=${{ needs.version.outputs.file }} `
-                  /DARCH=$("${{ matrix.rid }}".Replace("win-", "")) `
-                  /DSOURCE=$source /DOUTFILE=$out `
-                  packaging/windows/installer.nsi
+          $arch = '${{ matrix.rid }}' -replace '^win-', ''
+          $source = [System.IO.Path]::GetFullPath('publish')
+          $out = [System.IO.Path]::GetFullPath('artifacts/CameraControl-${{ needs.version.outputs.full }}-${{ matrix.rid }}-setup.exe')
+          # Each switch is passed as its own quoted string. Bare words containing quotes are parsed
+          # in argument mode, where the inner quotes end the token early.
+          $switches = @(
+            "/DVERSION=${{ needs.version.outputs.full }}"
+            "/DFILEVERSION=${{ needs.version.outputs.file }}"
+            "/DARCH=$arch"
+            "/DSOURCE=$source"
+            "/DOUTFILE=$out"
+          )
+          & $nsis @switches packaging/windows/installer.nsi
           if (-not (Test-Path $out)) { throw "makensis produced no installer" }
 
       - name: Sign (Windows)
