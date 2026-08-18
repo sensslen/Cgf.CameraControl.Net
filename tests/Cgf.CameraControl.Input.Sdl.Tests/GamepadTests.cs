@@ -15,12 +15,16 @@ public class GamepadTests
     private readonly ILogger _logger = Substitute.For<ILogger>();
     private readonly Subject<PreviewChange> _preview = new();
     private readonly Subject<int> _program = new();
+    private readonly BehaviorSubject<bool> _mixerConnected = new(false);
     private readonly Dictionary<int, ICameraConnection> _cameras = [];
+    private readonly Dictionary<int, BehaviorSubject<bool>> _cameraConnected = [];
 
     protected GamepadTests()
     {
         _mixer.WhenPreviewChanged.Returns(_preview);
         _mixer.WhenProgramChanged.Returns(_program);
+        _mixer.WhenConnectedChanged.Returns(_mixerConnected);
+        _mixer.ConnectionString.Returns("mixer");
     }
 
     public class Steering : GamepadTests
@@ -239,20 +243,130 @@ public class GamepadTests
         }
     }
 
+    public class Rumble : GamepadTests
+    {
+        [Fact]
+        public void ATransitionIsAcknowledged()
+        {
+            Build();
+
+            _device.RequestTransition(MixerTransition.Cut);
+
+            Assert.Single(_device.Rumbles);
+        }
+
+        [Fact]
+        public void ATransitionThatWasRefusedIsNotAcknowledged()
+        {
+            Build(enableChangingProgram: false);
+
+            _device.RequestTransition(MixerTransition.Cut);
+
+            Assert.Empty(_device.Rumbles);
+        }
+
+        [Fact]
+        public void OneOfOurCamerasGoingOnAirIsFelt()
+        {
+            Camera(1);
+            Build();
+
+            _program.OnNext(1);
+
+            Assert.Single(_device.Rumbles);
+        }
+
+        [Fact]
+        public void ProgramMovingToSomethingWeDoNotSteerIsNotFelt()
+        {
+            Camera(1);
+            Build();
+
+            _program.OnNext(9);
+
+            Assert.Empty(_device.Rumbles);
+        }
+
+        [Fact]
+        public void LosingTheMixerIsFelt()
+        {
+            Build();
+            _mixerConnected.OnNext(true);
+
+            _mixerConnected.OnNext(false);
+
+            Assert.Single(_device.Rumbles);
+        }
+
+        // Every connection starts disconnected, and an interface built before the switcher answers
+        // must not buzz in the operator's hand on startup.
+        [Fact]
+        public void StartingUpDisconnectedIsNotFelt()
+        {
+            Camera(1);
+            Build();
+
+            Assert.Empty(_device.Rumbles);
+        }
+
+        [Fact]
+        public void LosingTheSelectedCameraIsFelt()
+        {
+            Camera(1);
+            Build();
+            _preview.OnNext(new PreviewChange(1, false));
+            _cameraConnected[1].OnNext(true);
+
+            _cameraConnected[1].OnNext(false);
+
+            Assert.Single(_device.Rumbles);
+        }
+
+        // Another desk's camera dropping is not this operator's problem, and a pad that buzzes for
+        // everything stops meaning anything.
+        [Fact]
+        public void LosingACameraNobodyHereSteersIsNotFelt()
+        {
+            Camera(1);
+            Camera(2);
+            Build();
+            _preview.OnNext(new PreviewChange(1, false));
+            _cameraConnected[2].OnNext(true);
+
+            _cameraConnected[2].OnNext(false);
+
+            Assert.Empty(_device.Rumbles);
+        }
+
+        [Fact]
+        public void RumbleTurnedOffInConfigurationStaysSilent()
+        {
+            Build(rumble: false);
+
+            _device.RequestTransition(MixerTransition.Cut);
+
+            Assert.Empty(_device.Rumbles);
+        }
+    }
+
     private ICameraConnection Camera(int instance)
     {
+        var connected = new BehaviorSubject<bool>(false);
         var camera = Substitute.For<ICameraConnection>();
         camera.ConnectionString.Returns($"camera-{instance}");
+        camera.WhenConnectedChanged.Returns(connected);
         _cameras[instance] = camera;
+        _cameraConnected[instance] = connected;
         return camera;
     }
 
-    private Gamepad Build(bool enableChangingProgram = true) =>
+    private Gamepad Build(bool enableChangingProgram = true, bool rumble = true) =>
         new(
             new GamepadConfiguration
             {
                 VideoMixer = 1,
                 EnableChangingProgram = enableChangingProgram,
+                Rumble = rumble,
                 CameraMap = _cameras.Keys.ToDictionary(key => key, key => key),
                 ConnectionChange = new DirectConnectionChangeConfiguration
                 {

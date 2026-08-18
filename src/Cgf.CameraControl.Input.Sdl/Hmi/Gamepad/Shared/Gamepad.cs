@@ -1,4 +1,5 @@
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Cgf.CameraControl.Core.CameraConnection;
 using Cgf.CameraControl.Core.Hmi;
 using Cgf.CameraControl.Core.Logger;
@@ -10,10 +11,16 @@ namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 
 public sealed class Gamepad : IHmi
 {
+    // Long enough to feel through a thumb resting on the pad, short enough not to blur into the next
+    // one when an operator works a fast sequence of cuts.
+    private static readonly TimeSpan TransitionPulse = TimeSpan.FromMilliseconds(120);
+    private static readonly TimeSpan OnAirPulse = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan ConnectionLostPulse = TimeSpan.FromMilliseconds(600);
+
     private readonly GamepadConfiguration _config;
     private readonly IGamepadDevice _device;
     private readonly ILogger _logger;
-    private readonly IVideoMixer? _mixer;
+    private readonly IVideoMixer _mixer;
     private readonly Dictionary<int, ICameraConnection> _cameras = [];
     private readonly IConnectionChange _connectionChange;
     private readonly Dictionary<ButtonDirection, ISpecialFunction> _default = [];
@@ -26,11 +33,12 @@ public sealed class Gamepad : IHmi
     private ICameraConnection? _selectedPreviewCamera;
     private ICameraConnection? _selectedOnAirCamera;
     private int _selectedInput = -1;
+    private bool _mixerWasConnected;
 
     public Gamepad(
         GamepadConfiguration config,
         IGamepadDevice device,
-        IVideoMixer? mixer,
+        IVideoMixer mixer,
         Func<int, ICameraConnection?> resolveCamera,
         ILogger logger)
     {
@@ -58,11 +66,15 @@ public sealed class Gamepad : IHmi
         _subscriptions.Add(device.ConnectionChangeRequested.Subscribe(ChangeConnection));
         _subscriptions.Add(device.SpecialFunctionRequested.Subscribe(RunSpecialFunction));
         _subscriptions.Add(device.TransitionRequested.Subscribe(RunTransition));
+        _subscriptions.Add(mixer.WhenPreviewChanged.Subscribe(OnMixerPreviewChanged));
+        _subscriptions.Add(mixer.WhenProgramChanged.Subscribe(OnMixerProgramChanged));
+        _subscriptions.Add(mixer.WhenConnectedChanged.DistinctUntilChanged().Subscribe(OnMixerConnectionChanged));
 
-        if (mixer is not null)
+        foreach (var camera in _cameras.Values.Distinct())
         {
-            _subscriptions.Add(mixer.WhenPreviewChanged.Subscribe(OnMixerPreviewChanged));
-            _subscriptions.Add(mixer.WhenProgramChanged.Subscribe(OnMixerProgramChanged));
+            _subscriptions.Add(camera.WhenConnectedChanged
+                .DistinctUntilChanged()
+                .Subscribe(connected => OnCameraConnectionChanged(camera, connected)));
         }
     }
 
@@ -109,17 +121,12 @@ public sealed class Gamepad : IHmi
     {
         if (_connectionChange.Next(direction, _selectedInput, _modifiers) is { } next)
         {
-            _mixer?.ChangeInput(next);
+            _mixer.ChangeInput(next);
         }
     }
 
     private void RunSpecialFunction(ButtonDirection direction)
     {
-        if (_mixer is null)
-        {
-            return;
-        }
-
         // A modifier only overrides the default when it has something bound for that button.
         var bound = _modifiers switch
         {
@@ -133,14 +140,14 @@ public sealed class Gamepad : IHmi
             return;
         }
 
-        _ = RunSafelyAsync(bound, _mixer);
+        _ = RunSafelyAsync(bound);
     }
 
-    private async Task RunSafelyAsync(ISpecialFunction function, IVideoMixer mixer)
+    private async Task RunSafelyAsync(ISpecialFunction function)
     {
         try
         {
-            await function.RunAsync(mixer, _stopping.Token).ConfigureAwait(false);
+            await function.RunAsync(_mixer, _stopping.Token).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -158,12 +165,14 @@ public sealed class Gamepad : IHmi
         switch (transition)
         {
             case MixerTransition.Cut:
-                _mixer?.Cut();
+                _mixer.Cut();
                 break;
             case MixerTransition.Auto:
-                _mixer?.Auto();
+                _mixer.Auto();
                 break;
         }
+
+        Rumble(0.35, TransitionPulse);
     }
 
     private void OnMixerPreviewChanged(PreviewChange change)
@@ -220,6 +229,43 @@ public sealed class Gamepad : IHmi
 
         _selectedOnAirCamera = onAir;
         _selectedOnAirCamera?.SetTally(TallyState.Program);
+
+        if (onAir is not null)
+        {
+            Rumble(0.7, OnAirPulse);
+        }
+    }
+
+    private void OnMixerConnectionChanged(bool connected)
+    {
+        if (_mixerWasConnected && !connected)
+        {
+            LogError($"lost the connection to {_mixer.ConnectionString}");
+            Rumble(1, ConnectionLostPulse);
+        }
+
+        _mixerWasConnected = connected;
+    }
+
+    // Only the camera under the operator's own sticks is worth interrupting them for; a camera
+    // another desk is steering is not their problem.
+    private void OnCameraConnectionChanged(ICameraConnection camera, bool connected)
+    {
+        if (connected || (camera != _selectedPreviewCamera && camera != _selectedOnAirCamera))
+        {
+            return;
+        }
+
+        LogError($"lost the connection to {camera.ConnectionString}");
+        Rumble(1, ConnectionLostPulse);
+    }
+
+    private void Rumble(double intensity, TimeSpan duration)
+    {
+        if (_config.Rumble)
+        {
+            _device.Rumble(intensity, duration);
+        }
     }
 
     private static string OnAirSuffix(bool onAir) => onAir ? " - OnAir" : string.Empty;

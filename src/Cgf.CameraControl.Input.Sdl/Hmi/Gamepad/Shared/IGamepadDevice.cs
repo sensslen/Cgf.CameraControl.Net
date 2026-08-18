@@ -1,4 +1,4 @@
-namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
+﻿namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 
 public readonly record struct StickPosition(double X, double Y);
 
@@ -19,8 +19,11 @@ public interface IGamepadDevice : IAsyncDisposable
 
     IObservable<bool> WhenConnectedChanged { get; }
 
+    /// Pan on X, tilt on Y. Both sticks report in camera terms rather than in SDL's, because the
+    /// inversions belong with the pad they compensate for and nowhere above it.
     IObservable<StickPosition> LeftStick { get; }
 
+    /// Focus on X, zoom on Y.
     IObservable<StickPosition> RightStick { get; }
 
     /// The direction pad.
