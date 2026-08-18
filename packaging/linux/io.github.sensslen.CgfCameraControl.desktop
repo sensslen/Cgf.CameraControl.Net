@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Camera Control
+Comment=Drive ATEM switchers and PTZ cameras from a gamepad
+Exec=CgfCameraControl
+Icon=io.github.sensslen.CgfCameraControl
+Terminal=false
+Categories=AudioVideo;Video;

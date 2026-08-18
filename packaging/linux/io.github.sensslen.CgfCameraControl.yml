@@ -1,0 +1,37 @@
+# Flatpak manifest for a release build.
+#
+# The application is not compiled inside the sandbox: it is a NativeAOT binary produced by the
+# release workflow and copied in as-is, which is why the only module is a "simple" one. Building it
+# here instead would mean carrying the .NET SDK into the manifest for no benefit.
+app-id: io.github.sensslen.CgfCameraControl
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: CgfCameraControl
+
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+  # The switcher and the cameras are on the local network.
+  - --share=network
+  # Gamepads are read straight from /dev/input by SDL. Without this the interfaces are built, report
+  # themselves waiting for a pad, and never bind to one.
+  - --device=input
+  # The configuration file lives wherever the operator keeps it, which is not inside the sandbox.
+  - --filesystem=home
+
+modules:
+  - name: camera-control
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 CgfCameraControl /app/bin/CgfCameraControl
+      - install -Dm644 *.so /app/bin/ || true
+      - install -Dm644 io.github.sensslen.CgfCameraControl.desktop
+        /app/share/applications/io.github.sensslen.CgfCameraControl.desktop
+      - install -Dm644 io.github.sensslen.CgfCameraControl.metainfo.xml
+        /app/share/metainfo/io.github.sensslen.CgfCameraControl.metainfo.xml
+    sources:
+      - type: dir
+        path: payload

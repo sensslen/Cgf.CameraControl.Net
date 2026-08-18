@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.sensslen.CgfCameraControl</id>
+  <name>Camera Control</name>
+  <summary>Drive ATEM switchers and PTZ cameras from a gamepad</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.sensslen">
+    <name>Simon Ensslen</name>
+  </developer>
+  <description>
+    <p>
+      Operates Blackmagic ATEM switchers and PTZ cameras from a game controller. One operator steers
+      whichever camera is on preview, changes the preview selection, cuts and runs macros, while the
+      window shows the state of every mixer, camera and controller it is configured with.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.sensslen.CgfCameraControl.desktop</launchable>
+  <content_rating type="oars-1.1" />
+  <url type="homepage">https://github.com/sensslen/Cgf.CameraControl.Net</url>
+  <url type="bugtracker">https://github.com/sensslen/Cgf.CameraControl.Net/issues</url>
+</component>

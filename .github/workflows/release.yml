@@ -1,0 +1,238 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+# NativeAOT cannot cross compile between operating systems, so each one builds on its own runner.
+# macOS builds both of its architectures because it is the only host that can.
+#
+# Signing is conditional on the credentials existing, so a fork without them still produces working
+# artifacts. Unsigned means a SmartScreen warning on Windows, but on macOS it means Gatekeeper
+# refuses the application outright, which the release notes have to say.
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      full: ${{ steps.version.outputs.full_without_prefix }}
+      file: ${{ steps.version.outputs.major }}.${{ steps.version.outputs.minor }}.${{ steps.version.outputs.patch }}.0
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: nowsprinting/check-version-format-action@2946b47fb3590f88fc80b3579e72cd15c0fa90cb # v5.0.4
+        id: version
+        with:
+          prefix: 'v'
+
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: win-x64
+            runs-on: windows-latest
+            native: true
+          - rid: win-arm64
+            runs-on: windows-11-arm
+            native: true
+          - rid: osx-x64
+            runs-on: macos-latest
+            native: false
+          - rid: osx-arm64
+            runs-on: macos-latest
+            native: true
+          - rid: linux-x64
+            runs-on: ubuntu-latest
+            native: true
+          - rid: linux-arm64
+            runs-on: ubuntu-24.04-arm
+            native: true
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish
+        run: >
+          dotnet publish src/Cgf.CameraControl.App/Cgf.CameraControl.App.csproj
+          -c Release -r ${{ matrix.rid }} -o publish
+          -p:Version=${{ needs.version.outputs.full }}
+          -p:ContinuousIntegrationBuild=true
+
+      # AtemSharp builds its command registry by reflecting over its own assembly, and localization is
+      # embedded rather than carried in satellite assemblies. Both fail silently under trimming, so
+      # the published binary has to say out loud that it still works. Skipped only where the runner
+      # cannot execute what it just built; every operating system still probes one architecture.
+      - name: Verify the trimmed build
+        if: matrix.native
+        shell: bash
+        run: |
+          binary=publish/CgfCameraControl
+          [ -f "$binary.exe" ] && binary="$binary.exe"
+          "$binary" --aot-probe
+
+      - name: Note the skipped verification
+        if: ${{ !matrix.native }}
+        run: echo "::warning::aot-probe skipped for ${{ matrix.rid }}, this runner cannot execute it"
+
+      - name: Package (Windows)
+        if: startsWith(matrix.rid, 'win-')
+        shell: pwsh
+        run: |
+          $nsis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
+          if (-not (Test-Path $nsis)) {
+            choco install nsis -y --no-progress
+          }
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          $source = [System.IO.Path]::GetFullPath("publish")
+          $out = [System.IO.Path]::GetFullPath("artifacts/CameraControl-${{ needs.version.outputs.full }}-${{ matrix.rid }}-setup.exe")
+          & $nsis /DVERSION=${{ needs.version.outputs.full }} `
+                  /DFILEVERSION=${{ needs.version.outputs.file }} `
+                  /DARCH=$("${{ matrix.rid }}".Replace("win-", "")) `
+                  /DSOURCE=$source /DOUTFILE=$out `
+                  packaging/windows/installer.nsi
+          if (-not (Test-Path $out)) { throw "makensis produced no installer" }
+
+      - name: Sign (Windows)
+        if: ${{ startsWith(matrix.rid, 'win-') && secrets.WINDOWS_CERTIFICATE_BASE64 != '' }}
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        shell: pwsh
+        run: |
+          [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:CERTIFICATE))
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match "x64" } | Select-Object -First 1
+          & $signtool.FullName sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
+            /f cert.pfx /p $env:CERTIFICATE_PASSWORD artifacts/*.exe
+          Remove-Item cert.pfx
+
+      - name: Package (macOS)
+        if: startsWith(matrix.rid, 'osx-')
+        run: |
+          brew install create-dmg
+          mkdir -p artifacts staging
+          packaging/macos/make-bundle.sh publish "${{ needs.version.outputs.full }}" "staging/Camera Control.app"
+
+      - name: Sign and notarize (macOS)
+        if: ${{ startsWith(matrix.rid, 'osx-') && secrets.APPLE_CERTIFICATE_BASE64 != '' }}
+        env:
+          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          security create-keychain -p actions build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p actions build.keychain
+          echo "$CERTIFICATE" | base64 --decode > cert.p12
+          security import cert.p12 -k build.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k actions build.keychain
+          rm cert.p12
+
+          # Deepest first: a bundle is only valid if everything inside it was signed before the
+          # bundle itself. The hardened runtime is what notarization requires.
+          codesign --force --deep --options runtime --timestamp \
+            --sign "$SIGNING_IDENTITY" "staging/Camera Control.app"
+          codesign --verify --strict --verbose=2 "staging/Camera Control.app"
+
+          ditto -c -k --keepParent "staging/Camera Control.app" notarize.zip
+          xcrun notarytool submit notarize.zip --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "staging/Camera Control.app"
+
+      - name: Build the disk image (macOS)
+        if: startsWith(matrix.rid, 'osx-')
+        run: |
+          dmg="artifacts/CameraControl-${{ needs.version.outputs.full }}-${{ matrix.rid }}.dmg"
+          # create-dmg reports failure when it cannot set a volume icon, which is not fatal, so the
+          # result is judged by whether the image exists.
+          create-dmg \
+            --volname "Camera Control" \
+            --app-drop-link 480 170 \
+            --icon "Camera Control.app" 160 170 \
+            --window-size 640 360 \
+            "$dmg" "staging/Camera Control.app" || true
+          test -f "$dmg"
+
+      - name: Package (Linux)
+        if: startsWith(matrix.rid, 'linux-')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install -y --noninteractive flathub \
+            org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+
+          mkdir -p artifacts packaging/linux/payload
+          cp publish/CgfCameraControl packaging/linux/payload/
+          cp publish/*.so packaging/linux/payload/ 2>/dev/null || true
+          cp packaging/linux/*.desktop packaging/linux/*.metainfo.xml packaging/linux/payload/
+
+          flatpak-builder --repo=repo --force-clean build \
+            packaging/linux/io.github.sensslen.CgfCameraControl.yml
+          flatpak build-bundle repo \
+            "artifacts/CameraControl-${{ needs.version.outputs.full }}-${{ matrix.rid }}.flatpak" \
+            io.github.sensslen.CgfCameraControl
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.rid }}
+          path: artifacts/*
+          if-no-files-found: error
+
+  release:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
+        with:
+          prerelease: ${{ needs.version.outputs.prerelease != '' }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: artifacts/*
+
+  # winget is how Windows gets the application and how it learns a new version exists, which is why
+  # the application itself has no update mechanism. winget understands NSIS natively as the
+  # "nullsoft" installer type, including its silent switches.
+  #
+  # wingetcreate updates an existing package, so the first version has to be submitted once by hand
+  # with `wingetcreate new`. Prereleases are not submitted.
+  winget:
+    needs: [version, release]
+    if: ${{ needs.version.outputs.prerelease == '' }}
+    runs-on: windows-latest
+    steps:
+      - name: Submit to winget
+        if: ${{ secrets.WINGET_TOKEN != '' }}
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        shell: pwsh
+        run: |
+          $version = "${{ needs.version.outputs.full }}"
+          $base = "https://github.com/${{ github.repository }}/releases/download/v$version"
+          winget install --id Microsoft.WingetCreate --exact --source winget `
+            --accept-package-agreements --accept-source-agreements
+          wingetcreate update Sensslen.CameraControl --version $version --submit --token $env:WINGET_TOKEN `
+            --urls "$base/CameraControl-$version-win-x64-setup.exe|x64" `
+                   "$base/CameraControl-$version-win-arm64-setup.exe|arm64"
+
+      - name: Note the skipped submission
+        if: ${{ secrets.WINGET_TOKEN == '' }}
+        run: echo "::warning::winget submission skipped, WINGET_TOKEN is not configured"
