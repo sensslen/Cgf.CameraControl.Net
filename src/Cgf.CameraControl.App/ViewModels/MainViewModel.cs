@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -17,7 +16,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         _host = host;
         Log = new LogViewModel(host.Logger);
         Languages = [.. Localizer.Languages.Select(language => new LanguageViewModel(language))];
-        Localizer.Current.PropertyChanged += OnLanguageChanged;
+        Localizer.Current.LanguageChanged += OnLanguageChanged;
         _presence = host.Gamepads.WhenPresenceChanged.Bind(pads =>
         {
             Gamepads.Clear();
@@ -89,13 +88,13 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
-        Localizer.Current.PropertyChanged -= OnLanguageChanged;
+        Localizer.Current.LanguageChanged -= OnLanguageChanged;
         _presence.Dispose();
         Log.Dispose();
         Clear();
     }
 
-    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnLanguageChanged(object? sender, EventArgs e)
     {
         foreach (var language in Languages)
         {

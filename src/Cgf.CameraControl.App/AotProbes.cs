@@ -25,12 +25,13 @@ public static class AotProbes
     private static (bool Alive, string Report) ProbeLocalization()
     {
         var missing = new List<string>();
-        var english = Localizer.Current["app.title"];
+        var title = Localizer.Current["app.title"];
+        var english = Latest(title);
 
         foreach (var language in Localizer.Languages)
         {
             Localizer.Current.Use(language);
-            var translated = Localizer.Current["app.title"];
+            var translated = Latest(title);
 
             // A language whose file did not survive falls back, so English is the tell for
             // everything except English itself.
@@ -45,5 +46,14 @@ public static class AotProbes
         return missing.Count == 0
             ? (true, $"localization {Localizer.Languages.Count} languages -> OK: all resolve")
             : (false, $"localization -> FAIL: not embedded or not reachable: {string.Join(", ", missing)}");
+    }
+
+    private static string Latest(IObservable<string> source)
+    {
+        var latest = string.Empty;
+        using (source.Subscribe(value => latest = value))
+        {
+            return latest;
+        }
     }
 }

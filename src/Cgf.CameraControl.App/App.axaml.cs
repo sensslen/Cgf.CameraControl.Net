@@ -31,6 +31,7 @@ public partial class App : Application
 
             var window = new MainWindow { DataContext = _model };
             _model.PickFile = window.PickFileAsync;
+            SystemMenu.Attach(window, _model);
             desktop.MainWindow = window;
             desktop.ShutdownRequested += OnShutdownRequested;
 

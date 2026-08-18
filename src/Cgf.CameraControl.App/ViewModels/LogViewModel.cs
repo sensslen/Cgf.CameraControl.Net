@@ -1,5 +1,5 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
+using System.Reactive.Linq;
 using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -8,13 +8,12 @@ namespace Cgf.CameraControl.App.ViewModels;
 
 /// A component to filter the log by, or every component when the name is absent. Source names are
 /// the components' own, so the only translated entry is the one that means all of them.
-public sealed class LogSource(string? name) : ViewModelBase
+public sealed class LogSource(string? name)
 {
     public string? Name => name;
 
-    public string Display => name ?? Localizer.Current["log.allSources"];
-
-    public void Retranslate() => OnPropertyChanged(nameof(Display));
+    public IObservable<string> Display =>
+        name is null ? Localizer.Current["log.allSources"] : Observable.Return(name);
 }
 
 public sealed partial class LogViewModel : ViewModelBase, IDisposable
@@ -32,7 +31,6 @@ public sealed partial class LogViewModel : ViewModelBase, IDisposable
         Sources = [_everything];
         SelectedSource = _everything;
         _subscription = logger.WhenLogged.Bind(Append);
-        Localizer.Current.PropertyChanged += OnLanguageChanged;
     }
 
     public ObservableCollection<LogEntry> Entries { get; } = [];
@@ -42,13 +40,7 @@ public sealed partial class LogViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial LogSource SelectedSource { get; set; }
 
-    public void Dispose()
-    {
-        Localizer.Current.PropertyChanged -= OnLanguageChanged;
-        _subscription.Dispose();
-    }
-
-    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs e) => _everything.Retranslate();
+    public void Dispose() => _subscription.Dispose();
 
     partial void OnSelectedSourceChanged(LogSource value)
     {

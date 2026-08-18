@@ -10,8 +10,10 @@
         x:DataType="vm:MainViewModel"
         Width="1100" Height="700"
         Icon="/Assets/avalonia-logo.ico"
-        Title="{Binding Strings[app.title]}"
-        FlowDirection="{Binding Strings.FlowDirection}">
+        Title="{Binding Strings[app.title]^}"
+        FlowDirection="{Binding Strings.FlowDirection^}"
+        Background="Transparent"
+        TransparencyLevelHint="Mica, AcrylicBlur, Blur">
 
   <Window.Styles>
     <Style Selector="TextBlock.heading">
@@ -27,11 +29,20 @@
       <Setter Property="FontSize" Value="12" />
     </Style>
     <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="CornerRadius" Value="6" />
       <Setter Property="Padding" Value="8" />
       <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+    <Style Selector="Border.problem">
+      <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="Margin" Value="0,0,0,4" />
     </Style>
     <Style Selector="Border.lamp">
       <Setter Property="Width" Value="10" />
@@ -54,16 +65,20 @@
 
   <Grid RowDefinitions="Auto,Auto,2*,Auto,*">
 
-    <Menu Grid.Row="0">
-      <MenuItem Header="{Binding Strings[menu.file]}">
-        <MenuItem Header="{Binding Strings[config.import]}" Command="{Binding ImportCommand}"
+    <!-- Flush against the system title bar rather than drawn inside it. Extending the client area
+         hands the caption buttons to Avalonia, which adds a full screen toggle that Windows itself
+         does not have and this application has no use for. -->
+    <Grid Grid.Row="0">
+      <Menu Name="InWindowMenu" Background="Transparent" HorizontalAlignment="Left" Margin="8,0,0,0">
+      <MenuItem Header="{Binding Strings[menu.file]^}">
+        <MenuItem Header="{Binding Strings[config.import]^}" Command="{Binding ImportCommand}"
                   IsEnabled="{Binding !IsBusy}" />
-        <MenuItem Header="{Binding Strings[config.export]}" Command="{Binding ExportCommand}"
+        <MenuItem Header="{Binding Strings[config.export]^}" Command="{Binding ExportCommand}"
                   IsEnabled="{Binding !IsBusy}" />
-        <MenuItem Header="{Binding Strings[config.reload]}" Command="{Binding ReloadCommand}"
+        <MenuItem Header="{Binding Strings[config.reload]^}" Command="{Binding ReloadCommand}"
                   IsEnabled="{Binding !IsBusy}" />
       </MenuItem>
-      <MenuItem Header="{Binding Strings[language.label]}" ItemsSource="{Binding Languages}">
+      <MenuItem Header="{Binding Strings[language.label]^}" ItemsSource="{Binding Languages}">
         <MenuItem.ItemContainerTheme>
           <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}"
                         x:DataType="vm:LanguageViewModel">
@@ -74,25 +89,26 @@
           </ControlTheme>
         </MenuItem.ItemContainerTheme>
       </MenuItem>
-    </Menu>
+      </Menu>
+    </Grid>
 
-    <Border Grid.Row="1" Classes="card" Margin="8">
-      <StackPanel>
-        <TextBlock Text="{Binding ConfigPath}" TextTrimming="CharacterEllipsis" />
-        <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Issues}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="x:String">
-              <TextBlock Text="{Binding}" Foreground="#e74c3c" TextWrapping="Wrap" />
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </StackPanel>
-    </Border>
+    <StackPanel Grid.Row="1" Margin="16,4,16,12">
+      <SelectableTextBlock Classes="detail" Text="{Binding ConfigPath}" TextTrimming="CharacterEllipsis" />
+      <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Issues}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Border Classes="problem">
+              <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
 
-    <Grid Grid.Row="2" ColumnDefinitions="*,*,*" Margin="8,0,8,0">
+    <Grid Grid.Row="2" ColumnDefinitions="*,*,*" Margin="16,0,16,0">
 
         <DockPanel Grid.Column="0" Margin="0,0,4,0">
-          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding Strings[panel.mixers]}" />
+          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding Strings[panel.mixers]^}" />
           <ScrollViewer>
             <ItemsControl ItemsSource="{Binding Mixers}">
               <ItemsControl.ItemTemplate>
@@ -104,10 +120,10 @@
                         <TextBlock Text="{Binding ConnectionString}" />
                       </StackPanel>
                       <TextBlock Classes="detail" Margin="16,2,0,0">
-                        <Run Text="{Binding [mixer.preview], Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Preview}" />
-                        <Run Text="   " /><Run Text="{Binding [mixer.program], Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Program}" />
+                        <Run Text="{Binding [mixer.preview]^, Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Preview}" />
+                        <Run Text="   " /><Run Text="{Binding [mixer.program]^, Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Program}" />
                       </TextBlock>
-                      <TextBlock Classes="detail" Margin="16,0,0,0" Text="{Binding [mixer.onAir], Source={x:Static loc:Localizer.Current}}"
+                      <TextBlock Classes="detail" Margin="16,0,0,0" Text="{Binding [mixer.onAir]^, Source={x:Static loc:Localizer.Current}}"
                                  IsVisible="{Binding IsPreviewOnAir}" />
                     </StackPanel>
                   </Border>
@@ -118,7 +134,7 @@
         </DockPanel>
 
         <DockPanel Grid.Column="1" Margin="4,0">
-          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding Strings[panel.cameras]}" />
+          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding Strings[panel.cameras]^}" />
           <ScrollViewer>
             <ItemsControl ItemsSource="{Binding Cameras}">
               <ItemsControl.ItemTemplate>
@@ -141,7 +157,7 @@
         </DockPanel>
 
         <DockPanel Grid.Column="2" Margin="4,0,0,0">
-          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding Strings[panel.interfaces]}" />
+          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding Strings[panel.interfaces]^}" />
           <ScrollViewer>
             <StackPanel>
               <ItemsControl ItemsSource="{Binding Interfaces}">
@@ -154,15 +170,15 @@
                           <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
                         </StackPanel>
                         <TextBlock Classes="detail" Margin="16,2,0,0" IsVisible="{Binding !IsConnected}"
-                                   Text="{Binding [interface.disconnected], Source={x:Static loc:Localizer.Current}}" />
+                                   Text="{Binding [interface.disconnected]^, Source={x:Static loc:Localizer.Current}}" />
                       </StackPanel>
                     </Border>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
 
-              <TextBlock Classes="heading" Margin="0,8,0,6" Text="{Binding Strings[panel.pads]}" />
-              <TextBlock Classes="detail" Text="{Binding Strings[pad.none]}" IsVisible="{Binding !Gamepads.Count}" />
+              <TextBlock Classes="heading" Margin="0,8,0,6" Text="{Binding Strings[panel.pads]^}" />
+              <TextBlock Classes="detail" Text="{Binding Strings[pad.none]^}" IsVisible="{Binding !Gamepads.Count}" />
               <ItemsControl ItemsSource="{Binding Gamepads}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:GamepadViewModel">
@@ -174,7 +190,7 @@
                         </StackPanel>
                         <SelectableTextBlock Classes="detail" Margin="16,2,0,0" Text="{Binding Serial}" />
                         <TextBlock Classes="detail" Margin="16,0,0,0" Text="{Binding ClaimedBy}" />
-                        <TextBlock Classes="detail" Margin="16,0,0,0" Text="{Binding [pad.noRumble], Source={x:Static loc:Localizer.Current}}"
+                        <TextBlock Classes="detail" Margin="16,0,0,0" Text="{Binding [pad.noRumble]^, Source={x:Static loc:Localizer.Current}}"
                                    IsVisible="{Binding !SupportsRumble}" />
                       </StackPanel>
                     </Border>
@@ -189,14 +205,14 @@
 
     <GridSplitter Grid.Row="3" Height="6" HorizontalAlignment="Stretch" Background="Transparent" />
 
-    <DockPanel Grid.Row="4" DataContext="{Binding Log}" x:DataType="vm:LogViewModel" Margin="8,0,8,8">
+    <DockPanel Grid.Row="4" DataContext="{Binding Log}" x:DataType="vm:LogViewModel" Margin="16,0,16,16">
         <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*">
-          <TextBlock Grid.Column="0" Classes="heading" Text="{Binding [panel.log], Source={x:Static loc:Localizer.Current}}" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="0" Classes="heading" Text="{Binding [panel.log]^, Source={x:Static loc:Localizer.Current}}" VerticalAlignment="Center" />
           <ComboBox Grid.Column="1" HorizontalAlignment="Right" MinWidth="160" Margin="0,0,0,6"
                     ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}">
             <ComboBox.ItemTemplate>
               <DataTemplate x:DataType="vm:LogSource">
-                <TextBlock Text="{Binding Display}" />
+                <TextBlock Text="{Binding Display^}" />
               </DataTemplate>
             </ComboBox.ItemTemplate>
           </ComboBox>
