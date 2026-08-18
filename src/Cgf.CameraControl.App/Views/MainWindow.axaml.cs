@@ -17,9 +17,14 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        // On macOS the menu is published to the system menu bar instead, and a second copy inside
-        // the window would be both wrong and redundant.
-        InWindowMenu.IsVisible = !OperatingSystem.IsMacOS();
+        // macOS draws its own title bar with the traffic lights in it and publishes the menu to the
+        // system menu bar, so this window has nothing to draw up there and no client area to extend.
+        // Windows and Linux let Avalonia draw the frame, which is what makes an icon, a name and a
+        // menu inside the title bar possible at all.
+        var drawsOwnTitleBar = !OperatingSystem.IsMacOS();
+        ExtendClientAreaToDecorationsHint = drawsOwnTitleBar;
+        ExtendClientAreaTitleBarHeightHint = 40;
+        CaptionStrip.IsVisible = drawsOwnTitleBar;
     }
 
     public async Task<string?> PickFileAsync(bool save)

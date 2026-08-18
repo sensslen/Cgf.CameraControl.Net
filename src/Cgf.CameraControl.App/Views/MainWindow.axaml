@@ -13,7 +13,8 @@
         Title="{Binding Strings[app.title]^}"
         FlowDirection="{Binding Strings.FlowDirection^}"
         Background="Transparent"
-        TransparencyLevelHint="Mica, AcrylicBlur, Blur">
+        TransparencyLevelHint="Mica, AcrylicBlur, Blur"
+        WindowDecorationsTheme="{StaticResource CameraControlWindowDecorations}">
 
   <Window.Styles>
     <Style Selector="TextBlock.heading">
@@ -65,11 +66,17 @@
 
   <Grid RowDefinitions="Auto,Auto,2*,Auto,*">
 
-    <!-- Flush against the system title bar rather than drawn inside it. Extending the client area
-         hands the caption buttons to Avalonia, which adds a full screen toggle that Windows itself
-         does not have and this application has no use for. -->
-    <Grid Grid.Row="0">
-      <Menu Name="InWindowMenu" Background="Transparent" HorizontalAlignment="Left" Margin="8,0,0,0">
+    <!-- The title bar itself. The client area is extended into it and the decorations theme leaves
+         it empty, so this is what the user sees up there. Marked as the drag region because the
+         theme's own drag panel sits underneath the window content. -->
+    <Grid Grid.Row="0" Name="CaptionStrip" Height="40" ColumnDefinitions="Auto,Auto,*,Auto"
+          Background="Transparent" WindowDecorationProperties.ElementRole="TitleBar">
+      <Image Grid.Column="0" Source="/Assets/avalonia-logo.ico" Width="16" Height="16"
+             Margin="14,0,10,0" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Classes="detail" Text="{Binding Strings[app.title]^}"
+                 VerticalAlignment="Center" Margin="0,0,12,0" />
+      <Menu Grid.Column="2" Name="InWindowMenu" Background="Transparent"
+            HorizontalAlignment="Left" VerticalAlignment="Center">
       <MenuItem Header="{Binding Strings[menu.file]^}">
         <MenuItem Header="{Binding Strings[config.import]^}" Command="{Binding ImportCommand}"
                   IsEnabled="{Binding !IsBusy}" />
@@ -90,6 +97,8 @@
         </MenuItem.ItemContainerTheme>
       </MenuItem>
       </Menu>
+      <!-- Kept clear for the caption buttons the decorations theme draws over this strip. -->
+      <Panel Grid.Column="3" Width="138" />
     </Grid>
 
     <StackPanel Grid.Row="1" Margin="16,4,16,12">
