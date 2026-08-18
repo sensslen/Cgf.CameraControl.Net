@@ -74,7 +74,7 @@ public sealed class AppHost : IAsyncDisposable
 
         Configuration = config;
         ConfigPath = path;
-        LastConfig.Write(path);
+        Settings.Update(settings => settings.ConfigPath = path);
         Logger.Log($"Configuration:loaded {path}");
         return new ConfigLoadResult(path, fileIssues, entryIssues);
     }

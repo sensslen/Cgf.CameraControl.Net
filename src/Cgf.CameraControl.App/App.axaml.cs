@@ -1,7 +1,9 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Cgf.CameraControl.App.Hosting;
+using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using Cgf.CameraControl.App.Views;
 
@@ -18,6 +20,12 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var settings = Settings.Read();
+            Localizer.Current.Use(settings.Language is { } chosen
+                ? Localizer.Languages.FirstOrDefault(language => language.Culture == chosen)
+                  ?? Localizer.Match(CultureInfo.CurrentUICulture)
+                : Localizer.Match(CultureInfo.CurrentUICulture));
+
             _host = new AppHost();
             _model = new MainViewModel(_host);
 
@@ -26,7 +34,7 @@ public partial class App : Application
             desktop.MainWindow = window;
             desktop.ShutdownRequested += OnShutdownRequested;
 
-            var startup = AppEnvironment.ConfigFile?.FullName ?? LastConfig.Read();
+            var startup = AppEnvironment.ConfigFile?.FullName ?? settings.ConfigPath;
             if (startup is not null)
             {
                 _ = _model.LoadAsync(startup);

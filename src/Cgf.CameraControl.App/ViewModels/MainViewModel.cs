@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using Cgf.CameraControl.App.Hosting;
+using Cgf.CameraControl.App.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -14,6 +16,8 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     {
         _host = host;
         Log = new LogViewModel(host.Logger);
+        Languages = [.. Localizer.Languages.Select(language => new LanguageViewModel(language))];
+        Localizer.Current.PropertyChanged += OnLanguageChanged;
         _presence = host.Gamepads.WhenPresenceChanged.Bind(pads =>
         {
             Gamepads.Clear();
@@ -26,6 +30,10 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     /// Supplied by the window, because a file dialog needs one and a view model must not hold it.
     public Func<bool, Task<string?>>? PickFile { get; set; }
+
+    public Localizer Strings => Localizer.Current;
+
+    public IReadOnlyList<LanguageViewModel> Languages { get; }
 
     public LogViewModel Log { get; }
 
@@ -81,9 +89,18 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        Localizer.Current.PropertyChanged -= OnLanguageChanged;
         _presence.Dispose();
         Log.Dispose();
         Clear();
+    }
+
+    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        foreach (var language in Languages)
+        {
+            language.IsActive = Localizer.Current.Active == language.Language;
+        }
     }
 
     [RelayCommand]

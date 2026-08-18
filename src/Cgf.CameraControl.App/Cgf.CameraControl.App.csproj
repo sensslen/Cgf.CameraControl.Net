@@ -32,8 +32,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
     <AvaloniaResource Include="Assets\**" />
+    <!-- Manifest resources, not resx satellites: NativeAOT does not load satellite assemblies. -->
+    <EmbeddedResource Include="Localization\Strings\*.json" />
   </ItemGroup>
 
   <ItemGroup>

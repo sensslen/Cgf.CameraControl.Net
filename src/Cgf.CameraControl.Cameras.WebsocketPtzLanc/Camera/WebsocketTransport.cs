@@ -20,6 +20,7 @@ public sealed class WebsocketTransport(Uri address, ILogger logger) : IWebsocket
 
     private readonly CancellationTokenSource _stopping = new();
     private Task? _loop;
+    private bool _reportedFailure;
 
     public IObservable<bool> WhenConnectedChanged => _connected;
 
@@ -63,11 +64,26 @@ public sealed class WebsocketTransport(Uri address, ILogger logger) : IWebsocket
             }
             catch (Exception ex)
             {
-                logger.Log($"WebsocketCamera({address}):connection lost - {ex.Message}");
+                // A camera that is switched off is retried once a second for the length of a
+                // service. Reporting each attempt would bury everything else in the log, so the
+                // first failure is reported and the rest are silent until it comes back.
+                if (!_reportedFailure)
+                {
+                    _reportedFailure = true;
+                    logger.Log($"WebsocketCamera({address}):connection lost - {ex.Message}");
+                }
             }
 
-            _connected.OnNext(false);
+            Report(connected: false);
             await Task.Delay(ReconnectDelay, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private void Report(bool connected)
+    {
+        if (_connected.Value != connected)
+        {
+            _connected.OnNext(connected);
         }
     }
 
@@ -75,8 +91,9 @@ public sealed class WebsocketTransport(Uri address, ILogger logger) : IWebsocket
     {
         using var socket = new ClientWebSocket();
         await socket.ConnectAsync(address, cancellationToken).ConfigureAwait(false);
+        _reportedFailure = false;
         logger.Log($"WebsocketCamera({address}):connected");
-        _connected.OnNext(true);
+        Report(connected: true);
 
         // Draining anything queued while disconnected would replay stale movement, so the sender
         // starts from whatever the camera asks for next.

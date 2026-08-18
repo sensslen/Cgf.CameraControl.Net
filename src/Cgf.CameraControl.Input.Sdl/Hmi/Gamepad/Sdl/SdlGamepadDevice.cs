@@ -31,11 +31,13 @@ public sealed class SdlGamepadDevice : IGamepadDevice
 
     internal bool ReportedUnmatched { get; set; }
 
+    /// An identity rather than a sentence, so the only prose the user reads stays in the localized
+    /// user interface. Whether the pad is actually there is what WhenConnectedChanged is for.
     public string Description => _bound is { } info
-        ? $"{Label} on {info.Name} ({info.Identity})"
+        ? $"{Label} · {info.Name} ({info.Identity})"
         : SerialNumber is { } serial
-            ? $"{Label} waiting for pad {serial}"
-            : $"{Label} waiting for a pad";
+            ? $"{Label} · {serial}"
+            : Label;
 
     public bool SupportsRumble => _bound?.SupportsRumble ?? false;
 

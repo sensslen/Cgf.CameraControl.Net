@@ -1,32 +1,56 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using Cgf.CameraControl.App.Hosting;
+using Cgf.CameraControl.App.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Cgf.CameraControl.App.ViewModels;
 
+/// A component to filter the log by, or every component when the name is absent. Source names are
+/// the components' own, so the only translated entry is the one that means all of them.
+public sealed class LogSource(string? name) : ViewModelBase
+{
+    public string? Name => name;
+
+    public string Display => name ?? Localizer.Current["log.allSources"];
+
+    public void Retranslate() => OnPropertyChanged(nameof(Display));
+}
+
 public sealed partial class LogViewModel : ViewModelBase, IDisposable
 {
-    public const string AllSources = "All";
-
     // A desk left running for a service logs steadily. The window keeps the recent past, which is
     // what a fault is diagnosed from; anything older belongs in a file, not in memory.
     private const int Capacity = 1000;
 
     private readonly Queue<LogEntry> _history = new(Capacity);
+    private readonly LogSource _everything = new(null);
     private readonly IDisposable _subscription;
 
-    public LogViewModel(UiLogger logger) => _subscription = logger.WhenLogged.Bind(Append);
+    public LogViewModel(UiLogger logger)
+    {
+        Sources = [_everything];
+        SelectedSource = _everything;
+        _subscription = logger.WhenLogged.Bind(Append);
+        Localizer.Current.PropertyChanged += OnLanguageChanged;
+    }
 
     public ObservableCollection<LogEntry> Entries { get; } = [];
 
-    public ObservableCollection<string> Sources { get; } = [AllSources];
+    public ObservableCollection<LogSource> Sources { get; }
 
     [ObservableProperty]
-    public partial string SelectedSource { get; set; } = AllSources;
+    public partial LogSource SelectedSource { get; set; }
 
-    public void Dispose() => _subscription.Dispose();
+    public void Dispose()
+    {
+        Localizer.Current.PropertyChanged -= OnLanguageChanged;
+        _subscription.Dispose();
+    }
 
-    partial void OnSelectedSourceChanged(string value)
+    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs e) => _everything.Retranslate();
+
+    partial void OnSelectedSourceChanged(LogSource value)
     {
         Entries.Clear();
         foreach (var entry in _history.Where(Passes))
@@ -48,9 +72,9 @@ public sealed partial class LogViewModel : ViewModelBase, IDisposable
 
         _history.Enqueue(entry);
 
-        if (!Sources.Contains(entry.Source))
+        if (Sources.All(source => source.Name != entry.Source))
         {
-            Sources.Add(entry.Source);
+            Sources.Add(new LogSource(entry.Source));
         }
 
         if (Passes(entry))
@@ -61,5 +85,5 @@ public sealed partial class LogViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private bool Passes(LogEntry entry) => SelectedSource == AllSources || entry.Source == SelectedSource;
+    private bool Passes(LogEntry entry) => SelectedSource.Name is null || entry.Source == SelectedSource.Name;
 }
