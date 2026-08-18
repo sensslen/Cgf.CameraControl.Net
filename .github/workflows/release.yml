@@ -17,13 +17,21 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       full: ${{ steps.version.outputs.full_without_prefix }}
-      file: ${{ steps.version.outputs.major }}.${{ steps.version.outputs.minor }}.${{ steps.version.outputs.patch }}.0
+      file: ${{ steps.version.outputs.major_without_prefix }}.${{ steps.version.outputs.minor }}.${{ steps.version.outputs.patch }}.0
       prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
       - uses: nowsprinting/check-version-format-action@2946b47fb3590f88fc80b3579e72cd15c0fa90cb # v5.0.4
         id: version
         with:
           prefix: 'v'
+
+      # The action reports a malformed tag rather than failing on it, and every version below would
+      # then be an empty string.
+      - name: Reject a malformed tag
+        if: steps.version.outputs.is_valid != 'true'
+        run: |
+          echo "::error::${{ github.ref_name }} is not a valid version tag"
+          exit 1
 
   build:
     needs: version
