@@ -11,6 +11,9 @@ on:
 # Signing is conditional on the credentials existing, so a fork without them still produces working
 # artifacts. Unsigned means a SmartScreen warning on Windows, but on macOS it means Gatekeeper
 # refuses the application outright, which the release notes have to say.
+#
+# What each platform needs, and why the two are configured so differently, is in
+# docs/CODE_SIGNING.md.
 
 jobs:
   version:
@@ -58,10 +61,9 @@ jobs:
             runs-on: ubuntu-24.04-arm
             native: true
     runs-on: ${{ matrix.runs-on }}
-    # Lifted to the job so the signing steps can test for them: an if condition cannot read secrets
-    # directly, only through env.
+    # Lifted to the job so the signing steps can test for it: an if condition cannot read secrets
+    # directly, only through env. Windows needs no such lift, its configuration is not secret.
     env:
-      WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
       APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
     steps:
       - uses: actions/checkout@v7
@@ -118,20 +120,35 @@ jobs:
           & $nsis @switches packaging/windows/installer.nsi
           if (-not (Test-Path $out)) { throw "makensis produced no installer" }
 
-      - name: Sign (Windows)
-        if: ${{ startsWith(matrix.rid, 'win-') && env.WINDOWS_CERTIFICATE_BASE64 != '' }}
-        env:
-          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      # Signing happens off the runner. Since June 2023 a publicly trusted code signing key has to
+      # live on certified hardware, so there is no .pfx to hand a build agent any more: the installer
+      # is uploaded, signed by the service that holds the key, and downloaded back over the top.
+      - name: Upload the installer for signing
+        id: signing-input
+        if: ${{ startsWith(matrix.rid, 'win-') && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: signing-input-${{ matrix.rid }}
+          path: artifacts/*.exe
+          if-no-files-found: error
 
-        shell: pwsh
-        run: |
-          [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:CERTIFICATE))
-          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
-            Where-Object { $_.FullName -match "x64" } | Select-Object -First 1
-          & $signtool.FullName sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
-            /f cert.pfx /p $env:CERTIFICATE_PASSWORD artifacts/*.exe
-          Remove-Item cert.pfx
+      - name: Sign (Windows)
+        if: ${{ startsWith(matrix.rid, 'win-') && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2.3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.signing-input.outputs.artifact-id }}
+          wait-for-completion: true
+          # Lands on top of the unsigned installer, so what gets released is the signed one.
+          output-artifact-directory: artifacts
+
+      - name: Note the unsigned installer
+        if: ${{ startsWith(matrix.rid, 'win-') && vars.SIGNPATH_ORGANIZATION_ID == '' }}
+        run: echo "::warning::${{ matrix.rid }} went out unsigned, SignPath is not configured"
 
       - name: Package (macOS)
         if: startsWith(matrix.rid, 'osx-')
@@ -140,7 +157,7 @@ jobs:
           mkdir -p artifacts staging
           packaging/macos/make-bundle.sh publish "${{ needs.version.outputs.full }}" "staging/Camera Control.app"
 
-      - name: Sign and notarize (macOS)
+      - name: Sign and notarize the application (macOS)
         if: ${{ startsWith(matrix.rid, 'osx-') && env.APPLE_CERTIFICATE_BASE64 != '' }}
         env:
           CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
@@ -158,16 +175,29 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k actions build.keychain
           rm cert.p12
 
-          # Deepest first: a bundle is only valid if everything inside it was signed before the
-          # bundle itself. The hardened runtime is what notarization requires.
-          codesign --force --deep --options runtime --timestamp \
-            --sign "$SIGNING_IDENTITY" "staging/Camera Control.app"
-          codesign --verify --strict --verbose=2 "staging/Camera Control.app"
+          app="staging/Camera Control.app"
 
-          ditto -c -k --keepParent "staging/Camera Control.app" notarize.zip
+          # Deepest first: a bundle is only valid if everything inside it was signed before the
+          # bundle itself. Not with --deep, which Apple documents as unfit for shipping builds
+          # because it signs only what it recognizes and hands everything the same flags. The
+          # native libraries the application loads at run time are what it would miss.
+          find "$app/Contents" -type f \( -name '*.dylib' -o -name '*.so' \) -print0 |
+            while IFS= read -r -d '' nested; do
+              codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$nested"
+            done
+
+          # The hardened runtime is what notarization requires.
+          codesign --force --options runtime --timestamp \
+            --sign "$SIGNING_IDENTITY" "$app/Contents/MacOS/CgfCameraControl"
+          codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$app"
+          codesign --verify --strict --deep --verbose=2 "$app"
+
+          # Stapled here as well as onto the disk image, so the application keeps validating once it
+          # has been dragged to Applications on a machine that is offline.
+          ditto -c -k --keepParent "$app" notarize.zip
           xcrun notarytool submit notarize.zip --apple-id "$APPLE_ID" \
             --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
-          xcrun stapler staple "staging/Camera Control.app"
+          xcrun stapler staple "$app"
 
       - name: Build the disk image (macOS)
         if: startsWith(matrix.rid, 'osx-')
@@ -182,6 +212,27 @@ jobs:
             --window-size 640 360 \
             "$dmg" "staging/Camera Control.app" || true
           test -f "$dmg"
+
+      # The disk image is what carries the mark of the web, so it needs its own ticket. Signing the
+      # application alone leaves Gatekeeper objecting to the thing the user actually double clicks.
+      - name: Sign and notarize the disk image (macOS)
+        if: ${{ startsWith(matrix.rid, 'osx-') && env.APPLE_CERTIFICATE_BASE64 != '' }}
+        env:
+          SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          dmg="artifacts/CameraControl-${{ needs.version.outputs.full }}-${{ matrix.rid }}.dmg"
+          codesign --force --timestamp --sign "$SIGNING_IDENTITY" "$dmg"
+          xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "$dmg"
+          spctl --assess --type open --context context:primary-signature -vv "$dmg"
+
+      - name: Note the unnotarized disk image
+        if: ${{ startsWith(matrix.rid, 'osx-') && env.APPLE_CERTIFICATE_BASE64 == '' }}
+        run: echo "::warning::${{ matrix.rid }} went out unnotarized, Gatekeeper will refuse it"
 
       - name: Package (Linux)
         if: startsWith(matrix.rid, 'linux-')
@@ -204,9 +255,11 @@ jobs:
             "artifacts/CameraControl-${{ needs.version.outputs.full }}-${{ matrix.rid }}.flatpak" \
             io.github.sensslen.CgfCameraControl
 
+      # Prefixed because the release job takes everything named dist-*, and the unsigned installer
+      # uploaded for signing carries the same file name as the signed one that replaces it.
       - uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.rid }}
+          name: dist-${{ matrix.rid }}
           path: artifacts/*
           if-no-files-found: error
 
@@ -218,6 +271,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
+          pattern: dist-*
           path: artifacts
           merge-multiple: true
 

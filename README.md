@@ -37,7 +37,8 @@ Every binary is NativeAOT compiled, so there is no .NET runtime to install.
 
 Releases are signed where the project has certificates for it. An unsigned Windows installer shows a
 SmartScreen warning; an unsigned macOS build is refused outright by Gatekeeper, so the release notes
-say when a build went out unnotarized.
+say when a build went out unnotarized. Who can release, what gets signed and what the application
+does with your data is in the [code signing policy](docs/CODE_SIGNING.md).
 
 ## Configure
 
