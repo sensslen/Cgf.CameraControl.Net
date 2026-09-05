@@ -117,7 +117,11 @@
              Margin="14,0,10,0" VerticalAlignment="Center" />
       <TextBlock Grid.Column="1" Classes="detail" Text="{Binding Strings[app.title]^}"
                  VerticalAlignment="Center" Margin="0,0,12,0" />
+      <!-- The strip around it is the drag region, and a drag region swallows the clicks its children
+           would otherwise get. This is an element of the decorations rather than part of the handle,
+           which is the same thing the caption buttons say about themselves. -->
       <Menu Grid.Column="2" Name="InWindowMenu" Background="Transparent"
+            WindowDecorationProperties.ElementRole="DecorationsElement"
             HorizontalAlignment="Left" VerticalAlignment="Center">
       <MenuItem Header="{Binding Strings[menu.file]^}">
         <MenuItem Header="{Binding Strings[config.import]^}" Command="{Binding ImportCommand}"
