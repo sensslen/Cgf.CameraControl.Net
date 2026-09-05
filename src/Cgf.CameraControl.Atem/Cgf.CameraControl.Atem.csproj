@@ -1,21 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="AtemSharp" Version="0.3.0" />
-    <PackageReference Include="AtemSharp.MSDependencyInjection" Version="0.3.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
-    <PackageReference Include="System.Reactive" Version="7.0.0" />
+    <PackageReference Include="AtemSharp" />
+    <PackageReference Include="AtemSharp.MSDependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="System.Reactive" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Cgf.CameraControl.Core\Cgf.CameraControl.Core.csproj" />
   </ItemGroup>
-
 
 </Project>

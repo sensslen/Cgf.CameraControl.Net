@@ -1,16 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="SDL3-CS" Version="3.4.14.1" />
-    <PackageReference Include="SDL3-CS.Linux" Version="3.4.14.1" />
-    <PackageReference Include="SDL3-CS.MacOS" Version="3.4.14.1" />
-    <PackageReference Include="SDL3-CS.Windows" Version="3.4.14.1" />
+    <PackageReference Include="SDL3-CS" />
+    <PackageReference Include="SDL3-CS.Linux" />
+    <PackageReference Include="SDL3-CS.MacOS" />
+    <PackageReference Include="SDL3-CS.Windows" />
   </ItemGroup>
 
   <ItemGroup>
