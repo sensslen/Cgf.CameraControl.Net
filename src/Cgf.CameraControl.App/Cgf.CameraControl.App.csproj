@@ -40,7 +40,7 @@
          source generator along with the text of every licence it names, so the notices shown cannot
          drift from what the application ships and showing them costs nothing at run time. -->
     <AdditionalFiles Include="Licenses\third-party-licenses.json" />
-    <AdditionalFiles Include="Licenses\texts\*.txt" />
+    <AdditionalFiles Include="Licenses\texts\**\*.txt" />
     <ProjectReference Include="..\Cgf.CameraControl.Licenses.Generator\Cgf.CameraControl.Licenses.Generator.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>

@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
@@ -22,7 +23,11 @@ namespace Cgf.CameraControl.Licenses.Generator;
 public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
 {
     private const string FileName = "third-party-licenses.json";
-    private const string TextFolder = "texts";
+    private const string PackageFolder = "packages";
+    private const string SpdxFolder = "spdx";
+
+    /// A numbered condition, at the start of a line: "1." or "2)".
+    private static readonly Regex Numbered = new(@"^\d+[.)]\s", RegexOptions.Compiled);
 
     private static readonly DiagnosticDescriptor Missing = new(
         "CGFLIC001",
@@ -43,8 +48,8 @@ public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Untexted = new(
         "CGFLIC003",
         "A licence the application ships under has no text",
-        "{0} is under '{1}', and no {1}.txt sits in the " + TextFolder +
-        " folder. Run packaging/licenses/fetch-texts.py.",
+        "{0} is under '{1}' and published no licence text of its own, and no {1}.txt sits in the " +
+        SpdxFolder + " folder. Run packaging/licenses/fetch-texts.py.",
         "Licences",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -59,10 +64,14 @@ public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
             .Select((text, token) => (Path: text.Path, Content: Read(text, token)))
             .Collect();
 
+        // Two kinds, told apart by the folder they sit in: the licence text a package published for
+        // itself, named after the package, and the text of an SPDX identifier, named after it.
         var texts = context.AdditionalTextsProvider
-            .Where(text => Path.GetExtension(text.Path) == ".txt"
-                           && Path.GetFileName(Path.GetDirectoryName(text.Path)) == TextFolder)
-            .Select((text, token) => (Name: Path.GetFileNameWithoutExtension(text.Path), Content: Read(text, token)))
+            .Where(text => Path.GetExtension(text.Path) == ".txt" && Folder(text.Path) is PackageFolder or SpdxFolder)
+            .Select((text, token) => (
+                Folder: Folder(text.Path),
+                Name: Path.GetFileNameWithoutExtension(text.Path),
+                Content: Read(text, token)))
             .Collect();
 
         context.RegisterSourceOutput(
@@ -73,10 +82,12 @@ public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
     private static string Read(AdditionalText text, System.Threading.CancellationToken token) =>
         text.GetText(token)?.ToString() ?? string.Empty;
 
+    private static string Folder(string path) => Path.GetFileName(Path.GetDirectoryName(path)) ?? string.Empty;
+
     private static void Emit(
         SourceProductionContext context,
         ImmutableArray<(string Path, string Content)> reports,
-        ImmutableArray<(string Name, string Content)> texts)
+        ImmutableArray<(string Folder, string Name, string Content)> texts)
     {
         if (reports.Length == 0)
         {
@@ -103,21 +114,17 @@ public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
             }
         }
 
+        var own = Index(texts, PackageFolder);
+        var spdx = Index(texts, SpdxFolder);
+
         // A licence with no text leaves the window naming a licence it cannot show, which is the one
         // thing a notices screen exists to do.
-        var known = new HashSet<string>(texts.Select(text => text.Name), System.StringComparer.OrdinalIgnoreCase);
-        foreach (var package in packages.Where(entry => entry.License is { } license && !known.Contains(license)))
+        foreach (var package in packages.Where(entry => TextFor(entry, own, spdx) is null))
         {
             context.ReportDiagnostic(Diagnostic.Create(Untexted, Location.None, package.Title, package.License));
         }
 
-        var used = texts
-            .Where(text => packages.Any(package =>
-                string.Equals(package.License, text.Name, System.StringComparison.OrdinalIgnoreCase)))
-            .OrderBy(text => text.Name, System.StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        context.AddSource("ThirdPartyLicenses.g.cs", SourceText.From(Render(packages, used), Encoding.UTF8));
+        context.AddSource("ThirdPartyLicenses.g.cs", SourceText.From(Render(packages, own, spdx), Encoding.UTF8));
     }
 
     /// Ordered here rather than trusted from the file, so the window reads the same however the
@@ -132,6 +139,7 @@ public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
         return entries
             .OfType<JObject>()
             .Select(entry => new Package(
+                Text(entry, "PackageId") ?? string.Empty,
                 $"{Text(entry, "PackageId")} {Text(entry, "PackageVersion")}".Trim(),
                 Text(entry, "License"),
                 Text(entry, "Copyright"),
@@ -144,7 +152,10 @@ public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
     private static string? Text(JObject entry, string name) =>
         entry[name] is JValue { Type: JTokenType.String } value ? (string?)value.Value : null;
 
-    private static string Render(IReadOnlyList<Package> packages, IReadOnlyList<(string Name, string Content)> texts)
+    private static string Render(
+        IReadOnlyList<Package> packages,
+        IReadOnlyDictionary<string, string> own,
+        IReadOnlyDictionary<string, string> spdx)
     {
         var source = new StringBuilder();
         source.AppendLine("// <auto-generated/>");
@@ -170,27 +181,73 @@ public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
             source.Append(Literal(package.Authors));
             source.Append(", ");
             source.Append(Literal(package.ProjectUrl));
-            source.AppendLine("),");
-        }
-
-        source.AppendLine("    ];");
-        source.AppendLine();
-        source.AppendLine("    /// The full text of every licence those packages are under.");
-        source.AppendLine("    public static global::System.Collections.Generic.IReadOnlyList<ThirdPartyLicenseText> Texts { get; } =");
-        source.AppendLine("    [");
-
-        foreach (var (name, content) in texts)
-        {
-            source.Append("        new(");
-            source.Append(Literal(name));
             source.Append(", ");
-            source.Append(Literal(content.Replace("\r\n", "\n")));
+
+            // The whole text on every package that names the licence, rather than a table the window
+            // would have to look through. The compiler keeps one copy of a literal however many
+            // times it is written, so forty-eight MIT packages carry one MIT text between them.
+            source.Append(Literal(TextFor(package, own, spdx)));
             source.AppendLine("),");
         }
 
         source.AppendLine("    ];");
         source.AppendLine("}");
         return source.ToString();
+    }
+
+    private static Dictionary<string, string> Index(
+        ImmutableArray<(string Folder, string Name, string Content)> texts,
+        string folder) =>
+        texts
+            .Where(text => text.Folder == folder)
+            .ToDictionary(text => text.Name, text => text.Content, System.StringComparer.OrdinalIgnoreCase);
+
+    /// What the package published for itself if it published anything, and the text of the identifier
+    /// it declared otherwise. A package's own text says who holds the copyright; the identifier's
+    /// text leaves that as a placeholder, so it is the fallback rather than the first choice.
+    private static string? TextFor(
+        Package package,
+        IReadOnlyDictionary<string, string> own,
+        IReadOnlyDictionary<string, string> spdx)
+    {
+        if (own.TryGetValue(package.Id, out var published))
+        {
+            return Reflow(published);
+        }
+
+        return package.License is { } license && spdx.TryGetValue(license, out var generic) ? Reflow(generic) : null;
+    }
+
+    /// The licence files are hard wrapped at roughly eighty columns, and a window that wraps them
+    /// again breaks each of those lines a second time, leaving a stub word on every other line. Each
+    /// paragraph becomes one line here and the window does the only wrapping.
+    ///
+    /// A blank line ends a paragraph, and so does a numbered clause: some of these files separate
+    /// their conditions that way and some do not, and a list run together into one block is unreadable
+    /// either way.
+    private static string Reflow(string text)
+    {
+        var paragraphs = new List<StringBuilder> { new() };
+        foreach (var raw in text.Replace("\r\n", "\n").Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.Length == 0 || Numbered.IsMatch(line))
+            {
+                paragraphs.Add(new StringBuilder());
+            }
+
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
+            var paragraph = paragraphs[paragraphs.Count - 1];
+            paragraph.Append(paragraph.Length == 0 ? line : " " + line);
+        }
+
+        return string.Join(
+            "\n\n",
+            paragraphs.Select(paragraph => paragraph.ToString()).Where(paragraph => paragraph.Length > 0));
     }
 
     private static string Literal(string? value) =>
@@ -201,8 +258,16 @@ public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
 
     /// Built inside one source output rather than carried through the pipeline, so reference
     /// equality is all it needs.
-    private sealed class Package(string title, string? license, string? copyright, string? authors, string? projectUrl)
+    private sealed class Package(
+        string id,
+        string title,
+        string? license,
+        string? copyright,
+        string? authors,
+        string? projectUrl)
     {
+        public string Id { get; } = id;
+
         public string Title { get; } = title;
 
         public string? License { get; } = license;

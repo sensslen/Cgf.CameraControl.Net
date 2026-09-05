@@ -25,24 +25,29 @@ public class ThirdPartyLicenseTests
 
     // A licence named with no text behind it is a notices screen that cannot show what it promises.
     [Fact]
-    public void EveryLicenceNamedHasItsTextCompiledIn()
+    public void EveryPackageCarriesTheTextOfItsLicence()
     {
-        var texts = ThirdPartyLicenses.Texts.Select(text => text.Name).ToList();
+        Assert.All(ThirdPartyLicenses.All, package =>
+        {
+            Assert.NotNull(package.Text);
 
-        Assert.All(ThirdPartyLicenses.All, package => Assert.Contains(package.License, texts));
+            // Every licence this ships under disclaims warranty, so a text without the word is one
+            // that did not arrive whole.
+            Assert.Contains("warrant", package.Text, StringComparison.OrdinalIgnoreCase);
+        });
     }
 
+    // Forty-eight MIT packages are one MIT text, because the compiler keeps one copy of a literal
+    // however many times the generator writes it.
     [Fact]
-    public void EveryTextIsTheLicenceItIsNamedAfter()
+    public void PackagesUnderOneLicenceShareOneText()
     {
-        Assert.All(ThirdPartyLicenses.Texts, text =>
-        {
-            Assert.NotEmpty(text.Name);
+        var texts = ThirdPartyLicenses.All
+            .Where(package => package.License == "MIT")
+            .Select(package => package.Text)
+            .ToList();
 
-            // Every licence this ships under disclaims warranty, so a text without the word is a
-            // file that did not arrive whole.
-            Assert.Contains("warrant", text.Text, StringComparison.OrdinalIgnoreCase);
-        });
+        Assert.All(texts, text => Assert.Same(texts[0], text));
     }
 
     [Fact]

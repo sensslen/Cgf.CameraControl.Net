@@ -35,5 +35,8 @@
   "surface.alt": "Alt",
   "surface.altLower": "Alt नीचे",
   "surface.keys": "कीबोर्ड: W A S D पैन और टिल्ट करता है, I K ज़ूम, J L फ़ोकस, तीर कुंजियाँ प्रीव्यू चयन बदलती हैं, 1 से 4 विशेष फ़ंक्शन चलाते हैं, Enter कट, Space ऑटो, और Shift या Ctrl alt बाइंडिंग दबाए रखते हैं।",
-  "licenses.texts": "लाइसेंस पाठ"
+  "licenses.license": "लाइसेंस:",
+  "licenses.copyright": "कॉपीराइट:",
+  "licenses.authors": "लेखक:",
+  "licenses.project": "प्रोजेक्ट:"
 }

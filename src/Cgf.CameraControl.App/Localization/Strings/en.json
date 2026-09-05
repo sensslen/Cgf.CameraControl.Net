@@ -35,5 +35,8 @@
   "surface.alt": "Alt",
   "surface.altLower": "Alt lower",
   "surface.keys": "Keyboard: W A S D pans and tilts, I K zooms, J L focuses, the arrow keys change the preview selection, 1 to 4 run the special functions, Enter cuts, Space autos, and Shift or Ctrl hold the alt bindings.",
-  "licenses.texts": "Licence texts"
+  "licenses.license": "License:",
+  "licenses.copyright": "Copyright:",
+  "licenses.authors": "Authors:",
+  "licenses.project": "Project:"
 }

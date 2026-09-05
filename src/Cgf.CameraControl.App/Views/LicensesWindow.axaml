@@ -14,17 +14,23 @@
         FlowDirection="{Binding FlowDirection^}">
 
   <Window.Styles>
-    <Style Selector="Border.card">
-      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="6" />
-      <Setter Property="Padding" Value="8" />
-      <Setter Property="Margin" Value="0,0,0,6" />
-    </Style>
-    <Style Selector="SelectableTextBlock.detail">
+    <Style Selector="TextBlock.label">
       <Setter Property="Opacity" Value="0.7" />
       <Setter Property="FontSize" Value="12" />
+      <Setter Property="Margin" Value="0,0,10,0" />
+    </Style>
+    <Style Selector="SelectableTextBlock.value">
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- The collapsed bar keeps a lane of its own rather than lying over the last few characters of
+         a line. Expanded it does overlap, so it takes a backdrop to stay legible over whatever is
+         under it. -->
+    <Style Selector="ScrollBar:vertical:expanded">
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
+      <Setter Property="Opacity" Value="0.9" />
     </Style>
   </Window.Styles>
 
@@ -36,42 +42,58 @@
                  Text="{Binding [licenses.intro]^}" />
     </StackPanel>
 
-    <ScrollViewer>
-      <StackPanel>
+    <ScrollViewer Padding="0,0,8,0">
+      <ItemsControl ItemsSource="{x:Static licenses:ThirdPartyLicenses.All}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="licenses:ThirdPartyLicense">
+            <Expander Margin="0,0,0,6" HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Stretch">
+              <Expander.Header>
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Grid.Column="0" Text="{Binding Title}" FontWeight="SemiBold"
+                             TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Classes="label" Margin="12,0,0,0"
+                             Text="{Binding License}" VerticalAlignment="Center" />
+                </Grid>
+              </Expander.Header>
 
-        <ItemsControl ItemsSource="{x:Static licenses:ThirdPartyLicenses.All}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="licenses:ThirdPartyLicense">
-              <Border Classes="card">
-                <StackPanel>
-                  <SelectableTextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                  <SelectableTextBlock Classes="detail" Text="{Binding License}" />
-                  <SelectableTextBlock Classes="detail" Text="{Binding Copyright}" TextWrapping="Wrap"
+              <StackPanel>
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,0,0,10">
+                  <TextBlock Grid.Row="0" Grid.Column="0" Classes="label"
+                             Text="{Binding [licenses.license]^, Source={x:Static loc:Localizer.Current}}" />
+                  <SelectableTextBlock Grid.Row="0" Grid.Column="1" Classes="value" Text="{Binding License}" />
+
+                  <TextBlock Grid.Row="1" Grid.Column="0" Classes="label"
+                             IsVisible="{Binding Copyright, Converter={x:Static ObjectConverters.IsNotNull}}"
+                             Text="{Binding [licenses.copyright]^, Source={x:Static loc:Localizer.Current}}" />
+                  <SelectableTextBlock Grid.Row="1" Grid.Column="1" Classes="value" Text="{Binding Copyright}"
                                        IsVisible="{Binding Copyright, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                  <SelectableTextBlock Classes="detail" Text="{Binding Authors}" TextWrapping="Wrap" />
-                  <SelectableTextBlock Classes="detail" Text="{Binding ProjectUrl}"
-                                       TextTrimming="CharacterEllipsis"
+
+                  <TextBlock Grid.Row="2" Grid.Column="0" Classes="label"
+                             IsVisible="{Binding Authors, Converter={x:Static ObjectConverters.IsNotNull}}"
+                             Text="{Binding [licenses.authors]^, Source={x:Static loc:Localizer.Current}}" />
+                  <SelectableTextBlock Grid.Row="2" Grid.Column="1" Classes="value" Text="{Binding Authors}"
+                                       IsVisible="{Binding Authors, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+                  <TextBlock Grid.Row="3" Grid.Column="0" Classes="label"
+                             IsVisible="{Binding ProjectUrl, Converter={x:Static ObjectConverters.IsNotNull}}"
+                             Text="{Binding [licenses.project]^, Source={x:Static loc:Localizer.Current}}" />
+                  <SelectableTextBlock Grid.Row="3" Grid.Column="1" Classes="value" Text="{Binding ProjectUrl}"
                                        IsVisible="{Binding ProjectUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                </StackPanel>
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+                </Grid>
 
-        <TextBlock Margin="0,10,0,6" FontWeight="SemiBold" Text="{Binding [licenses.texts]^}" />
-
-        <ItemsControl ItemsSource="{x:Static licenses:ThirdPartyLicenses.Texts}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="licenses:ThirdPartyLicenseText">
-              <Expander Margin="0,0,0,6" HorizontalAlignment="Stretch" Header="{Binding Name}">
-                <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" FontFamily="monospace"
-                                     FontSize="12" />
-              </Expander>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-
-      </StackPanel>
+                <Border Background="{DynamicResource SystemControlBackgroundListLowBrush}"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="8">
+                  <!-- The generator has already made each paragraph one line, so this is the only
+                       wrapping the text gets. -->
+                  <SelectableTextBlock Text="{Binding Text}" FontSize="12" TextWrapping="Wrap" />
+                </Border>
+              </StackPanel>
+            </Expander>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
     </ScrollViewer>
 
   </DockPanel>
