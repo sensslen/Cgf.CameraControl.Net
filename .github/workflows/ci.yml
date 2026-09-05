@@ -32,15 +32,15 @@ jobs:
       - name: Licenses
         run: |
           dotnet tool restore
-          dotnet nuget-license $LICENSE_ARGS -o JsonPretty -fo src/Cgf.CameraControl.App/Licenses/third-party-licenses.json
-          dotnet nuget-license $LICENSE_ARGS -o Markdown -fo third-party-licenses.md
+          dotnet nuget-license -i "$PROJECT" -t -ignore "$IGNORED" -a "$ALLOWED" \
+            -o JsonPretty -fo src/Cgf.CameraControl.App/Licenses/third-party-licenses.json
+          dotnet nuget-license -i "$PROJECT" -t -ignore "$IGNORED" -a "$ALLOWED" \
+            -o Markdown -fo third-party-licenses.md
           git diff --exit-code -- src/Cgf.CameraControl.App/Licenses/third-party-licenses.json
         env:
-          LICENSE_ARGS: >-
-            -i src/Cgf.CameraControl.App/Cgf.CameraControl.App.csproj
-            -t
-            -ignore "AvaloniaUI.DiagnosticsSupport;Microsoft.DotNet.ILCompiler;runtime.*.Microsoft.DotNet.ILCompiler;Microsoft.NET.ILLink.Tasks"
-            -a MIT;Zlib;BSD-3-Clause
+          PROJECT: src/Cgf.CameraControl.App/Cgf.CameraControl.App.csproj
+          IGNORED: AvaloniaUI.DiagnosticsSupport;Microsoft.DotNet.ILCompiler;runtime.*.Microsoft.DotNet.ILCompiler;Microsoft.NET.ILLink.Tasks
+          ALLOWED: MIT;Zlib;BSD-3-Clause
 
       - name: Publish the licence report
         uses: actions/upload-artifact@v7
