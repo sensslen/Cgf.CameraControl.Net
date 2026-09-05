@@ -327,17 +327,6 @@
     "LicenseInformationOrigin": 0
   },
   {
-    "PackageId": "Microsoft.DotNet.ILCompiler",
-    "PackageVersion": "10.0.11",
-    "PackageProjectUrl": "https://dot.net/",
-    "Copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-    "Authors": "Microsoft",
-    "Description": "Provides a native AOT compiler and runtime for .NET",
-    "License": "MIT",
-    "LicenseUrl": "https://licenses.nuget.org/MIT",
-    "LicenseInformationOrigin": 0
-  },
-  {
     "PackageId": "Microsoft.Extensions.DependencyInjection",
     "PackageVersion": "10.0.11",
     "PackageProjectUrl": "https://dot.net/",
@@ -421,28 +410,6 @@
     "Copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
     "Authors": "Microsoft",
     "Description": "A pooled MemoryStream allocator to decrease GC load and improve performance on highly scalable systems.",
-    "License": "MIT",
-    "LicenseUrl": "https://licenses.nuget.org/MIT",
-    "LicenseInformationOrigin": 0
-  },
-  {
-    "PackageId": "Microsoft.NET.ILLink.Tasks",
-    "PackageVersion": "10.0.11",
-    "PackageProjectUrl": "https://dot.net/",
-    "Copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-    "Authors": "Microsoft",
-    "Description": "MSBuild tasks for running the IL Linker",
-    "License": "MIT",
-    "LicenseUrl": "https://licenses.nuget.org/MIT",
-    "LicenseInformationOrigin": 0
-  },
-  {
-    "PackageId": "runtime.win-x64.Microsoft.DotNet.ILCompiler",
-    "PackageVersion": "10.0.11",
-    "PackageProjectUrl": "https://dot.net/",
-    "Copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-    "Authors": "Microsoft",
-    "Description": "Internal implementation package not meant for direct consumption. Please do not reference directly. \nProvides a native AOT compiler and runtime for .NET",
     "License": "MIT",
     "LicenseUrl": "https://licenses.nuget.org/MIT",
     "LicenseInformationOrigin": 0

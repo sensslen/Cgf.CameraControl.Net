@@ -25,7 +25,10 @@ jobs:
       # nuget-license both checks that every package this ships is under a licence the project
       # accepts, and writes the notices the application shows. The generated report is committed
       # because a source generator compiles it into the binary, so a stale one is a build that
-      # credits the wrong packages.
+      # credits the wrong packages. What is ignored is what builds the binary rather than travelling
+      # in it: the diagnostics support package ships in Debug alone, and the compiler and the trimmer
+      # carry the host's runtime identifier in their package id, so a report naming them would differ
+      # between this runner and a developer machine.
       - name: Licenses
         run: |
           dotnet tool restore
@@ -36,7 +39,7 @@ jobs:
           LICENSE_ARGS: >-
             -i src/Cgf.CameraControl.App/Cgf.CameraControl.App.csproj
             -t
-            -ignore AvaloniaUI.DiagnosticsSupport
+            -ignore "AvaloniaUI.DiagnosticsSupport;Microsoft.DotNet.ILCompiler;runtime.*.Microsoft.DotNet.ILCompiler;Microsoft.NET.ILLink.Tasks"
             -a MIT;Zlib;BSD-3-Clause
 
       - name: Publish the licence report
