@@ -1,42 +1,62 @@
 {
-  "menu.file": "File",
-  "app.title": "Camera Control",
-  "config.none": "no configuration loaded",
-  "config.import": "Import",
-  "config.export": "Export",
-  "config.reload": "Reload",
-  "config.openTitle": "Open configuration",
-  "config.exportTitle": "Export configuration",
-  "config.fileType": "Configuration",
-  "panel.mixers": "Video mixers",
-  "panel.cameras": "Cameras",
-  "panel.interfaces": "Interfaces",
-  "interface.disconnected": "not connected",
-  "panel.log": "Log",
-  "mixer.preview": "preview",
-  "mixer.program": "program",
-  "mixer.onAir": "preview is on air",
-  "log.allSources": "All",
-  "language.label": "Language",
-  "menu.help": "Help",
-  "licenses.label": "Third-party licences",
-  "licenses.app": "Camera Control itself is MIT licensed.",
-  "licenses.intro": "It ships the packages below, each under the licence named with it.",
-  "mixer.cut": "Cut",
-  "mixer.auto": "Auto",
-  "surface.panTilt": "Pan and tilt",
-  "surface.zoomFocus": "Zoom and focus",
-  "panel.unassigned": "Not driven by any interface",
-  "interface.clickHint": "click an interface to open its control window",
-  "surface.select": "Preview",
-  "surface.functions": "Functions",
-  "surface.transition": "Transition",
-  "surface.modifiers": "Modifiers",
-  "surface.alt": "Alt",
-  "surface.altLower": "Alt lower",
-  "surface.keys": "Keyboard: W A S D pans and tilts, I K zooms, J L focuses, the arrow keys change the preview selection, 1 to 4 run the special functions, Enter cuts, Space autos, and Shift or Ctrl hold the alt bindings.",
-  "licenses.license": "License:",
-  "licenses.copyright": "Copyright:",
-  "licenses.authors": "Authors:",
-  "licenses.project": "Project:"
+  "menu": {
+    "file": "File",
+    "help": "Help"
+  },
+  "app": {
+    "title": "Camera Control"
+  },
+  "config": {
+    "none": "no configuration loaded",
+    "import": "Import",
+    "export": "Export",
+    "reload": "Reload",
+    "openTitle": "Open configuration",
+    "exportTitle": "Export configuration",
+    "fileType": "Configuration"
+  },
+  "panel": {
+    "mixers": "Video mixers",
+    "cameras": "Cameras",
+    "interfaces": "Interfaces",
+    "log": "Log",
+    "unassigned": "Not driven by any interface"
+  },
+  "interface": {
+    "disconnected": "not connected",
+    "clickHint": "click an interface to open its control window"
+  },
+  "mixer": {
+    "preview": "preview",
+    "program": "program",
+    "onAir": "preview is on air",
+    "cut": "Cut",
+    "auto": "Auto"
+  },
+  "log": {
+    "allSources": "All"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "licenses": {
+    "label": "Third-party licences",
+    "app": "Camera Control itself is MIT licensed.",
+    "intro": "It ships the packages below, each under the licence named with it.",
+    "license": "License:",
+    "copyright": "Copyright:",
+    "authors": "Authors:",
+    "project": "Project:"
+  },
+  "surface": {
+    "panTilt": "Pan and tilt",
+    "zoomFocus": "Zoom and focus",
+    "select": "Preview",
+    "functions": "Functions",
+    "transition": "Transition",
+    "modifiers": "Modifiers",
+    "alt": "Alt",
+    "altLower": "Alt lower",
+    "keys": "Keyboard: W A S D pans and tilts, I K zooms, J L focuses, the arrow keys change the preview selection, 1 to 4 run the special functions, Enter cuts, Space autos, and Shift or Ctrl hold the alt bindings."
+  }
 }

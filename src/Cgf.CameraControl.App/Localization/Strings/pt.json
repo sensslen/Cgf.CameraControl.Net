@@ -1,42 +1,62 @@
 {
-  "menu.file": "Arquivo",
-  "app.title": "Controle de câmeras",
-  "config.none": "nenhuma configuração carregada",
-  "config.import": "Importar",
-  "config.export": "Exportar",
-  "config.reload": "Recarregar",
-  "config.openTitle": "Abrir configuração",
-  "config.exportTitle": "Exportar configuração",
-  "config.fileType": "Configuração",
-  "panel.mixers": "Misturadores de vídeo",
-  "panel.cameras": "Câmeras",
-  "panel.interfaces": "Interfaces",
-  "interface.disconnected": "sem conexão",
-  "panel.log": "Registro",
-  "mixer.preview": "prévia",
-  "mixer.program": "programa",
-  "mixer.onAir": "a prévia está no ar",
-  "log.allSources": "Todos",
-  "language.label": "Idioma",
-  "menu.help": "Ajuda",
-  "licenses.label": "Licenças de terceiros",
-  "licenses.app": "O Camera Control é licenciado sob MIT.",
-  "licenses.intro": "Ele inclui os pacotes abaixo, cada um sob a licença indicada.",
-  "mixer.cut": "Cut",
-  "mixer.auto": "Auto",
-  "surface.panTilt": "Movimento horizontal e vertical",
-  "surface.zoomFocus": "Zoom e foco",
-  "panel.unassigned": "Não controlado por nenhuma interface",
-  "interface.clickHint": "clique numa interface para abrir a sua janela de controlo",
-  "surface.select": "Pré-visualização",
-  "surface.functions": "Funções",
-  "surface.transition": "Transição",
-  "surface.modifiers": "Modificadores",
-  "surface.alt": "Alt",
-  "surface.altLower": "Alt inferior",
-  "surface.keys": "Teclado: W A S D move na horizontal e vertical, I K faz zoom, J L foca, as setas mudam a pré-visualização, 1 a 4 executam as funções especiais, Enter corta, Espaço faz auto, e Shift ou Ctrl mantêm as atribuições alt.",
-  "licenses.license": "Licença:",
-  "licenses.copyright": "Copyright:",
-  "licenses.authors": "Autores:",
-  "licenses.project": "Projeto:"
+  "menu": {
+    "file": "Arquivo",
+    "help": "Ajuda"
+  },
+  "app": {
+    "title": "Controle de câmeras"
+  },
+  "config": {
+    "none": "nenhuma configuração carregada",
+    "import": "Importar",
+    "export": "Exportar",
+    "reload": "Recarregar",
+    "openTitle": "Abrir configuração",
+    "exportTitle": "Exportar configuração",
+    "fileType": "Configuração"
+  },
+  "panel": {
+    "mixers": "Misturadores de vídeo",
+    "cameras": "Câmeras",
+    "interfaces": "Interfaces",
+    "log": "Registro",
+    "unassigned": "Não controlado por nenhuma interface"
+  },
+  "interface": {
+    "disconnected": "sem conexão",
+    "clickHint": "clique numa interface para abrir a sua janela de controlo"
+  },
+  "mixer": {
+    "preview": "prévia",
+    "program": "programa",
+    "onAir": "a prévia está no ar",
+    "cut": "Cut",
+    "auto": "Auto"
+  },
+  "log": {
+    "allSources": "Todos"
+  },
+  "language": {
+    "label": "Idioma"
+  },
+  "licenses": {
+    "label": "Licenças de terceiros",
+    "app": "O Camera Control é licenciado sob MIT.",
+    "intro": "Ele inclui os pacotes abaixo, cada um sob a licença indicada.",
+    "license": "Licença:",
+    "copyright": "Copyright:",
+    "authors": "Autores:",
+    "project": "Projeto:"
+  },
+  "surface": {
+    "panTilt": "Movimento horizontal e vertical",
+    "zoomFocus": "Zoom e foco",
+    "select": "Pré-visualização",
+    "functions": "Funções",
+    "transition": "Transição",
+    "modifiers": "Modificadores",
+    "alt": "Alt",
+    "altLower": "Alt inferior",
+    "keys": "Teclado: W A S D move na horizontal e vertical, I K faz zoom, J L foca, as setas mudam a pré-visualização, 1 a 4 executam as funções especiais, Enter corta, Espaço faz auto, e Shift ou Ctrl mantêm as atribuições alt."
+  }
 }

@@ -1,42 +1,62 @@
 {
-  "menu.file": "ফাইল",
-  "app.title": "ক্যামেরা নিয়ন্ত্রণ",
-  "config.none": "কোনো কনফিগারেশন লোড হয়নি",
-  "config.import": "আমদানি",
-  "config.export": "রপ্তানি",
-  "config.reload": "পুনরায় লোড",
-  "config.openTitle": "কনফিগারেশন খুলুন",
-  "config.exportTitle": "কনফিগারেশন রপ্তানি করুন",
-  "config.fileType": "কনফিগারেশন",
-  "panel.mixers": "ভিডিও মিক্সার",
-  "panel.cameras": "ক্যামেরা",
-  "panel.interfaces": "ইন্টারফেস",
-  "interface.disconnected": "সংযুক্ত নয়",
-  "panel.log": "লগ",
-  "mixer.preview": "প্রিভিউ",
-  "mixer.program": "প্রোগ্রাম",
-  "mixer.onAir": "প্রিভিউ সম্প্রচারে আছে",
-  "log.allSources": "সব",
-  "language.label": "ভাষা",
-  "menu.help": "সহায়তা",
-  "licenses.label": "তৃতীয় পক্ষের লাইসেন্স",
-  "licenses.app": "Camera Control নিজে MIT লাইসেন্সের অধীনে।",
-  "licenses.intro": "এর সঙ্গে নিচের প্যাকেজগুলি আসে, প্রতিটি তার পাশে উল্লিখিত লাইসেন্সের অধীনে।",
-  "mixer.cut": "Cut",
-  "mixer.auto": "Auto",
-  "surface.panTilt": "প্যান ও টিল্ট",
-  "surface.zoomFocus": "জুম ও ফোকাস",
-  "panel.unassigned": "কোনো ইন্টারফেস দ্বারা চালিত নয়",
-  "interface.clickHint": "ইন্টারফেসের নিয়ন্ত্রণ উইন্ডো খুলতে সেটিতে ক্লিক করুন",
-  "surface.select": "প্রিভিউ",
-  "surface.functions": "ফাংশন",
-  "surface.transition": "ট্রানজিশন",
-  "surface.modifiers": "মডিফায়ার",
-  "surface.alt": "Alt",
-  "surface.altLower": "Alt নিচে",
-  "surface.keys": "কীবোর্ড: W A S D প্যান ও টিল্ট করে, I K জুম, J L ফোকাস, তীর কী প্রিভিউ নির্বাচন বদলায়, ১ থেকে ৪ বিশেষ ফাংশন চালায়, Enter কাট, Space অটো, আর Shift বা Ctrl alt বাইন্ডিং ধরে রাখে।",
-  "licenses.license": "লাইসেন্স:",
-  "licenses.copyright": "কপিরাইট:",
-  "licenses.authors": "লেখক:",
-  "licenses.project": "প্রকল্প:"
+  "menu": {
+    "file": "ফাইল",
+    "help": "সহায়তা"
+  },
+  "app": {
+    "title": "ক্যামেরা নিয়ন্ত্রণ"
+  },
+  "config": {
+    "none": "কোনো কনফিগারেশন লোড হয়নি",
+    "import": "আমদানি",
+    "export": "রপ্তানি",
+    "reload": "পুনরায় লোড",
+    "openTitle": "কনফিগারেশন খুলুন",
+    "exportTitle": "কনফিগারেশন রপ্তানি করুন",
+    "fileType": "কনফিগারেশন"
+  },
+  "panel": {
+    "mixers": "ভিডিও মিক্সার",
+    "cameras": "ক্যামেরা",
+    "interfaces": "ইন্টারফেস",
+    "log": "লগ",
+    "unassigned": "কোনো ইন্টারফেস দ্বারা চালিত নয়"
+  },
+  "interface": {
+    "disconnected": "সংযুক্ত নয়",
+    "clickHint": "ইন্টারফেসের নিয়ন্ত্রণ উইন্ডো খুলতে সেটিতে ক্লিক করুন"
+  },
+  "mixer": {
+    "preview": "প্রিভিউ",
+    "program": "প্রোগ্রাম",
+    "onAir": "প্রিভিউ সম্প্রচারে আছে",
+    "cut": "Cut",
+    "auto": "Auto"
+  },
+  "log": {
+    "allSources": "সব"
+  },
+  "language": {
+    "label": "ভাষা"
+  },
+  "licenses": {
+    "label": "তৃতীয় পক্ষের লাইসেন্স",
+    "app": "Camera Control নিজে MIT লাইসেন্সের অধীনে।",
+    "intro": "এর সঙ্গে নিচের প্যাকেজগুলি আসে, প্রতিটি তার পাশে উল্লিখিত লাইসেন্সের অধীনে।",
+    "license": "লাইসেন্স:",
+    "copyright": "কপিরাইট:",
+    "authors": "লেখক:",
+    "project": "প্রকল্প:"
+  },
+  "surface": {
+    "panTilt": "প্যান ও টিল্ট",
+    "zoomFocus": "জুম ও ফোকাস",
+    "select": "প্রিভিউ",
+    "functions": "ফাংশন",
+    "transition": "ট্রানজিশন",
+    "modifiers": "মডিফায়ার",
+    "alt": "Alt",
+    "altLower": "Alt নিচে",
+    "keys": "কীবোর্ড: W A S D প্যান ও টিল্ট করে, I K জুম, J L ফোকাস, তীর কী প্রিভিউ নির্বাচন বদলায়, ১ থেকে ৪ বিশেষ ফাংশন চালায়, Enter কাট, Space অটো, আর Shift বা Ctrl alt বাইন্ডিং ধরে রাখে।"
+  }
 }

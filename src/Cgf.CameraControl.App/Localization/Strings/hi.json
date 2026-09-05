@@ -1,42 +1,62 @@
 {
-  "menu.file": "फ़ाइल",
-  "app.title": "कैमरा नियंत्रण",
-  "config.none": "कोई कॉन्फ़िगरेशन लोड नहीं हुआ",
-  "config.import": "आयात",
-  "config.export": "निर्यात",
-  "config.reload": "पुनः लोड करें",
-  "config.openTitle": "कॉन्फ़िगरेशन खोलें",
-  "config.exportTitle": "कॉन्फ़िगरेशन निर्यात करें",
-  "config.fileType": "कॉन्फ़िगरेशन",
-  "panel.mixers": "वीडियो मिक्सर",
-  "panel.cameras": "कैमरे",
-  "panel.interfaces": "इंटरफ़ेस",
-  "interface.disconnected": "कनेक्ट नहीं है",
-  "panel.log": "लॉग",
-  "mixer.preview": "प्रीव्यू",
-  "mixer.program": "प्रोग्राम",
-  "mixer.onAir": "प्रीव्यू प्रसारण में है",
-  "log.allSources": "सभी",
-  "language.label": "भाषा",
-  "menu.help": "सहायता",
-  "licenses.label": "तृतीय-पक्ष लाइसेंस",
-  "licenses.app": "Camera Control स्वयं MIT लाइसेंस के अंतर्गत है।",
-  "licenses.intro": "इसके साथ नीचे दिए पैकेज आते हैं, प्रत्येक अपने साथ दिए लाइसेंस के अंतर्गत।",
-  "mixer.cut": "Cut",
-  "mixer.auto": "Auto",
-  "surface.panTilt": "पैन और टिल्ट",
-  "surface.zoomFocus": "ज़ूम और फ़ोकस",
-  "panel.unassigned": "किसी इंटरफ़ेस द्वारा संचालित नहीं",
-  "interface.clickHint": "इंटरफ़ेस का नियंत्रण विंडो खोलने के लिए उस पर क्लिक करें",
-  "surface.select": "प्रीव्यू",
-  "surface.functions": "फ़ंक्शन",
-  "surface.transition": "ट्रांज़िशन",
-  "surface.modifiers": "मॉडिफ़ायर",
-  "surface.alt": "Alt",
-  "surface.altLower": "Alt नीचे",
-  "surface.keys": "कीबोर्ड: W A S D पैन और टिल्ट करता है, I K ज़ूम, J L फ़ोकस, तीर कुंजियाँ प्रीव्यू चयन बदलती हैं, 1 से 4 विशेष फ़ंक्शन चलाते हैं, Enter कट, Space ऑटो, और Shift या Ctrl alt बाइंडिंग दबाए रखते हैं।",
-  "licenses.license": "लाइसेंस:",
-  "licenses.copyright": "कॉपीराइट:",
-  "licenses.authors": "लेखक:",
-  "licenses.project": "प्रोजेक्ट:"
+  "menu": {
+    "file": "फ़ाइल",
+    "help": "सहायता"
+  },
+  "app": {
+    "title": "कैमरा नियंत्रण"
+  },
+  "config": {
+    "none": "कोई कॉन्फ़िगरेशन लोड नहीं हुआ",
+    "import": "आयात",
+    "export": "निर्यात",
+    "reload": "पुनः लोड करें",
+    "openTitle": "कॉन्फ़िगरेशन खोलें",
+    "exportTitle": "कॉन्फ़िगरेशन निर्यात करें",
+    "fileType": "कॉन्फ़िगरेशन"
+  },
+  "panel": {
+    "mixers": "वीडियो मिक्सर",
+    "cameras": "कैमरे",
+    "interfaces": "इंटरफ़ेस",
+    "log": "लॉग",
+    "unassigned": "किसी इंटरफ़ेस द्वारा संचालित नहीं"
+  },
+  "interface": {
+    "disconnected": "कनेक्ट नहीं है",
+    "clickHint": "इंटरफ़ेस का नियंत्रण विंडो खोलने के लिए उस पर क्लिक करें"
+  },
+  "mixer": {
+    "preview": "प्रीव्यू",
+    "program": "प्रोग्राम",
+    "onAir": "प्रीव्यू प्रसारण में है",
+    "cut": "Cut",
+    "auto": "Auto"
+  },
+  "log": {
+    "allSources": "सभी"
+  },
+  "language": {
+    "label": "भाषा"
+  },
+  "licenses": {
+    "label": "तृतीय-पक्ष लाइसेंस",
+    "app": "Camera Control स्वयं MIT लाइसेंस के अंतर्गत है।",
+    "intro": "इसके साथ नीचे दिए पैकेज आते हैं, प्रत्येक अपने साथ दिए लाइसेंस के अंतर्गत।",
+    "license": "लाइसेंस:",
+    "copyright": "कॉपीराइट:",
+    "authors": "लेखक:",
+    "project": "प्रोजेक्ट:"
+  },
+  "surface": {
+    "panTilt": "पैन और टिल्ट",
+    "zoomFocus": "ज़ूम और फ़ोकस",
+    "select": "प्रीव्यू",
+    "functions": "फ़ंक्शन",
+    "transition": "ट्रांज़िशन",
+    "modifiers": "मॉडिफ़ायर",
+    "alt": "Alt",
+    "altLower": "Alt नीचे",
+    "keys": "कीबोर्ड: W A S D पैन और टिल्ट करता है, I K ज़ूम, J L फ़ोकस, तीर कुंजियाँ प्रीव्यू चयन बदलती हैं, 1 से 4 विशेष फ़ंक्शन चलाते हैं, Enter कट, Space ऑटो, और Shift या Ctrl alt बाइंडिंग दबाए रखते हैं।"
+  }
 }
