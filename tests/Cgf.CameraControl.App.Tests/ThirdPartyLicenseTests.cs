@@ -23,6 +23,28 @@ public class ThirdPartyLicenseTests
         });
     }
 
+    // A licence named with no text behind it is a notices screen that cannot show what it promises.
+    [Fact]
+    public void EveryLicenceNamedHasItsTextCompiledIn()
+    {
+        var texts = ThirdPartyLicenses.Texts.Select(text => text.Name).ToList();
+
+        Assert.All(ThirdPartyLicenses.All, package => Assert.Contains(package.License, texts));
+    }
+
+    [Fact]
+    public void EveryTextIsTheLicenceItIsNamedAfter()
+    {
+        Assert.All(ThirdPartyLicenses.Texts, text =>
+        {
+            Assert.NotEmpty(text.Name);
+
+            // Every licence this ships under disclaims warranty, so a text without the word is a
+            // file that did not arrive whole.
+            Assert.Contains("warrant", text.Text, StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
     [Fact]
     public void TheLibrariesTheCamerasAreBuiltOnAreCredited()
     {

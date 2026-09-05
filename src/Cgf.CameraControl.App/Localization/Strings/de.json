@@ -34,5 +34,6 @@
   "surface.modifiers": "Modifikatoren",
   "surface.alt": "Alt",
   "surface.altLower": "Alt unten",
-  "surface.keys": "Tastatur: W A S D schwenkt und neigt, I K zoomt, J L stellt scharf, die Pfeiltasten wechseln die Vorschauauswahl, 1 bis 4 lösen die Sonderfunktionen aus, Enter schneidet, Leertaste blendet um, und Umschalt oder Strg halten die Alt-Belegungen."
+  "surface.keys": "Tastatur: W A S D schwenkt und neigt, I K zoomt, J L stellt scharf, die Pfeiltasten wechseln die Vorschauauswahl, 1 bis 4 lösen die Sonderfunktionen aus, Enter schneidet, Leertaste blendet um, und Umschalt oder Strg halten die Alt-Belegungen.",
+  "licenses.texts": "Lizenztexte"
 }

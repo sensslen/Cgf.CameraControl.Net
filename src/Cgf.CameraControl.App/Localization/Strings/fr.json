@@ -34,5 +34,6 @@
   "surface.modifiers": "Modificateurs",
   "surface.alt": "Alt",
   "surface.altLower": "Alt bas",
-  "surface.keys": "Clavier : W A S D pour le panoramique et l'inclinaison, I K pour le zoom, J L pour la mise au point, les flèches changent la prévisualisation, 1 à 4 lancent les fonctions spéciales, Entrée coupe, Espace enchaîne, Maj ou Ctrl maintiennent les affectations alt."
+  "surface.keys": "Clavier : W A S D pour le panoramique et l'inclinaison, I K pour le zoom, J L pour la mise au point, les flèches changent la prévisualisation, 1 à 4 lancent les fonctions spéciales, Entrée coupe, Espace enchaîne, Maj ou Ctrl maintiennent les affectations alt.",
+  "licenses.texts": "Textes des licences"
 }

@@ -34,5 +34,6 @@
   "surface.modifiers": "Modificadores",
   "surface.alt": "Alt",
   "surface.altLower": "Alt inferior",
-  "surface.keys": "Teclado: W A S D move na horizontal e vertical, I K faz zoom, J L foca, as setas mudam a pré-visualização, 1 a 4 executam as funções especiais, Enter corta, Espaço faz auto, e Shift ou Ctrl mantêm as atribuições alt."
+  "surface.keys": "Teclado: W A S D move na horizontal e vertical, I K faz zoom, J L foca, as setas mudam a pré-visualização, 1 a 4 executam as funções especiais, Enter corta, Espaço faz auto, e Shift ou Ctrl mantêm as atribuições alt.",
+  "licenses.texts": "Textos das licenças"
 }

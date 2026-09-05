@@ -34,5 +34,6 @@
   "surface.modifiers": "修饰键",
   "surface.alt": "Alt",
   "surface.altLower": "Alt 下",
-  "surface.keys": "键盘：W A S D 摇移与俯仰，I K 变焦，J L 对焦，方向键切换预监选择，1 至 4 触发特殊功能，回车键 Cut，空格键 Auto，Shift 或 Ctrl 按住 alt 绑定。"
+  "surface.keys": "键盘：W A S D 摇移与俯仰，I K 变焦，J L 对焦，方向键切换预监选择，1 至 4 触发特殊功能，回车键 Cut，空格键 Auto，Shift 或 Ctrl 按住 alt 绑定。",
+  "licenses.texts": "许可全文"
 }

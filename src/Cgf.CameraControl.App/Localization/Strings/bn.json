@@ -34,5 +34,6 @@
   "surface.modifiers": "মডিফায়ার",
   "surface.alt": "Alt",
   "surface.altLower": "Alt নিচে",
-  "surface.keys": "কীবোর্ড: W A S D প্যান ও টিল্ট করে, I K জুম, J L ফোকাস, তীর কী প্রিভিউ নির্বাচন বদলায়, ১ থেকে ৪ বিশেষ ফাংশন চালায়, Enter কাট, Space অটো, আর Shift বা Ctrl alt বাইন্ডিং ধরে রাখে।"
+  "surface.keys": "কীবোর্ড: W A S D প্যান ও টিল্ট করে, I K জুম, J L ফোকাস, তীর কী প্রিভিউ নির্বাচন বদলায়, ১ থেকে ৪ বিশেষ ফাংশন চালায়, Enter কাট, Space অটো, আর Shift বা Ctrl alt বাইন্ডিং ধরে রাখে।",
+  "licenses.texts": "লাইসেন্সের পাঠ"
 }
