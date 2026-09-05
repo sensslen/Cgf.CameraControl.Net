@@ -70,6 +70,19 @@ a laptop.
 A problem with one entry is reported against that entry and the rest still load, so a typo in one
 camera does not take the desk down with it.
 
+### Cameras
+
+| `type` | Talks to | Needs |
+| --- | --- | --- |
+| `Websocket.PtzLanc` | the websocket LANC controller firmware | `ip` |
+| `Signalr.PtzLanc` | the SignalR LANC controller service | `connectionUrl`, `connectionPort` |
+| `viscaoverip` | a VISCA camera over UDP | `ip`, and `port` if it is not 52381 |
+
+All three take `panTiltInvert`. A VISCA camera also takes `tallyMode`, naming the vendor whose tally
+payload it understands: `sony-lumens`, `avonic`, `ptzoptics`, or `none`, which is the default.
+Nothing in the VISCA specification covers a tally lamp, so a camera sent the wrong vendor's payload
+does something unrelated rather than nothing.
+
 ### Controller bindings
 
 | Control | Does |
@@ -120,6 +133,8 @@ for suite in tests/*/bin/Debug/net10.0/*.Tests; do "$suite"; done
 | `Cgf.CameraControl.Core` | the domain: factories, configuration, the mixer and camera contracts |
 | `Cgf.CameraControl.Atem` | ATEM support over AtemSharp |
 | `Cgf.CameraControl.Cameras.WebsocketPtzLanc` | the websocket PTZ LANC camera |
+| `Cgf.CameraControl.Cameras.SignalrPtzLanc` | the SignalR PTZ LANC camera |
+| `Cgf.CameraControl.Cameras.ViscaOverIp` | the VISCA over IP camera |
 | `Cgf.CameraControl.Input.Sdl` | the controller logic and the SDL device layer |
 | `Cgf.CameraControl.App` | the Avalonia window and the composition root |
 
@@ -133,9 +148,10 @@ command types by reflecting over its own assembly, and the translations are embe
 because NativeAOT does not load satellite assemblies. Either one can leave a binary that starts,
 connects, and quietly does the wrong thing.
 
-`CgfCameraControl --aot-probe` decodes a real ATEM command and resolves every language, then exits
-non-zero if either has stopped working. The release workflow runs it against every published binary
-before anything is uploaded.
+`CgfCameraControl --aot-probe` decodes a real ATEM command, serializes a SignalR camera update
+through the real hub protocol, and resolves every language, then exits non-zero if any of them has
+stopped working. The release workflow runs it against every published binary before anything is
+uploaded.
 
 ### The icon
 

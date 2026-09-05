@@ -1,6 +1,8 @@
 using System.Text.Json;
 using AtemSharp.DependencyInjection;
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
+using Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
+using Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 using Cgf.CameraControl.Cameras.WebsocketPtzLanc.Camera;
 using Cgf.CameraControl.Core;
 using Cgf.CameraControl.Core.Configuration;
@@ -33,6 +35,8 @@ public sealed class AppHost : IAsyncDisposable
         var atemServices = new ServiceCollection().AddAtemSharp().BuildServiceProvider().GetRequiredService<IServices>();
 
         Core.CameraFactory.AddBuilder(new ObservingCameraBuilder(new WebsocketPtzLancCameraBuilder(Logger), _cameras));
+        Core.CameraFactory.AddBuilder(new ObservingCameraBuilder(new SignalrPtzLancCameraBuilder(Logger), _cameras));
+        Core.CameraFactory.AddBuilder(new ObservingCameraBuilder(new ViscaOverIpCameraBuilder(Logger), _cameras));
         Core.MixerFactory.AddBuilder(new AtemBuilder(Logger, atemServices));
         Core.MixerFactory.AddBuilder(new PassthroughBuilder(Logger));
         Core.HmiFactory.AddBuilder(new GamepadBuilder(Gamepads, Core.MixerFactory, Core.CameraFactory, Logger));

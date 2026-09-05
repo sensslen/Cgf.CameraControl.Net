@@ -53,6 +53,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Cgf.CameraControl.Core\Cgf.CameraControl.Core.csproj" />
     <ProjectReference Include="..\Cgf.CameraControl.Atem\Cgf.CameraControl.Atem.csproj" />
+    <ProjectReference Include="..\Cgf.CameraControl.Cameras.SignalrPtzLanc\Cgf.CameraControl.Cameras.SignalrPtzLanc.csproj" />
+    <ProjectReference Include="..\Cgf.CameraControl.Cameras.ViscaOverIp\Cgf.CameraControl.Cameras.ViscaOverIp.csproj" />
     <ProjectReference Include="..\Cgf.CameraControl.Cameras.WebsocketPtzLanc\Cgf.CameraControl.Cameras.WebsocketPtzLanc.csproj" />
     <ProjectReference Include="..\Cgf.CameraControl.Input.Sdl\Cgf.CameraControl.Input.Sdl.csproj" />
   </ItemGroup>

@@ -2,6 +2,8 @@
   <Folder Name="/src/">
     <Project Path="src/Cgf.CameraControl.App/Cgf.CameraControl.App.csproj" />
     <Project Path="src/Cgf.CameraControl.Atem/Cgf.CameraControl.Atem.csproj" />
+    <Project Path="src/Cgf.CameraControl.Cameras.SignalrPtzLanc/Cgf.CameraControl.Cameras.SignalrPtzLanc.csproj" />
+    <Project Path="src/Cgf.CameraControl.Cameras.ViscaOverIp/Cgf.CameraControl.Cameras.ViscaOverIp.csproj" />
     <Project Path="src/Cgf.CameraControl.Cameras.WebsocketPtzLanc/Cgf.CameraControl.Cameras.WebsocketPtzLanc.csproj" />
     <Project Path="src/Cgf.CameraControl.Core/Cgf.CameraControl.Core.csproj" />
     <Project Path="src/Cgf.CameraControl.Input.Sdl/Cgf.CameraControl.Input.Sdl.csproj" />
@@ -9,6 +11,8 @@
   <Folder Name="/tests/">
     <Project Path="tests/Cgf.CameraControl.App.Tests/Cgf.CameraControl.App.Tests.csproj" />
     <Project Path="tests/Cgf.CameraControl.Atem.Tests/Cgf.CameraControl.Atem.Tests.csproj" />
+    <Project Path="tests/Cgf.CameraControl.Cameras.SignalrPtzLanc.Tests/Cgf.CameraControl.Cameras.SignalrPtzLanc.Tests.csproj" />
+    <Project Path="tests/Cgf.CameraControl.Cameras.ViscaOverIp.Tests/Cgf.CameraControl.Cameras.ViscaOverIp.Tests.csproj" />
     <Project Path="tests/Cgf.CameraControl.Cameras.WebsocketPtzLanc.Tests/Cgf.CameraControl.Cameras.WebsocketPtzLanc.Tests.csproj" />
     <Project Path="tests/Cgf.CameraControl.Core.Tests/Cgf.CameraControl.Core.Tests.csproj" />
     <Project Path="tests/Cgf.CameraControl.Input.Sdl.Tests/Cgf.CameraControl.Input.Sdl.Tests.csproj" />
