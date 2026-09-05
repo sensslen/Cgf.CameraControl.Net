@@ -9,10 +9,8 @@
   "config": {
     "none": "لم يتم تحميل أي إعداد",
     "import": "استيراد",
-    "export": "تصدير",
     "reload": "إعادة تحميل",
     "openTitle": "فتح ملف الإعداد",
-    "exportTitle": "تصدير ملف الإعداد",
     "fileType": "إعداد"
   },
   "panel": {

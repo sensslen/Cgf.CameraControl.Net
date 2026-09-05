@@ -27,20 +27,8 @@ public partial class MainWindow : Window
         CaptionStrip.IsVisible = drawsOwnTitleBar;
     }
 
-    public async Task<string?> PickFileAsync(bool save)
+    public async Task<string?> PickFileAsync()
     {
-        if (save)
-        {
-            var target = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-            {
-                Title = "Export configuration",
-                SuggestedFileName = "config.json",
-                DefaultExtension = "json",
-                FileTypeChoices = [ConfigurationFiles],
-            });
-            return target?.TryGetLocalPath();
-        }
-
         var chosen = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Open configuration",

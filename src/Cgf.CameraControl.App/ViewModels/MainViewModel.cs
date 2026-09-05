@@ -22,7 +22,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     /// Supplied by the window, because a file dialog needs one and a view model must not hold it.
-    public Func<bool, Task<string?>>? PickFile { get; set; }
+    public Func<Task<string?>>? PickFile { get; set; }
 
     /// Supplied by the window for the same reason: a modal dialog needs an owner.
     public Func<Task>? ShowLicenses { get; set; }
@@ -108,18 +108,9 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private async Task ImportAsync()
     {
-        if (PickFile is { } pick && await pick(false).ConfigureAwait(true) is { } path)
+        if (PickFile is { } pick && await pick().ConfigureAwait(true) is { } path)
         {
             await LoadAsync(path).ConfigureAwait(true);
-        }
-    }
-
-    [RelayCommand]
-    private async Task ExportAsync()
-    {
-        if (PickFile is { } pick && await pick(true).ConfigureAwait(true) is { } path)
-        {
-            await _host.ExportAsync(path, CancellationToken.None).ConfigureAwait(true);
         }
     }
 

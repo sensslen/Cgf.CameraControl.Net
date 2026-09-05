@@ -9,10 +9,8 @@
   "config": {
     "none": "未加载配置",
     "import": "导入",
-    "export": "导出",
     "reload": "重新加载",
     "openTitle": "打开配置",
-    "exportTitle": "导出配置",
     "fileType": "配置"
   },
   "panel": {

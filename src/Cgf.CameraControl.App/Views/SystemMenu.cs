@@ -29,7 +29,6 @@ public static class SystemMenu
     {
         var file = new NativeMenuItem(Text("menu.file")) { Menu = [] };
         file.Menu.Add(Command(Text("config.import"), model.ImportCommand));
-        file.Menu.Add(Command(Text("config.export"), model.ExportCommand));
         file.Menu.Add(Command(Text("config.reload"), model.ReloadCommand));
 
         var languages = new NativeMenuItem(Text("language.label")) { Menu = [] };
