@@ -37,9 +37,11 @@ which is TypeScript and headless. It reads the same configuration files.
 
 Every binary is NativeAOT compiled, so there is no .NET runtime to install.
 
-Releases are signed where the project has certificates for it. An unsigned Windows installer shows a
-SmartScreen warning; an unsigned macOS build is refused outright by Gatekeeper, so the release notes
-say when a build went out unnotarized.
+Releases are signed where the project has certificates for it. Without them a Windows installer shows
+a SmartScreen warning, and a macOS build is ad-hoc signed rather than notarized, so macOS asks before
+opening it: **System Settings → Privacy & Security → Open Anyway**, or clear the download flag once
+with `xattr -dr com.apple.quarantine "/Applications/Camera Control.app"`. Every release that went out
+that way says so in its notes.
 
 ## Configure
 

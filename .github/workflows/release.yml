@@ -215,16 +215,38 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
     steps:
       - uses: actions/download-artifact@v8
         with:
           path: artifacts
           merge-multiple: true
 
+      # Whoever downloads an unnotarized build meets a dialog that does not say what to do about it,
+      # so the release itself says it. The generated notes are appended below this.
+      - name: Note the missing notarization
+        if: ${{ env.APPLE_CERTIFICATE_BASE64 == '' }}
+        run: |
+          cat >> "$GITHUB_ENV" <<'NOTE'
+          RELEASE_BODY<<BODY
+          ### macOS
+
+          These builds are signed ad-hoc rather than with a Developer ID, so macOS asks before
+          opening them. Move the app to Applications, then open **System Settings → Privacy &
+          Security** and choose **Open Anyway**, or clear the download flag once:
+
+          ```bash
+          xattr -dr com.apple.quarantine "/Applications/Camera Control.app"
+          ```
+          BODY
+          NOTE
+
       - name: Release
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
         with:
           prerelease: ${{ needs.version.outputs.prerelease != '' }}
+          body: ${{ env.RELEASE_BODY }}
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: artifacts/*

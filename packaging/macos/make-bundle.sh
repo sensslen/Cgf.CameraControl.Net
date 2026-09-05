@@ -3,8 +3,9 @@
 #
 #   make-bundle.sh <publish dir> <version> <output .app>
 #
-# Signing and notarization are the caller's job and only happen when the credentials exist, so a
-# fork without an Apple Developer ID still produces a working, if unsigned, bundle.
+# The bundle is ad-hoc signed here. Signing with a Developer ID and notarizing are the caller's job
+# and only happen when the credentials exist, so a fork without one still produces a bundle that can
+# be opened.
 set -euo pipefail
 
 source_dir=${1:?publish directory is required}
@@ -44,5 +45,18 @@ cat > "$bundle/Contents/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+
+# An arm64 Mach-O with no signature at all is refused by the kernel, and Gatekeeper calls a
+# quarantined bundle without one damaged rather than unidentified, which reads as a broken download
+# and offers the reader nothing but "eject". An ad-hoc signature is not a Developer ID and macOS
+# still asks before opening it, but the question then has an "Open Anyway" behind it. A real identity
+# replaces this signature when one is configured.
+#
+# Nested code is signed first: a bundle signature covers what is inside it, so anything signed
+# afterwards invalidates it.
+find "$bundle/Contents/MacOS" -type f \( -name '*.dylib' -o -name '*.so' \) \
+    -exec codesign --force --sign - {} \;
+codesign --force --sign - "$bundle"
+codesign --verify --strict --verbose=2 "$bundle"
 
 echo "built $bundle for $version"
