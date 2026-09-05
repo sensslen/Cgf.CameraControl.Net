@@ -7,6 +7,11 @@ namespace Cgf.CameraControl.App.Views;
 
 public partial class MainWindow : Window
 {
+    private const int TitleBarHeight = 40;
+
+    /// What macOS leaves above the client area for its own buttons.
+    private const int MacTrafficLightHeight = 28;
+
     private static readonly FilePickerFileType ConfigurationFiles = new("Configuration")
     {
         Patterns = ["*.json"],
@@ -17,14 +22,24 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        // macOS draws its own title bar with the traffic lights in it and publishes the menu to the
-        // system menu bar, so this window has nothing to draw up there and no client area to extend.
         // Windows and Linux let Avalonia draw the frame, which is what makes an icon, a name and a
-        // menu inside the title bar possible at all.
+        // menu inside the title bar possible at all. macOS draws its own traffic lights and takes the
+        // menu into the system menu bar, so there is nothing of ours to put up there, but the client
+        // area is extended under it all the same: a title bar the window does not own is opaque, and
+        // the window would wear a solid strip above a backdrop that is not.
         var drawsOwnTitleBar = !OperatingSystem.IsMacOS();
-        ExtendClientAreaToDecorationsHint = drawsOwnTitleBar;
-        ExtendClientAreaTitleBarHeightHint = 40;
+        ExtendClientAreaToDecorationsHint = true;
+        ExtendClientAreaTitleBarHeightHint = drawsOwnTitleBar ? TitleBarHeight : -1;
         CaptionStrip.IsVisible = drawsOwnTitleBar;
+
+        if (!drawsOwnTitleBar)
+        {
+            // The traffic lights now sit over the top left of the client area, so nothing else may.
+            Root.Margin = new Thickness(0, MacTrafficLightHeight, 0, 0);
+
+            // The drawn decorations are the Windows and Linux frame. macOS has its own.
+            WindowDecorationsTheme = null;
+        }
     }
 
     public async Task<string?> PickFileAsync()
