@@ -3,11 +3,13 @@ using Cgf.CameraControl.App.Localization;
 
 namespace Cgf.CameraControl.App;
 
-// Two libraries in this application fail under trimming without failing the build. AtemSharp finds
+// Three things in this application fail under trimming without failing the build. AtemSharp finds
 // its command types through Assembly.GetTypes(), which trimming can empty, leaving a build that
-// connects to a switcher and decodes nothing. Localization would silently serve English if its
-// strings stopped being reachable. The release workflow runs this against every published binary so
-// that neither failure reaches a tag.
+// connects to a switcher and decodes nothing. The SignalR camera serializes its state through a
+// resolver chain that has nothing behind the generated resolver, so a camera can connect and then
+// fail every update. Localization would silently serve English if its strings stopped being
+// reachable. The release workflow runs this against every published binary so that none of the
+// three reaches a tag.
 public static class AotProbes
 {
     public static int Run()
@@ -16,10 +18,13 @@ public static class AotProbes
         Console.WriteLine(atem.Report);
         Console.WriteLine(Input.Sdl.AotProbe.Touch());
 
+        var signalr = Cameras.SignalrPtzLanc.AotProbe.Touch();
+        Console.WriteLine(signalr.Report);
+
         var localization = ProbeLocalization();
         Console.WriteLine(localization.Report);
 
-        return atem.RegistryAlive && localization.Alive ? 0 : 1;
+        return atem.RegistryAlive && signalr.Alive && localization.Alive ? 0 : 1;
     }
 
     private static (bool Alive, string Report) ProbeLocalization()

@@ -80,6 +80,12 @@ public sealed class Gamepad : IHmi
 
     public string Description => _device.Description;
 
+    /// What this interface drives, so the window can group a mixer and its cameras under the
+    /// interface that owns them rather than listing everything configured in one flat panel.
+    public IVideoMixer Mixer => _mixer;
+
+    public IReadOnlyCollection<ICameraConnection> Cameras => _cameras.Values.Distinct().ToList();
+
     public IObservable<bool> WhenConnectedChanged => _device.WhenConnectedChanged;
 
     public async ValueTask DisposeAsync()

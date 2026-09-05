@@ -12,6 +12,7 @@ public sealed class GamepadBuilder(
     SdlGamepadSystem system,
     VideoMixerFactory mixers,
     CameraConnectionFactory cameras,
+    ICollection<ControlSurfaceDevice> surfaces,
     ILogger logger) : IBuilder<IHmi>
 {
     /// SDL normalises every pad to one button and axis layout, so the controller model no longer
@@ -28,7 +29,12 @@ public sealed class GamepadBuilder(
                         $"{entry}.videoMixer",
                         $"no video mixer is configured with instance {config.VideoMixer}");
 
-        var device = system.Claim(entry.ToString(), config.SerialNumber, config.Deadzone);
+        // The pad and the window drive the same interface, so the surface wraps the pad rather than
+        // standing beside it as a second interface on the same cameras.
+        var device = new ControlSurfaceDevice(
+            entry.Instance,
+            system.Claim(entry.ToString(), config.SerialNumber, config.Deadzone));
+        surfaces.Add(device);
         return Task.FromResult<IHmi>(new Shared.Gamepad(config, device, mixer, cameras.Get, logger));
     }
 }

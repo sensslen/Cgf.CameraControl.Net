@@ -22,6 +22,32 @@ jobs:
       - name: Format
         run: dotnet format --verify-no-changes
 
+      # nuget-license both checks that every package this ships is under a licence the project
+      # accepts, and writes the notices the application shows. The generated report is committed
+      # because a source generator compiles it into the binary, so a stale one is a build that
+      # credits the wrong packages. What is ignored is what builds the binary rather than travelling
+      # in it: the diagnostics support package ships in Debug alone, and the compiler and the trimmer
+      # carry the host's runtime identifier in their package id, so a report naming them would differ
+      # between this runner and a developer machine.
+      - name: Licenses
+        run: |
+          dotnet tool restore
+          dotnet nuget-license -i "$PROJECT" -t -ignore "$IGNORED" -a "$ALLOWED" \
+            -o JsonPretty -fo src/Cgf.CameraControl.App/Licenses/third-party-licenses.json
+          dotnet nuget-license -i "$PROJECT" -t -ignore "$IGNORED" -a "$ALLOWED" \
+            -o Markdown -fo third-party-licenses.md
+          git diff --exit-code -- src/Cgf.CameraControl.App/Licenses/third-party-licenses.json
+        env:
+          PROJECT: src/Cgf.CameraControl.App/Cgf.CameraControl.App.csproj
+          IGNORED: AvaloniaUI.DiagnosticsSupport;Microsoft.DotNet.ILCompiler;runtime.*.Microsoft.DotNet.ILCompiler;Microsoft.NET.ILLink.Tasks
+          ALLOWED: MIT;Zlib;BSD-3-Clause
+
+      - name: Publish the licence report
+        uses: actions/upload-artifact@v7
+        with:
+          name: third-party-licenses
+          path: third-party-licenses.md
+
       # The test projects are Microsoft.Testing.Platform executables, so they are run directly
       # rather than through dotnet test.
       - name: Test

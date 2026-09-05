@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Cgf.CameraControl.Cameras.SignalrPtzLanc\Cgf.CameraControl.Cameras.SignalrPtzLanc.csproj" />
+  </ItemGroup>
+
+</Project>

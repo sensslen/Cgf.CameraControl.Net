@@ -1,12 +1,15 @@
 using System.Text.Json;
 using AtemSharp.DependencyInjection;
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
+using Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
+using Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 using Cgf.CameraControl.Cameras.WebsocketPtzLanc.Camera;
 using Cgf.CameraControl.Core;
 using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.GenericFactory;
 using Cgf.CameraControl.Core.VideoMixer.Passthrough;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Sdl;
+using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Cgf.CameraControl.App.Hosting;
@@ -24,6 +27,7 @@ public sealed record ConfigLoadResult(
 public sealed class AppHost : IAsyncDisposable
 {
     private readonly List<ObservedCamera> _cameras = [];
+    private readonly List<ControlSurfaceDevice> _surfaces = [];
 
     public AppHost()
     {
@@ -33,9 +37,12 @@ public sealed class AppHost : IAsyncDisposable
         var atemServices = new ServiceCollection().AddAtemSharp().BuildServiceProvider().GetRequiredService<IServices>();
 
         Core.CameraFactory.AddBuilder(new ObservingCameraBuilder(new WebsocketPtzLancCameraBuilder(Logger), _cameras));
+        Core.CameraFactory.AddBuilder(new ObservingCameraBuilder(new SignalrPtzLancCameraBuilder(Logger), _cameras));
+        Core.CameraFactory.AddBuilder(new ObservingCameraBuilder(new ViscaOverIpCameraBuilder(Logger), _cameras));
         Core.MixerFactory.AddBuilder(new AtemBuilder(Logger, atemServices));
         Core.MixerFactory.AddBuilder(new PassthroughBuilder(Logger));
-        Core.HmiFactory.AddBuilder(new GamepadBuilder(Gamepads, Core.MixerFactory, Core.CameraFactory, Logger));
+        Core.HmiFactory.AddBuilder(new GamepadBuilder(Gamepads, Core.MixerFactory, Core.CameraFactory, _surfaces, Logger));
+        Core.HmiFactory.AddBuilder(new KeyboardBuilder(Core.MixerFactory, Core.CameraFactory, _surfaces, Logger));
     }
 
     public UiLogger Logger { get; } = new();
@@ -45,6 +52,10 @@ public sealed class AppHost : IAsyncDisposable
     public CameraControlCore Core { get; }
 
     public IReadOnlyList<ObservedCamera> Cameras => _cameras;
+
+    /// The keyboard and mouse surfaces the configuration asked for, in the order they were built,
+    /// so the window can draw one for each.
+    public IReadOnlyList<ControlSurfaceDevice> Surfaces => _surfaces;
 
     public RootConfig Configuration { get; private set; } = RootConfig.Empty;
 
@@ -70,6 +81,7 @@ public sealed class AppHost : IAsyncDisposable
         }
 
         _cameras.Clear();
+        _surfaces.Clear();
         var entryIssues = await Core.ReconfigureAsync(config, cancellationToken).ConfigureAwait(false);
 
         Configuration = config;

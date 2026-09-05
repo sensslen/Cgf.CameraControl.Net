@@ -1,0 +1,79 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:licenses="using:Cgf.CameraControl.App.Licenses"
+        xmlns:loc="using:Cgf.CameraControl.App.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="620" d:DesignHeight="680"
+        x:Class="Cgf.CameraControl.App.Views.LicensesWindow"
+        x:DataType="loc:Localizer"
+        Width="620" Height="680"
+        Icon="/Assets/appicon.ico"
+        WindowStartupLocation="CenterOwner"
+        Title="{Binding [licenses.label]^}"
+        FlowDirection="{Binding FlowDirection^}">
+
+  <Window.Styles>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+    <Style Selector="SelectableTextBlock.detail">
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel Margin="16">
+
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+      <TextBlock Text="{Binding [licenses.app]^}" TextWrapping="Wrap" />
+      <TextBlock Margin="0,8,0,0" Opacity="0.7" FontSize="12" TextWrapping="Wrap"
+                 Text="{Binding [licenses.intro]^}" />
+    </StackPanel>
+
+    <ScrollViewer>
+      <StackPanel>
+
+        <ItemsControl ItemsSource="{x:Static licenses:ThirdPartyLicenses.All}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="licenses:ThirdPartyLicense">
+              <Border Classes="card">
+                <StackPanel>
+                  <SelectableTextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                  <SelectableTextBlock Classes="detail" Text="{Binding License}" />
+                  <SelectableTextBlock Classes="detail" Text="{Binding Copyright}" TextWrapping="Wrap"
+                                       IsVisible="{Binding Copyright, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                  <SelectableTextBlock Classes="detail" Text="{Binding Authors}" TextWrapping="Wrap" />
+                  <SelectableTextBlock Classes="detail" Text="{Binding ProjectUrl}"
+                                       TextTrimming="CharacterEllipsis"
+                                       IsVisible="{Binding ProjectUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Margin="0,10,0,6" FontWeight="SemiBold" Text="{Binding [licenses.texts]^}" />
+
+        <ItemsControl ItemsSource="{x:Static licenses:ThirdPartyLicenses.Texts}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="licenses:ThirdPartyLicenseText">
+              <Expander Margin="0,0,0,6" HorizontalAlignment="Stretch" Header="{Binding Name}">
+                <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" FontFamily="monospace"
+                                     FontSize="12" />
+              </Expander>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+      </StackPanel>
+    </ScrollViewer>
+
+  </DockPanel>
+
+</Window>
