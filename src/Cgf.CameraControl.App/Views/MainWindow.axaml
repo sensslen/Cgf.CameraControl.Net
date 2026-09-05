@@ -93,6 +93,13 @@
       <Setter Property="Padding" Value="10,6" />
       <Setter Property="Margin" Value="0,0,0,4" />
     </Style>
+    <!-- The collapsed bar keeps a lane of its own rather than lying over the last few characters of
+         a line. Expanded it does overlap, so it takes a backdrop to stay legible over whatever is
+         under it. -->
+    <Style Selector="ScrollBar:vertical:expanded">
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
+      <Setter Property="Opacity" Value="0.9" />
+    </Style>
     <Style Selector="Border.lamp">
       <Setter Property="Width" Value="10" />
       <Setter Property="Height" Value="10" />
@@ -164,7 +171,7 @@
       </ItemsControl>
     </StackPanel>
 
-    <ScrollViewer Grid.Row="2" Margin="16,0,16,0">
+    <ScrollViewer Grid.Row="2" Margin="16,0,16,0" Padding="0,0,8,0">
       <StackPanel>
 
         <TextBlock Classes="heading" Text="{Binding Strings[panel.interfaces]^}" />
@@ -232,7 +239,7 @@
           </ComboBox>
         </Grid>
         <Border Classes="card">
-          <ScrollViewer>
+          <ScrollViewer Padding="0,0,8,0">
             <ItemsControl ItemsSource="{Binding Entries}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="hosting:LogEntry">
