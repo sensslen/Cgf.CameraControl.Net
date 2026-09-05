@@ -41,7 +41,10 @@ public static class SystemMenu
             languages.Menu.Add(item);
         }
 
-        NativeMenu.SetMenu(window, [file, languages]);
+        var help = new NativeMenuItem(Text("menu.help")) { Menu = [] };
+        help.Menu.Add(Command(Text("licenses.label"), model.ShowLicensesCommand));
+
+        NativeMenu.SetMenu(window, [file, languages, help]);
     }
 
     private static NativeMenuItem Command(string header, ICommand command) =>

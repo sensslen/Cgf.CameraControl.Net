@@ -22,5 +22,9 @@
   "pad.unclaimed": "aucune interface ne l'utilise",
   "pad.noRumble": "pas de moteurs de vibration",
   "log.allSources": "Tous",
-  "language.label": "Langue"
+  "language.label": "Langue",
+  "menu.help": "Aide",
+  "licenses.label": "Licences tierces",
+  "licenses.app": "Camera Control est distribué sous licence MIT.",
+  "licenses.intro": "Il embarque les paquets ci-dessous, chacun sous la licence indiquée."
 }

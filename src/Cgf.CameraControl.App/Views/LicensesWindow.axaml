@@ -1,0 +1,48 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:licenses="using:Cgf.CameraControl.App.Licenses"
+        xmlns:loc="using:Cgf.CameraControl.App.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="640"
+        x:Class="Cgf.CameraControl.App.Views.LicensesWindow"
+        x:DataType="loc:Localizer"
+        Width="560" Height="640"
+        Icon="/Assets/appicon.ico"
+        WindowStartupLocation="CenterOwner"
+        Title="{Binding [licenses.label]^}"
+        FlowDirection="{Binding FlowDirection^}">
+
+  <DockPanel Margin="16">
+
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+      <TextBlock Text="{Binding [licenses.app]^}" TextWrapping="Wrap" />
+      <TextBlock Margin="0,8,0,0" Opacity="0.7" FontSize="12" TextWrapping="Wrap"
+                 Text="{Binding [licenses.intro]^}" />
+    </StackPanel>
+
+    <ScrollViewer>
+      <ItemsControl ItemsSource="{x:Static licenses:ThirdPartyLicenses.All}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="licenses:ThirdPartyLicense">
+            <Border Background="{DynamicResource SystemControlBackgroundListLowBrush}"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,6">
+              <StackPanel>
+                <SelectableTextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                <SelectableTextBlock Text="{Binding License}" Opacity="0.7" FontSize="12" />
+                <SelectableTextBlock Text="{Binding Authors}" Opacity="0.7" FontSize="12"
+                                     TextWrapping="Wrap" />
+                <SelectableTextBlock Text="{Binding ProjectUrl}" Opacity="0.7" FontSize="12"
+                                     TextTrimming="CharacterEllipsis"
+                                     IsVisible="{Binding ProjectUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+  </DockPanel>
+
+</Window>

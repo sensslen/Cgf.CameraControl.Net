@@ -96,6 +96,9 @@
           </ControlTheme>
         </MenuItem.ItemContainerTheme>
       </MenuItem>
+      <MenuItem Header="{Binding Strings[menu.help]^}">
+        <MenuItem Header="{Binding Strings[licenses.label]^}" Command="{Binding ShowLicensesCommand}" />
+      </MenuItem>
       </Menu>
       <!-- Kept clear for the caption buttons the decorations theme draws over this strip. -->
       <Panel Grid.Column="3" Width="138" />

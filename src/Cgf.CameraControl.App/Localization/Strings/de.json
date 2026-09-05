@@ -22,5 +22,9 @@
   "pad.unclaimed": "von keiner Schnittstelle belegt",
   "pad.noRumble": "keine Vibrationsmotoren",
   "log.allSources": "Alle",
-  "language.label": "Sprache"
+  "language.label": "Sprache",
+  "menu.help": "Hilfe",
+  "licenses.label": "Lizenzen Dritter",
+  "licenses.app": "Kamerasteuerung selbst steht unter der MIT-Lizenz.",
+  "licenses.intro": "Sie liefert die folgenden Pakete mit, jedes unter der dabei genannten Lizenz."
 }

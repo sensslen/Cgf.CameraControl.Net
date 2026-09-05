@@ -22,5 +22,9 @@
   "pad.unclaimed": "किसी इंटरफ़ेस ने नहीं लिया",
   "pad.noRumble": "वाइब्रेशन मोटर नहीं",
   "log.allSources": "सभी",
-  "language.label": "भाषा"
+  "language.label": "भाषा",
+  "menu.help": "सहायता",
+  "licenses.label": "तृतीय-पक्ष लाइसेंस",
+  "licenses.app": "Camera Control स्वयं MIT लाइसेंस के अंतर्गत है।",
+  "licenses.intro": "इसके साथ नीचे दिए पैकेज आते हैं, प्रत्येक अपने साथ दिए लाइसेंस के अंतर्गत।"
 }

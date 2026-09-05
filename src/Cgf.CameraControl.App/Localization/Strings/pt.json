@@ -22,5 +22,9 @@
   "pad.unclaimed": "nenhuma interface o utiliza",
   "pad.noRumble": "sem motores de vibração",
   "log.allSources": "Todos",
-  "language.label": "Idioma"
+  "language.label": "Idioma",
+  "menu.help": "Ajuda",
+  "licenses.label": "Licenças de terceiros",
+  "licenses.app": "O Camera Control é licenciado sob MIT.",
+  "licenses.intro": "Ele inclui os pacotes abaixo, cada um sob a licença indicada."
 }

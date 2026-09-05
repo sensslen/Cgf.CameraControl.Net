@@ -22,5 +22,9 @@
   "pad.unclaimed": "не используется ни одним интерфейсом",
   "pad.noRumble": "без вибромоторов",
   "log.allSources": "Все",
-  "language.label": "Язык"
+  "language.label": "Язык",
+  "menu.help": "Справка",
+  "licenses.label": "Лицензии сторонних компонентов",
+  "licenses.app": "Camera Control распространяется по лицензии MIT.",
+  "licenses.intro": "В его состав входят пакеты ниже, каждый на указанной рядом лицензии."
 }

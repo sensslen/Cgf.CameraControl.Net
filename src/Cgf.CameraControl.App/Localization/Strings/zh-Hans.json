@@ -22,5 +22,9 @@
   "pad.unclaimed": "未被任何接口占用",
   "pad.noRumble": "无振动马达",
   "log.allSources": "全部",
-  "language.label": "语言"
+  "language.label": "语言",
+  "menu.help": "帮助",
+  "licenses.label": "第三方许可",
+  "licenses.app": "Camera Control 本身采用 MIT 许可。",
+  "licenses.intro": "它随附以下软件包，每个软件包均按其标注的许可使用。"
 }

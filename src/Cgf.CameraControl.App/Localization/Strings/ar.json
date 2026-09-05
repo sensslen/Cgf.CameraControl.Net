@@ -22,5 +22,9 @@
   "pad.unclaimed": "لا تستخدمه أي واجهة",
   "pad.noRumble": "بدون محركات اهتزاز",
   "log.allSources": "الكل",
-  "language.label": "اللغة"
+  "language.label": "اللغة",
+  "menu.help": "مساعدة",
+  "licenses.label": "تراخيص الطرف الثالث",
+  "licenses.app": "التحكم بالكاميرات نفسه مرخّص بموجب رخصة MIT.",
+  "licenses.intro": "يتضمن الحزم التالية، كل منها بموجب الرخصة المذكورة بجانبها."
 }
