@@ -114,7 +114,7 @@
   </Window.Styles>
 
   <!-- The interfaces are the desk; the log is a strip to glance at, and the splitter moves it. -->
-  <Grid RowDefinitions="Auto,Auto,3*,Auto,*">
+  <Grid Name="Root" RowDefinitions="Auto,Auto,3*,Auto,*">
 
     <!-- The title bar itself. The client area is extended into it and the decorations theme leaves
          it empty, so this is what the user sees up there. Marked as the drag region because the
