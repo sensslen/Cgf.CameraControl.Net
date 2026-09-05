@@ -35,5 +35,8 @@
   "surface.alt": "Alt",
   "surface.altLower": "Alt السفلي",
   "surface.keys": "لوحة المفاتيح: W A S D للتحريك الأفقي والرأسي، و I K للتقريب، و J L للتركيز، وأسهم الاتجاه تغيّر اختيار المعاينة، ومن 1 إلى 4 تشغّل الوظائف الخاصة، و Enter للقطع، والمسافة للانتقال التلقائي، و Shift أو Ctrl تثبّتان ارتباطات alt.",
-  "licenses.texts": "نصوص التراخيص"
+  "licenses.license": "الترخيص:",
+  "licenses.copyright": "حقوق النشر:",
+  "licenses.authors": "المؤلفون:",
+  "licenses.project": "المشروع:"
 }
