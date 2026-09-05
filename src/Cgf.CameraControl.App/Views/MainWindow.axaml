@@ -5,10 +5,10 @@
         xmlns:loc="using:Cgf.CameraControl.App.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="780"
         x:Class="Cgf.CameraControl.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Width="1100" Height="700"
+        Width="1100" Height="780"
         Icon="/Assets/appicon.ico"
         Title="{Binding Strings[app.title]^}"
         FlowDirection="{Binding Strings.FlowDirection^}"
@@ -106,7 +106,8 @@
     </Style>
   </Window.Styles>
 
-  <Grid RowDefinitions="Auto,Auto,2*,Auto,*">
+  <!-- The interfaces are the desk; the log is a strip to glance at, and the splitter moves it. -->
+  <Grid RowDefinitions="Auto,Auto,3*,Auto,*">
 
     <!-- The title bar itself. The client area is extended into it and the decorations theme leaves
          it empty, so this is what the user sees up there. Marked as the drag region because the
@@ -186,12 +187,13 @@
                     </StackPanel>
                   </Button>
 
-                  <Expander Margin="0,8,0,0" HorizontalAlignment="Stretch"
+                  <!-- Open, because an interface drawn as two shut drawers shows nothing at all. -->
+                  <Expander Margin="0,8,0,0" HorizontalAlignment="Stretch" IsExpanded="True"
                             Header="{Binding [panel.mixers]^, Source={x:Static loc:Localizer.Current}}">
                     <ItemsControl ItemsSource="{Binding Mixers}" ItemTemplate="{StaticResource MixerTile}" />
                   </Expander>
 
-                  <Expander Margin="0,4,0,0" HorizontalAlignment="Stretch"
+                  <Expander Margin="0,4,0,0" HorizontalAlignment="Stretch" IsExpanded="True"
                             Header="{Binding [panel.cameras]^, Source={x:Static loc:Localizer.Current}}">
                     <ItemsControl ItemsSource="{Binding Cameras}" ItemTemplate="{StaticResource CameraTile}" />
                   </Expander>
