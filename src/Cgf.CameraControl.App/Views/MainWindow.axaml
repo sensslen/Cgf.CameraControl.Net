@@ -134,8 +134,6 @@
       <MenuItem Header="{Binding Strings[menu.file]^}">
         <MenuItem Header="{Binding Strings[config.import]^}" Command="{Binding ImportCommand}"
                   IsEnabled="{Binding !IsBusy}" />
-        <MenuItem Header="{Binding Strings[config.export]^}" Command="{Binding ExportCommand}"
-                  IsEnabled="{Binding !IsBusy}" />
         <MenuItem Header="{Binding Strings[config.reload]^}" Command="{Binding ReloadCommand}"
                   IsEnabled="{Binding !IsBusy}" />
       </MenuItem>

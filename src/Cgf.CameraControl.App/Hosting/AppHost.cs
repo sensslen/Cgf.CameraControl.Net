@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AtemSharp.DependencyInjection;
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 using Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
@@ -91,37 +90,9 @@ public sealed class AppHost : IAsyncDisposable
         return new ConfigLoadResult(path, fileIssues, entryIssues);
     }
 
-    /// Writes the configuration currently in effect, entry for entry, so a file exported after an
-    /// import is the same configuration and not a lossy reconstruction of it.
-    public async Task ExportAsync(string path, CancellationToken cancellationToken)
-    {
-        await using var file = File.Create(path);
-        await using var writer = new Utf8JsonWriter(file, new JsonWriterOptions { Indented = true });
-
-        writer.WriteStartObject();
-        WriteSection(writer, "cams", Configuration.Cams);
-        WriteSection(writer, "videoMixers", Configuration.VideoMixers);
-        WriteSection(writer, "interfaces", Configuration.Interfaces);
-        writer.WriteEndObject();
-
-        await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
-        Logger.Log($"Configuration:exported {path}");
-    }
-
     public async ValueTask DisposeAsync()
     {
         await Core.DisposeAsync().ConfigureAwait(false);
         await Gamepads.DisposeAsync().ConfigureAwait(false);
-    }
-
-    private static void WriteSection(Utf8JsonWriter writer, string name, IReadOnlyList<ConfigEntry> entries)
-    {
-        writer.WriteStartArray(name);
-        foreach (var entry in entries)
-        {
-            entry.Raw.WriteTo(writer);
-        }
-
-        writer.WriteEndArray();
     }
 }

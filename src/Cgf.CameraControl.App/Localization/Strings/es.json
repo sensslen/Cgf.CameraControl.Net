@@ -9,10 +9,8 @@
   "config": {
     "none": "ninguna configuración cargada",
     "import": "Importar",
-    "export": "Exportar",
     "reload": "Recargar",
     "openTitle": "Abrir configuración",
-    "exportTitle": "Exportar configuración",
     "fileType": "Configuración"
   },
   "panel": {
