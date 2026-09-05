@@ -8,7 +8,7 @@
   "config.openTitle": "Konfiguration öffnen",
   "config.exportTitle": "Konfiguration exportieren",
   "config.fileType": "Konfiguration",
-  "panel.mixers": "Bildmischer",
+  "panel.mixers": "Videomischer",
   "panel.cameras": "Kameras",
   "panel.interfaces": "Schnittstellen",
   "interface.disconnected": "nicht verbunden",
