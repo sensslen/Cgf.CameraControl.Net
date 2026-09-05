@@ -26,6 +26,12 @@ public partial class App : Application
                   ?? Localizer.Match(CultureInfo.CurrentUICulture)
                 : Localizer.Match(CultureInfo.CurrentUICulture));
 
+            // The name macOS puts in its menu bar, read before the menu is built. A language change
+            // afterwards writes it again, which the next start picks up whether or not the running
+            // menu bar does.
+            Name = Localizer.Current.Text("app.title");
+            Localizer.Current.LanguageChanged += (_, _) => Name = Localizer.Current.Text("app.title");
+
             _host = new AppHost();
             _model = new MainViewModel(_host);
 

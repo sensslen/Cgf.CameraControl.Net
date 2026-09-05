@@ -2,8 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Cgf.CameraControl.App.App"
              xmlns:local="using:Cgf.CameraControl.App"
-             RequestedThemeVariant="Default"
-             Name="Camera Control">
+             RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.Styles>

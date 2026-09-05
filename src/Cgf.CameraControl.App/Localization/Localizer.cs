@@ -63,6 +63,10 @@ public sealed class Localizer
 
     public IObservable<FlowDirection> FlowDirection => _flow;
 
+    /// The string as it reads now, for the few places that cannot take an observable: a native menu
+    /// item's header, and the application's own name.
+    public string Text(string key) => Lookup(key);
+
     /// A missing key shows as its own name rather than as blank, so a gap in a translation is
     /// visible instead of leaving an unlabelled button.
     public IObservable<string> this[string key]

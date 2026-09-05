@@ -27,11 +27,11 @@ public static class SystemMenu
 
     private static void Build(Window window, MainViewModel model)
     {
-        var file = new NativeMenuItem(Text("menu.file")) { Menu = [] };
-        file.Menu.Add(Command(Text("config.import"), model.ImportCommand));
-        file.Menu.Add(Command(Text("config.reload"), model.ReloadCommand));
+        var file = new NativeMenuItem(Localizer.Current.Text("menu.file")) { Menu = [] };
+        file.Menu.Add(Command(Localizer.Current.Text("config.import"), model.ImportCommand));
+        file.Menu.Add(Command(Localizer.Current.Text("config.reload"), model.ReloadCommand));
 
-        var languages = new NativeMenuItem(Text("language.label")) { Menu = [] };
+        var languages = new NativeMenuItem(Localizer.Current.Text("language.label")) { Menu = [] };
         foreach (var language in model.Languages)
         {
             var item = Command(language.Display, language.SelectCommand);
@@ -40,8 +40,8 @@ public static class SystemMenu
             languages.Menu.Add(item);
         }
 
-        var help = new NativeMenuItem(Text("menu.help")) { Menu = [] };
-        help.Menu.Add(Command(Text("licenses.label"), model.ShowLicensesCommand));
+        var help = new NativeMenuItem(Localizer.Current.Text("menu.help")) { Menu = [] };
+        help.Menu.Add(Command(Localizer.Current.Text("licenses.label"), model.ShowLicensesCommand));
 
         NativeMenu.SetMenu(window, [file, languages, help]);
     }
@@ -49,12 +49,4 @@ public static class SystemMenu
     private static NativeMenuItem Command(string header, ICommand command) =>
         new(header) { Command = command };
 
-    private static string Text(string key)
-    {
-        var text = key;
-        using (Localizer.Current[key].Subscribe(value => text = value))
-        {
-            return text;
-        }
-    }
 }
