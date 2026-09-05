@@ -1,42 +1,62 @@
 {
-  "menu.file": "Fichier",
-  "app.title": "Contrôle des caméras",
-  "config.none": "aucune configuration chargée",
-  "config.import": "Importer",
-  "config.export": "Exporter",
-  "config.reload": "Recharger",
-  "config.openTitle": "Ouvrir la configuration",
-  "config.exportTitle": "Exporter la configuration",
-  "config.fileType": "Configuration",
-  "panel.mixers": "Mélangeurs vidéo",
-  "panel.cameras": "Caméras",
-  "panel.interfaces": "Interfaces",
-  "interface.disconnected": "non connectée",
-  "panel.log": "Journal",
-  "mixer.preview": "prévisualisation",
-  "mixer.program": "programme",
-  "mixer.onAir": "la prévisualisation est à l'antenne",
-  "log.allSources": "Tous",
-  "language.label": "Langue",
-  "menu.help": "Aide",
-  "licenses.label": "Licences tierces",
-  "licenses.app": "Camera Control est distribué sous licence MIT.",
-  "licenses.intro": "Il embarque les paquets ci-dessous, chacun sous la licence indiquée.",
-  "mixer.cut": "Cut",
-  "mixer.auto": "Auto",
-  "surface.panTilt": "Panoramique et inclinaison",
-  "surface.zoomFocus": "Zoom et mise au point",
-  "panel.unassigned": "Piloté par aucune interface",
-  "interface.clickHint": "cliquez sur une interface pour ouvrir sa fenêtre de commande",
-  "surface.select": "Prévisualisation",
-  "surface.functions": "Fonctions",
-  "surface.transition": "Transition",
-  "surface.modifiers": "Modificateurs",
-  "surface.alt": "Alt",
-  "surface.altLower": "Alt bas",
-  "surface.keys": "Clavier : W A S D pour le panoramique et l'inclinaison, I K pour le zoom, J L pour la mise au point, les flèches changent la prévisualisation, 1 à 4 lancent les fonctions spéciales, Entrée coupe, Espace enchaîne, Maj ou Ctrl maintiennent les affectations alt.",
-  "licenses.license": "Licence :",
-  "licenses.copyright": "Copyright :",
-  "licenses.authors": "Auteurs :",
-  "licenses.project": "Projet :"
+  "menu": {
+    "file": "Fichier",
+    "help": "Aide"
+  },
+  "app": {
+    "title": "Contrôle des caméras"
+  },
+  "config": {
+    "none": "aucune configuration chargée",
+    "import": "Importer",
+    "export": "Exporter",
+    "reload": "Recharger",
+    "openTitle": "Ouvrir la configuration",
+    "exportTitle": "Exporter la configuration",
+    "fileType": "Configuration"
+  },
+  "panel": {
+    "mixers": "Mélangeurs vidéo",
+    "cameras": "Caméras",
+    "interfaces": "Interfaces",
+    "log": "Journal",
+    "unassigned": "Piloté par aucune interface"
+  },
+  "interface": {
+    "disconnected": "non connectée",
+    "clickHint": "cliquez sur une interface pour ouvrir sa fenêtre de commande"
+  },
+  "mixer": {
+    "preview": "prévisualisation",
+    "program": "programme",
+    "onAir": "la prévisualisation est à l'antenne",
+    "cut": "Cut",
+    "auto": "Auto"
+  },
+  "log": {
+    "allSources": "Tous"
+  },
+  "language": {
+    "label": "Langue"
+  },
+  "licenses": {
+    "label": "Licences tierces",
+    "app": "Camera Control est distribué sous licence MIT.",
+    "intro": "Il embarque les paquets ci-dessous, chacun sous la licence indiquée.",
+    "license": "Licence :",
+    "copyright": "Copyright :",
+    "authors": "Auteurs :",
+    "project": "Projet :"
+  },
+  "surface": {
+    "panTilt": "Panoramique et inclinaison",
+    "zoomFocus": "Zoom et mise au point",
+    "select": "Prévisualisation",
+    "functions": "Fonctions",
+    "transition": "Transition",
+    "modifiers": "Modificateurs",
+    "alt": "Alt",
+    "altLower": "Alt bas",
+    "keys": "Clavier : W A S D pour le panoramique et l'inclinaison, I K pour le zoom, J L pour la mise au point, les flèches changent la prévisualisation, 1 à 4 lancent les fonctions spéciales, Entrée coupe, Espace enchaîne, Maj ou Ctrl maintiennent les affectations alt."
+  }
 }

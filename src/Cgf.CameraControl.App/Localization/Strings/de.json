@@ -1,42 +1,62 @@
 {
-  "menu.file": "Datei",
-  "app.title": "Kamerasteuerung",
-  "config.none": "keine Konfiguration geladen",
-  "config.import": "Importieren",
-  "config.export": "Exportieren",
-  "config.reload": "Neu laden",
-  "config.openTitle": "Konfiguration öffnen",
-  "config.exportTitle": "Konfiguration exportieren",
-  "config.fileType": "Konfiguration",
-  "panel.mixers": "Videomischer",
-  "panel.cameras": "Kameras",
-  "panel.interfaces": "Schnittstellen",
-  "interface.disconnected": "nicht verbunden",
-  "panel.log": "Protokoll",
-  "mixer.preview": "Vorschau",
-  "mixer.program": "Programm",
-  "mixer.onAir": "Vorschau ist auf Sendung",
-  "log.allSources": "Alle",
-  "language.label": "Sprache",
-  "menu.help": "Hilfe",
-  "licenses.label": "Lizenzen Dritter",
-  "licenses.app": "Kamerasteuerung selbst steht unter der MIT-Lizenz.",
-  "licenses.intro": "Sie liefert die folgenden Pakete mit, jedes unter der dabei genannten Lizenz.",
-  "mixer.cut": "Cut",
-  "mixer.auto": "Auto",
-  "surface.panTilt": "Schwenken und Neigen",
-  "surface.zoomFocus": "Zoom und Fokus",
-  "panel.unassigned": "Von keiner Schnittstelle gesteuert",
-  "interface.clickHint": "Schnittstelle anklicken, um ihr Steuerfenster zu öffnen",
-  "surface.select": "Vorschau",
-  "surface.functions": "Funktionen",
-  "surface.transition": "Übergang",
-  "surface.modifiers": "Modifikatoren",
-  "surface.alt": "Alt",
-  "surface.altLower": "Alt unten",
-  "surface.keys": "Tastatur: W A S D schwenkt und neigt, I K zoomt, J L stellt scharf, die Pfeiltasten wechseln die Vorschauauswahl, 1 bis 4 lösen die Sonderfunktionen aus, Enter schneidet, Leertaste blendet um, und Umschalt oder Strg halten die Alt-Belegungen.",
-  "licenses.license": "Lizenz:",
-  "licenses.copyright": "Copyright:",
-  "licenses.authors": "Autoren:",
-  "licenses.project": "Projekt:"
+  "menu": {
+    "file": "Datei",
+    "help": "Hilfe"
+  },
+  "app": {
+    "title": "Kamerasteuerung"
+  },
+  "config": {
+    "none": "keine Konfiguration geladen",
+    "import": "Importieren",
+    "export": "Exportieren",
+    "reload": "Neu laden",
+    "openTitle": "Konfiguration öffnen",
+    "exportTitle": "Konfiguration exportieren",
+    "fileType": "Konfiguration"
+  },
+  "panel": {
+    "mixers": "Videomischer",
+    "cameras": "Kameras",
+    "interfaces": "Schnittstellen",
+    "log": "Protokoll",
+    "unassigned": "Von keiner Schnittstelle gesteuert"
+  },
+  "interface": {
+    "disconnected": "nicht verbunden",
+    "clickHint": "Schnittstelle anklicken, um ihr Steuerfenster zu öffnen"
+  },
+  "mixer": {
+    "preview": "Vorschau",
+    "program": "Programm",
+    "onAir": "Vorschau ist auf Sendung",
+    "cut": "Cut",
+    "auto": "Auto"
+  },
+  "log": {
+    "allSources": "Alle"
+  },
+  "language": {
+    "label": "Sprache"
+  },
+  "licenses": {
+    "label": "Lizenzen Dritter",
+    "app": "Kamerasteuerung selbst steht unter der MIT-Lizenz.",
+    "intro": "Sie liefert die folgenden Pakete mit, jedes unter der dabei genannten Lizenz.",
+    "license": "Lizenz:",
+    "copyright": "Copyright:",
+    "authors": "Autoren:",
+    "project": "Projekt:"
+  },
+  "surface": {
+    "panTilt": "Schwenken und Neigen",
+    "zoomFocus": "Zoom und Fokus",
+    "select": "Vorschau",
+    "functions": "Funktionen",
+    "transition": "Übergang",
+    "modifiers": "Modifikatoren",
+    "alt": "Alt",
+    "altLower": "Alt unten",
+    "keys": "Tastatur: W A S D schwenkt und neigt, I K zoomt, J L stellt scharf, die Pfeiltasten wechseln die Vorschauauswahl, 1 bis 4 lösen die Sonderfunktionen aus, Enter schneidet, Leertaste blendet um, und Umschalt oder Strg halten die Alt-Belegungen."
+  }
 }

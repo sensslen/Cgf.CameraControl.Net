@@ -10,7 +10,7 @@ namespace Cgf.CameraControl.App.Localization;
 public sealed record Language(string Culture, string NativeName);
 
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = false)]
-[JsonSerializable(typeof(Dictionary<string, string>))]
+[JsonSerializable(typeof(Dictionary<string, Dictionary<string, string>>))]
 internal sealed partial class LanguageJson : JsonSerializerContext;
 
 /// The strings are embedded manifest resources rather than resx satellites, because NativeAOT does
@@ -124,12 +124,22 @@ public sealed class Localizer
     private static bool Equal(string left, string right) =>
         string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 
+    /// The files are grouped so that a translator sees the window's parts rather than one flat list,
+    /// and a key stays the group and the name with a dot between them.
     private static Dictionary<string, string> Read(string culture)
     {
         using var stream = Owner.GetManifestResourceStream($"Cgf.CameraControl.App.Localization.Strings.{culture}.json");
-        return stream is null
+        if (stream is null)
+        {
+            return [];
+        }
+
+        var groups = JsonSerializer.Deserialize(stream, LanguageJson.Default.DictionaryStringDictionaryStringString);
+        return groups is null
             ? []
-            : JsonSerializer.Deserialize(stream, LanguageJson.Default.DictionaryStringString) ?? [];
+            : groups
+                .SelectMany(group => group.Value.Select(entry => (Key: $"{group.Key}.{entry.Key}", entry.Value)))
+                .ToDictionary(entry => entry.Key, entry => entry.Value);
     }
 
     private string Lookup(string key) =>

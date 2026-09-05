@@ -1,42 +1,62 @@
 {
-  "menu.file": "Файл",
-  "app.title": "Управление камерами",
-  "config.none": "конфигурация не загружена",
-  "config.import": "Импорт",
-  "config.export": "Экспорт",
-  "config.reload": "Перезагрузить",
-  "config.openTitle": "Открыть конфигурацию",
-  "config.exportTitle": "Экспортировать конфигурацию",
-  "config.fileType": "Конфигурация",
-  "panel.mixers": "Видеомикшеры",
-  "panel.cameras": "Камеры",
-  "panel.interfaces": "Интерфейсы",
-  "interface.disconnected": "не подключено",
-  "panel.log": "Журнал",
-  "mixer.preview": "предпросмотр",
-  "mixer.program": "программа",
-  "mixer.onAir": "предпросмотр в эфире",
-  "log.allSources": "Все",
-  "language.label": "Язык",
-  "menu.help": "Справка",
-  "licenses.label": "Лицензии сторонних компонентов",
-  "licenses.app": "Camera Control распространяется по лицензии MIT.",
-  "licenses.intro": "В его состав входят пакеты ниже, каждый на указанной рядом лицензии.",
-  "mixer.cut": "Cut",
-  "mixer.auto": "Auto",
-  "surface.panTilt": "Поворот и наклон",
-  "surface.zoomFocus": "Зум и фокус",
-  "panel.unassigned": "Не управляется ни одним интерфейсом",
-  "interface.clickHint": "нажмите на интерфейс, чтобы открыть его окно управления",
-  "surface.select": "Предпросмотр",
-  "surface.functions": "Функции",
-  "surface.transition": "Переход",
-  "surface.modifiers": "Модификаторы",
-  "surface.alt": "Alt",
-  "surface.altLower": "Alt нижний",
-  "surface.keys": "Клавиатура: W A S D поворачивает и наклоняет, I K меняет зум, J L фокус, стрелки меняют предпросмотр, с 1 по 4 запускают спецфункции, Enter делает cut, пробел auto, а Shift или Ctrl удерживают alt-привязки.",
-  "licenses.license": "Лицензия:",
-  "licenses.copyright": "Авторские права:",
-  "licenses.authors": "Авторы:",
-  "licenses.project": "Проект:"
+  "menu": {
+    "file": "Файл",
+    "help": "Справка"
+  },
+  "app": {
+    "title": "Управление камерами"
+  },
+  "config": {
+    "none": "конфигурация не загружена",
+    "import": "Импорт",
+    "export": "Экспорт",
+    "reload": "Перезагрузить",
+    "openTitle": "Открыть конфигурацию",
+    "exportTitle": "Экспортировать конфигурацию",
+    "fileType": "Конфигурация"
+  },
+  "panel": {
+    "mixers": "Видеомикшеры",
+    "cameras": "Камеры",
+    "interfaces": "Интерфейсы",
+    "log": "Журнал",
+    "unassigned": "Не управляется ни одним интерфейсом"
+  },
+  "interface": {
+    "disconnected": "не подключено",
+    "clickHint": "нажмите на интерфейс, чтобы открыть его окно управления"
+  },
+  "mixer": {
+    "preview": "предпросмотр",
+    "program": "программа",
+    "onAir": "предпросмотр в эфире",
+    "cut": "Cut",
+    "auto": "Auto"
+  },
+  "log": {
+    "allSources": "Все"
+  },
+  "language": {
+    "label": "Язык"
+  },
+  "licenses": {
+    "label": "Лицензии сторонних компонентов",
+    "app": "Camera Control распространяется по лицензии MIT.",
+    "intro": "В его состав входят пакеты ниже, каждый на указанной рядом лицензии.",
+    "license": "Лицензия:",
+    "copyright": "Авторские права:",
+    "authors": "Авторы:",
+    "project": "Проект:"
+  },
+  "surface": {
+    "panTilt": "Поворот и наклон",
+    "zoomFocus": "Зум и фокус",
+    "select": "Предпросмотр",
+    "functions": "Функции",
+    "transition": "Переход",
+    "modifiers": "Модификаторы",
+    "alt": "Alt",
+    "altLower": "Alt нижний",
+    "keys": "Клавиатура: W A S D поворачивает и наклоняет, I K меняет зум, J L фокус, стрелки меняют предпросмотр, с 1 по 4 запускают спецфункции, Enter делает cut, пробел auto, а Shift или Ctrl удерживают alt-привязки."
+  }
 }
