@@ -19,6 +19,8 @@ public sealed class FakeGamepadDevice : IGamepadDevice
 
     public List<(double Intensity, TimeSpan Duration)> Rumbles { get; } = [];
 
+    public bool Disposed { get; private set; }
+
     public IObservable<bool> WhenConnectedChanged => _connected;
 
     public IObservable<StickPosition> LeftStick => _left;
@@ -53,6 +55,7 @@ public sealed class FakeGamepadDevice : IGamepadDevice
 
     public ValueTask DisposeAsync()
     {
+        Disposed = true;
         _connected.Dispose();
         _left.Dispose();
         _right.Dispose();

@@ -16,6 +16,37 @@
         TransparencyLevelHint="Mica, AcrylicBlur, Blur"
         WindowDecorationsTheme="{StaticResource CameraControlWindowDecorations}">
 
+  <Window.Resources>
+    <DataTemplate x:Key="MixerTile" x:DataType="vm:MixerViewModel">
+      <Border Classes="card">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
+            <TextBlock Text="{Binding ConnectionString}" />
+          </StackPanel>
+          <TextBlock Classes="detail" Margin="16,2,0,0">
+            <Run Text="{Binding [mixer.preview]^, Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Preview}" />
+            <Run Text="   " /><Run Text="{Binding [mixer.program]^, Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Program}" />
+          </TextBlock>
+          <TextBlock Classes="detail" Margin="16,0,0,0" Text="{Binding [mixer.onAir]^, Source={x:Static loc:Localizer.Current}}"
+                     IsVisible="{Binding IsPreviewOnAir}" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="CameraTile" x:DataType="vm:CameraViewModel">
+      <Border Classes="card">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
+            <TextBlock Text="{Binding ConnectionString}" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+          <TextBlock Classes="detail" Margin="16,2,0,0" Text="{Binding MovementText}" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </Window.Resources>
+
   <Window.Styles>
     <Style Selector="TextBlock.heading">
       <Setter Property="FontWeight" Value="SemiBold" />
@@ -37,6 +68,23 @@
       <Setter Property="Padding" Value="8" />
       <Setter Property="Margin" Value="0,0,0,6" />
     </Style>
+    <!-- An interface header is a button that looks like the card around it, because clicking it is
+         what opens the control window. -->
+    <Style Selector="Button.tile">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.tile /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+    <Style Selector="Button.tile:pointerover Border.card">
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+    </Style>
     <Style Selector="Border.problem">
       <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCriticalBrush}" />
@@ -55,12 +103,6 @@
     </Style>
     <Style Selector="Border.lamp.connected">
       <Setter Property="Background" Value="#2ecc71" />
-    </Style>
-    <Style Selector="Border.lamp.preview">
-      <Setter Property="Background" Value="#2ecc71" />
-    </Style>
-    <Style Selector="Border.lamp.program">
-      <Setter Property="Background" Value="#e74c3c" />
     </Style>
   </Window.Styles>
 
@@ -117,103 +159,57 @@
       </ItemsControl>
     </StackPanel>
 
-    <Grid Grid.Row="2" ColumnDefinitions="*,*,*" Margin="16,0,16,0">
+    <ScrollViewer Grid.Row="2" Margin="16,0,16,0">
+      <StackPanel>
 
-        <DockPanel Grid.Column="0" Margin="0,0,4,0">
-          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding Strings[panel.mixers]^}" />
-          <ScrollViewer>
-            <ItemsControl ItemsSource="{Binding Mixers}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:MixerViewModel">
-                  <Border Classes="card">
+        <TextBlock Classes="heading" Text="{Binding Strings[panel.interfaces]^}" />
+        <TextBlock Classes="detail" Margin="0,0,0,6" Text="{Binding Strings[interface.clickHint]^}" />
+
+        <ItemsControl ItemsSource="{Binding Interfaces}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:InterfaceViewModel">
+              <Border Classes="card">
+                <StackPanel>
+
+                  <Button Classes="tile" Command="{Binding OpenCommand}">
                     <StackPanel>
                       <StackPanel Orientation="Horizontal">
                         <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
-                        <TextBlock Text="{Binding ConnectionString}" />
+                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
                       </StackPanel>
-                      <TextBlock Classes="detail" Margin="16,2,0,0">
-                        <Run Text="{Binding [mixer.preview]^, Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Preview}" />
-                        <Run Text="   " /><Run Text="{Binding [mixer.program]^, Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Program}" />
-                      </TextBlock>
-                      <TextBlock Classes="detail" Margin="16,0,0,0" Text="{Binding [mixer.onAir]^, Source={x:Static loc:Localizer.Current}}"
-                                 IsVisible="{Binding IsPreviewOnAir}" />
+                      <TextBlock Classes="detail" Margin="16,2,0,0" IsVisible="{Binding !IsConnected}"
+                                 Text="{Binding [interface.disconnected]^, Source={x:Static loc:Localizer.Current}}" />
                     </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </ScrollViewer>
-        </DockPanel>
+                  </Button>
 
-        <DockPanel Grid.Column="1" Margin="4,0">
-          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding Strings[panel.cameras]^}" />
-          <ScrollViewer>
-            <ItemsControl ItemsSource="{Binding Cameras}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:CameraViewModel">
-                  <Border Classes="card">
-                    <StackPanel>
-                      <StackPanel Orientation="Horizontal">
-                        <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
-                        <Border Classes="lamp" Classes.preview="{Binding IsOnPreview}"
-                                Classes.program="{Binding IsOnProgram}" />
-                        <TextBlock Text="{Binding ConnectionString}" TextTrimming="CharacterEllipsis" />
-                      </StackPanel>
-                      <TextBlock Classes="detail" Margin="16,2,0,0" Text="{Binding MovementText}" />
-                    </StackPanel>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </ScrollViewer>
-        </DockPanel>
+                  <Expander Margin="0,8,0,0" HorizontalAlignment="Stretch"
+                            Header="{Binding [panel.mixers]^, Source={x:Static loc:Localizer.Current}}">
+                    <ItemsControl ItemsSource="{Binding Mixers}" ItemTemplate="{StaticResource MixerTile}" />
+                  </Expander>
 
-        <DockPanel Grid.Column="2" Margin="4,0,0,0">
-          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding Strings[panel.interfaces]^}" />
-          <ScrollViewer>
-            <StackPanel>
-              <ItemsControl ItemsSource="{Binding Interfaces}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:InterfaceViewModel">
-                    <Border Classes="card">
-                      <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                          <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
-                          <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
-                        </StackPanel>
-                        <TextBlock Classes="detail" Margin="16,2,0,0" IsVisible="{Binding !IsConnected}"
-                                   Text="{Binding [interface.disconnected]^, Source={x:Static loc:Localizer.Current}}" />
-                      </StackPanel>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
+                  <Expander Margin="0,4,0,0" HorizontalAlignment="Stretch"
+                            Header="{Binding [panel.cameras]^, Source={x:Static loc:Localizer.Current}}">
+                    <ItemsControl ItemsSource="{Binding Cameras}" ItemTemplate="{StaticResource CameraTile}" />
+                  </Expander>
 
-              <TextBlock Classes="heading" Margin="0,8,0,6" Text="{Binding Strings[panel.pads]^}" />
-              <TextBlock Classes="detail" Text="{Binding Strings[pad.none]^}" IsVisible="{Binding !Gamepads.Count}" />
-              <ItemsControl ItemsSource="{Binding Gamepads}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:GamepadViewModel">
-                    <Border Classes="card">
-                      <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                          <Border Classes="lamp" Classes.connected="{Binding IsClaimed}" />
-                          <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                        <SelectableTextBlock Classes="detail" Margin="16,2,0,0" Text="{Binding Serial}" />
-                        <TextBlock Classes="detail" Margin="16,0,0,0" Text="{Binding ClaimedBy}" />
-                        <TextBlock Classes="detail" Margin="16,0,0,0" Text="{Binding [pad.noRumble]^, Source={x:Static loc:Localizer.Current}}"
-                                   IsVisible="{Binding !SupportsRumble}" />
-                      </StackPanel>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-          </ScrollViewer>
-        </DockPanel>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
-    </Grid>
+        <!-- Nothing here belongs to an interface, so nothing here can be driven. It is drawn anyway,
+             because a camera missing from the panel reads as one that failed to load. -->
+        <Expander Margin="0,4,0,0" HorizontalAlignment="Stretch" IsVisible="{Binding HasUnassigned}"
+                  Header="{Binding Strings[panel.unassigned]^}">
+          <StackPanel>
+            <ItemsControl ItemsSource="{Binding UnassignedMixers}" ItemTemplate="{StaticResource MixerTile}" />
+            <ItemsControl ItemsSource="{Binding UnassignedCameras}" ItemTemplate="{StaticResource CameraTile}" />
+          </StackPanel>
+        </Expander>
+
+      </StackPanel>
+    </ScrollViewer>
 
     <GridSplitter Grid.Row="3" Height="6" HorizontalAlignment="Stretch" Background="Transparent" />
 

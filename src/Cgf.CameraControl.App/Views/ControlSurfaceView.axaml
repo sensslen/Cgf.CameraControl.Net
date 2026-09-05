@@ -1,0 +1,114 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="using:Cgf.CameraControl.App.Views"
+             xmlns:vm="using:Cgf.CameraControl.App.ViewModels"
+             xmlns:loc="using:Cgf.CameraControl.App.Localization"
+             xmlns:pad="using:Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="420"
+             x:Class="Cgf.CameraControl.App.Views.ControlSurfaceView"
+             x:DataType="vm:ControlSurfaceViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="views|StickPad">
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="MinHeight" Value="150" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.key">
+      <Setter Property="MinWidth" Value="44" />
+      <Setter Property="Margin" Value="0,0,4,4" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ToggleButton.key">
+      <Setter Property="MinWidth" Value="76" />
+      <Setter Property="Margin" Value="0,0,4,4" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.group">
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+
+    <TextBlock DockPanel.Dock="Bottom" Opacity="0.7" FontSize="12" TextWrapping="Wrap"
+               Margin="0,8,0,0"
+               Text="{Binding [surface.keys]^, Source={x:Static loc:Localizer.Current}}" />
+
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,10,0,0">
+
+      <StackPanel Margin="0,0,20,0">
+        <TextBlock Classes="group" Text="{Binding [surface.select]^, Source={x:Static loc:Localizer.Current}}" />
+        <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto">
+          <Button Grid.Row="0" Grid.Column="1" Classes="key" Content="&#x2191;"
+                  Command="{Binding SelectCommand}" CommandParameter="{x:Static pad:ButtonDirection.Up}" />
+          <Button Grid.Row="1" Grid.Column="0" Classes="key" Content="&#x2190;"
+                  Command="{Binding SelectCommand}" CommandParameter="{x:Static pad:ButtonDirection.Left}" />
+          <Button Grid.Row="1" Grid.Column="1" Classes="key" Content="&#x2193;"
+                  Command="{Binding SelectCommand}" CommandParameter="{x:Static pad:ButtonDirection.Down}" />
+          <Button Grid.Row="1" Grid.Column="2" Classes="key" Content="&#x2192;"
+                  Command="{Binding SelectCommand}" CommandParameter="{x:Static pad:ButtonDirection.Right}" />
+        </Grid>
+      </StackPanel>
+
+      <StackPanel Margin="0,0,20,0">
+        <TextBlock Classes="group" Text="{Binding [surface.functions]^, Source={x:Static loc:Localizer.Current}}" />
+        <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto">
+          <Button Grid.Row="0" Grid.Column="1" Classes="key" Content="4"
+                  Command="{Binding RunCommand}" CommandParameter="{x:Static pad:ButtonDirection.Up}" />
+          <Button Grid.Row="1" Grid.Column="0" Classes="key" Content="3"
+                  Command="{Binding RunCommand}" CommandParameter="{x:Static pad:ButtonDirection.Left}" />
+          <Button Grid.Row="1" Grid.Column="1" Classes="key" Content="1"
+                  Command="{Binding RunCommand}" CommandParameter="{x:Static pad:ButtonDirection.Down}" />
+          <Button Grid.Row="1" Grid.Column="2" Classes="key" Content="2"
+                  Command="{Binding RunCommand}" CommandParameter="{x:Static pad:ButtonDirection.Right}" />
+        </Grid>
+      </StackPanel>
+
+      <StackPanel Margin="0,0,20,0">
+        <TextBlock Classes="group" Text="{Binding [surface.transition]^, Source={x:Static loc:Localizer.Current}}" />
+        <StackPanel Orientation="Horizontal">
+          <Button Classes="key" MinWidth="76" Command="{Binding TransitionCommand}"
+                  CommandParameter="{x:Static pad:MixerTransition.Cut}"
+                  Content="{Binding [mixer.cut]^, Source={x:Static loc:Localizer.Current}}" />
+          <Button Classes="key" MinWidth="76" Command="{Binding TransitionCommand}"
+                  CommandParameter="{x:Static pad:MixerTransition.Auto}"
+                  Content="{Binding [mixer.auto]^, Source={x:Static loc:Localizer.Current}}" />
+        </StackPanel>
+      </StackPanel>
+
+      <StackPanel>
+        <TextBlock Classes="group" Text="{Binding [surface.modifiers]^, Source={x:Static loc:Localizer.Current}}" />
+        <StackPanel Orientation="Horizontal">
+          <ToggleButton Classes="key" IsChecked="{Binding Alt}"
+                        Content="{Binding [surface.alt]^, Source={x:Static loc:Localizer.Current}}" />
+          <ToggleButton Classes="key" IsChecked="{Binding AltLower}"
+                        Content="{Binding [surface.altLower]^, Source={x:Static loc:Localizer.Current}}" />
+        </StackPanel>
+      </StackPanel>
+
+    </StackPanel>
+
+    <Grid ColumnDefinitions="*,16,*">
+      <DockPanel Grid.Column="0">
+        <TextBlock DockPanel.Dock="Top" Classes="group"
+                   Text="{Binding [surface.panTilt]^, Source={x:Static loc:Localizer.Current}}" />
+        <views:StickPad Name="MovePad" />
+      </DockPanel>
+      <DockPanel Grid.Column="2">
+        <TextBlock DockPanel.Dock="Top" Classes="group"
+                   Text="{Binding [surface.zoomFocus]^, Source={x:Static loc:Localizer.Current}}" />
+        <views:StickPad Name="LensPad" />
+      </DockPanel>
+    </Grid>
+
+  </DockPanel>
+
+</UserControl>

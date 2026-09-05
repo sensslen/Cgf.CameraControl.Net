@@ -21,8 +21,10 @@ which is TypeScript and headless. It reads the same configuration files.
 - **Runs the switcher.** Cut, auto, keyer toggles, macros, and a macro toggle that picks one of two
   macros from the live state of a keyer or an auxiliary output.
 - **Lights the tally.** Cameras that carry a tally light follow the preview and program buses.
-- **Shows what is happening.** Every mixer, camera and interface with its live state, and a log you
-  can filter by component.
+- **Shows what is happening.** Every interface with the mixer and the cameras it drives underneath
+  it, and a log you can filter by component.
+- **Runs without a controller.** Clicking an interface opens a control window: two mouse pads for the
+  two sticks, and the keyboard for everything else.
 - **Rumbles** on a transition, when one of your cameras goes on air, and when a connection drops.
 
 ## Install
@@ -100,6 +102,25 @@ SDL normalises every controller to this one layout, so `gamepad` is the only int
 matters. The old `logitech/F310`, `logitech/F710` and `logitech/Rumblepad2` strings still load, but
 they are labels now rather than behaviour.
 
+### The control window
+
+Clicking an interface opens it. The two pads are the two sticks: drag inside one and let go to stop.
+The keyboard drives the same interface, whether or not a controller is bound to it.
+
+| Key | Does |
+| --- | --- |
+| `W` `A` `S` `D` | pan and tilt |
+| `I` `K` / `J` `L` | zoom / focus |
+| Arrow keys | change the preview selection |
+| `1` `2` `3` `4` | the special functions bound to down, right, left and up |
+| `Enter` / `Space` | cut / auto |
+| `Shift` / `Ctrl` | hold for the `alt` and `altLower` bindings |
+
+An interface of type `keyboard` has no controller behind it at all and takes the same configuration
+as a `gamepad`, minus `serialNumber` and `deadzone`. One with a controller behind it accepts both at
+once: the pad and the window are two sets of hands on one interface rather than two interfaces
+fighting over the same cameras.
+
 Two controllers on one machine are told apart by `serialNumber`. That is an absolute filter, never a
 preference: an interface whose serial is not present stays unbound and says so, because putting an
 operator on somebody else's mixer is worse than binding nothing.
@@ -164,9 +185,7 @@ the project has not accepted. Regenerate it after changing a package reference:
 
 ```bash
 dotnet tool restore
-dotnet nuget-license -i src/Cgf.CameraControl.App/Cgf.CameraControl.App.csproj -t \\
-  -ignore AvaloniaUI.DiagnosticsSupport -a "MIT;Zlib;BSD-3-Clause" \\
-  -o JsonPretty -fo src/Cgf.CameraControl.App/Licenses/third-party-licenses.json
+dotnet nuget-license -i src/Cgf.CameraControl.App/Cgf.CameraControl.App.csproj -t   -ignore AvaloniaUI.DiagnosticsSupport -a "MIT;Zlib;BSD-3-Clause"   -o JsonPretty -fo src/Cgf.CameraControl.App/Licenses/third-party-licenses.json
 ```
 
 CI runs the same command and fails if the committed file is out of date.

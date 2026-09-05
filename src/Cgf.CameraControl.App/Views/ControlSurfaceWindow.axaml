@@ -1,0 +1,42 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:Cgf.CameraControl.App.Views"
+        xmlns:vm="using:Cgf.CameraControl.App.ViewModels"
+        xmlns:loc="using:Cgf.CameraControl.App.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="820" d:DesignHeight="560"
+        x:Class="Cgf.CameraControl.App.Views.ControlSurfaceWindow"
+        x:DataType="vm:InterfaceViewModel"
+        Width="820" Height="560"
+        Icon="/Assets/appicon.ico"
+        WindowStartupLocation="CenterOwner"
+        Title="{Binding Description}"
+        FlowDirection="{Binding FlowDirection^, Source={x:Static loc:Localizer.Current}}">
+
+  <Window.Styles>
+    <Style Selector="Border.lamp">
+      <Setter Property="Width" Value="10" />
+      <Setter Property="Height" Value="10" />
+      <Setter Property="CornerRadius" Value="5" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+      <Setter Property="Background" Value="#4d4d4d" />
+    </Style>
+    <Style Selector="Border.lamp.connected">
+      <Setter Property="Background" Value="#2ecc71" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel Margin="16">
+
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+      <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
+      <TextBlock Text="{Binding Description}" />
+    </StackPanel>
+
+    <views:ControlSurfaceView DataContext="{Binding Surface}" />
+
+  </DockPanel>
+
+</Window>

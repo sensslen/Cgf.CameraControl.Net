@@ -32,6 +32,7 @@ public partial class App : Application
             var window = new MainWindow { DataContext = _model };
             _model.PickFile = window.PickFileAsync;
             _model.ShowLicenses = () => new LicensesWindow().ShowDialog(window);
+            _model.ShowInterface = surface => new ControlSurfaceWindow(surface).ShowDialog(window);
             SystemMenu.Attach(window, _model);
             desktop.MainWindow = window;
             desktop.ShutdownRequested += OnShutdownRequested;
