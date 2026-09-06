@@ -14,5 +14,9 @@ public static class ConfigJson
         DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
         WriteIndented = true,
+
+        // Not the platform's, so the same desk written on a Mac and on Windows differs where it was
+        // edited rather than on every line.
+        NewLine = "\n",
     };
 }
