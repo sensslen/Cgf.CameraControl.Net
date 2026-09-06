@@ -88,12 +88,27 @@ public class ViscaPacketTests
     {
         [Theory]
         [InlineData(0x41, ViscaReply.Acknowledged)]
-        [InlineData(0x52, ViscaReply.Completed)]
         [InlineData(0x61, ViscaReply.Failed)]
         [InlineData(0x38, ViscaReply.Other)]
         public void TheMessageTypeNibbleDecidesWhatAReplyIs(byte type, ViscaReply expected)
         {
             Assert.Equal(expected, ViscaPacket.Classify([0x90, type, 0x03, 0xFF]));
+        }
+
+        [Fact]
+        public void ACompletionIsTheWholeReply()
+        {
+            Assert.Equal(ViscaReply.Completed, ViscaPacket.Classify([0x90, 0x52, 0xFF]));
+        }
+
+        // An inquiry is answered with a completion carrying the answer after it. Read as a plain
+        // completion it would open the command gate for a command nobody has answered for.
+        [Fact]
+        public void AnInquiryAnswerIsNotACompletion()
+        {
+            Assert.Equal(
+                ViscaReply.Other,
+                ViscaPacket.Classify([0x90, 0x50, 0x00, 0x01, 0x02, 0x03, 0x04, 0xFF]));
         }
 
         [Fact]

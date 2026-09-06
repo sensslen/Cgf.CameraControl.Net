@@ -1,7 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Cgf.CameraControl.App.ViewModels;
 
 namespace Cgf.CameraControl.App.Views;
 
@@ -18,9 +20,16 @@ public partial class MainWindow : Window
         MimeTypes = ["application/json"],
     };
 
+    private readonly InterfaceKeyboard _keyboard = new();
+
     public MainWindow()
     {
         InitializeComponent();
+
+        // The selection decides what the keyboard drives, and losing the window with a key down
+        // means no key up ever arrives for it.
+        DataContextChanged += (_, _) => Follow();
+        Deactivated += (_, _) => _keyboard.Release();
 
         // Windows and Linux let Avalonia draw the frame, which is what makes an icon, a name and a
         // menu inside the title bar possible at all. macOS draws its own traffic lights and takes the
@@ -42,6 +51,20 @@ public partial class MainWindow : Window
         }
     }
 
+    /// A key the configuration bound belongs to the interface, and one it did not belongs to the
+    /// window: an arrow key that walks the interface list is still useful when nothing claims it.
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        e.Handled |= _keyboard.Down(e.Key);
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        base.OnKeyUp(e);
+        e.Handled |= _keyboard.Up(e.Key);
+    }
+
     public async Task<string?> PickFileAsync()
     {
         var chosen = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -52,6 +75,23 @@ public partial class MainWindow : Window
         });
 
         return chosen.Count == 0 ? null : chosen[0].TryGetLocalPath();
+    }
+
+    private void Follow()
+    {
+        if (DataContext is not MainViewModel model)
+        {
+            return;
+        }
+
+        _keyboard.Target = model.SelectedInterface;
+        model.PropertyChanged += (_, changed) =>
+        {
+            if (changed.PropertyName == nameof(MainViewModel.SelectedInterface))
+            {
+                _keyboard.Target = model.SelectedInterface;
+            }
+        };
     }
 
     /// The backdrop is a request, not a guarantee: an older Windows, a Linux compositor without

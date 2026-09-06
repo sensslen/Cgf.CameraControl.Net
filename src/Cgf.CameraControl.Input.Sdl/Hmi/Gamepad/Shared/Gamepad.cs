@@ -29,6 +29,7 @@ public sealed class Gamepad : IHmi
     private readonly Dictionary<ButtonDirection, string> _altLower = [];
     private readonly CompositeDisposable _subscriptions = [];
     private readonly CancellationTokenSource _stopping = new();
+    private readonly PadBindings? _pad;
 
     private AltKeyConfiguration _modifiers;
     private ICameraConnection? _selectedPreviewCamera;
@@ -54,6 +55,7 @@ public sealed class Gamepad : IHmi
         _logger = logger;
         _mixer = mixer;
         _connectionChange = ConnectionChangeFactory.Get(config.ConnectionChange);
+        _pad = pad;
 
         foreach (var (input, cameraInstance) in config.CameraMap)
         {
@@ -107,6 +109,32 @@ public sealed class Gamepad : IHmi
     public IVideoMixer Mixer => _mixer;
 
     public IReadOnlyCollection<ICameraConnection> Cameras => _cameras.Values.Distinct().ToList();
+
+    /// The window reads these to draw the interface rather than to drive it. What is on the screen
+    /// has to agree with what a press would actually do, so it is answered here, where the bindings,
+    /// the modifiers and the current selection already are, rather than resolved a second time.
+    public InterfaceConfiguration Configuration => _config;
+
+    public IObservable<GamepadState> DrawnState => _device.State;
+
+    public IObservable<AltKeyConfiguration> WhenModifiersChanged => _device.Modifiers;
+
+    /// Which camera sits behind each of the mixer's inputs.
+    public IReadOnlyDictionary<int, ICameraConnection> Inputs => _cameras;
+
+    /// The function a face button would run right now, which is not the same as the one it was
+    /// configured with: a held modifier picks a different set.
+    public string? BoundFunction(ButtonDirection direction) => _modifiers switch
+    {
+        { Alt: true } when _pad?.Alt?.TryGetValue(direction, out var alt) == true => alt,
+        { AltLower: true } when _pad?.AltLower?.TryGetValue(direction, out var lower) == true => lower,
+        _ => _pad?.Default.GetValueOrDefault(direction),
+    };
+
+    /// The input a direction would select from where the selection stands, which for a directional
+    /// scheme changes every time the selection does.
+    public int? BoundInput(ButtonDirection direction) =>
+        _connectionChange.Next(direction, _selectedInput, _modifiers);
 
     public IObservable<bool> WhenConnectedChanged => _device.WhenConnectedChanged;
 

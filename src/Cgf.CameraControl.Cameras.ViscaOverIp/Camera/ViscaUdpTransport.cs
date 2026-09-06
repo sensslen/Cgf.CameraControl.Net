@@ -7,13 +7,22 @@ namespace Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 
 /// Replaces node-visca-over-ip's socket half: a connected UDP socket, and on any failure a fresh one.
 ///
-/// UDP has no handshake, so there is nothing to wait for and nothing that reports the camera being
-/// switched off. The socket being open is reported as connected, exactly as the TypeScript camera
-/// treats it. What does arrive is an ICMP port unreachable, which the connected socket surfaces as a
-/// receive error, and that is what takes the connection back down.
+/// UDP has no handshake, so an open socket says nothing at all about whether a camera is on the
+/// other end. Pointed at an unused address it opens exactly as readily as it does at a camera, which
+/// is why the TypeScript build this replaces reported every configured camera as connected for the
+/// length of a service. The specification does give us a question every camera answers, so presence
+/// is asked rather than assumed: the version inquiry goes out on a timer, and a camera is present
+/// while it is still answering something.
 public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : IViscaTransport
 {
     private static readonly TimeSpan ReconnectDelay = TimeSpan.FromSeconds(1);
+
+    /// Often enough that an operator notices a camera going away before they reach for it, and rare
+    /// enough to be nothing next to the traffic a moving stick produces.
+    private static readonly TimeSpan ProbeInterval = TimeSpan.FromSeconds(3);
+
+    /// Three probes unanswered. One lost datagram is ordinary on UDP and is not a camera going away.
+    private static readonly TimeSpan Silence = TimeSpan.FromSeconds(10);
 
     private readonly BehaviorSubject<bool> _connected = new(false);
     private readonly Subject<byte[]> _received = new();
@@ -23,8 +32,11 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
     });
 
     private readonly CancellationTokenSource _stopping = new();
+    private readonly TimeProvider _time = TimeProvider.System;
     private Task? _loop;
     private bool _reportedFailure;
+    private long _lastHeard;
+    private bool _heard;
 
     public IObservable<bool> WhenConnectedChanged => _connected;
 
@@ -104,10 +116,13 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
         {
         }
 
-        Report(connected: true);
+        // An open socket is not a camera, so nothing is claimed until one answers.
+        _heard = false;
+        Report(connected: false);
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var sending = SendLoopAsync(client, linked.Token);
+        var probing = ProbeLoopAsync(linked.Token);
         try
         {
             await ReceiveLoopAsync(client, linked.Token).ConfigureAwait(false);
@@ -115,13 +130,16 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
         finally
         {
             await linked.CancelAsync().ConfigureAwait(false);
-            try
+            foreach (var task in new[] { sending, probing })
             {
-                await sending.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected once the receive side has ended.
+                try
+                {
+                    await task.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected once the receive side has ended.
+                }
             }
         }
     }
@@ -134,12 +152,33 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
         }
     }
 
+    /// Any answer counts, not only the answer to the probe: a camera busy acknowledging movement is
+    /// plainly there, and asking it to prove itself again while it does would be noise.
     private async Task ReceiveLoopAsync(UdpClient client, CancellationToken cancellationToken)
     {
         while (true)
         {
             var result = await client.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+            _lastHeard = _time.GetTimestamp();
+            _heard = true;
+            Report(connected: true);
             _received.OnNext(result.Buffer);
+        }
+    }
+
+    private async Task ProbeLoopAsync(CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            Send(ViscaPacket.Presence());
+            await Task.Delay(ProbeInterval, _time, cancellationToken).ConfigureAwait(false);
+
+            if (_heard && _time.GetElapsedTime(_lastHeard) > Silence)
+            {
+                logger.Log($"ViscaOverIpCamera({host}):no answer for {Silence.TotalSeconds:0} seconds");
+                _heard = false;
+                Report(connected: false);
+            }
         }
     }
 }

@@ -3,112 +3,181 @@
              xmlns:views="using:Cgf.CameraControl.App.Views"
              xmlns:vm="using:Cgf.CameraControl.App.ViewModels"
              xmlns:loc="using:Cgf.CameraControl.App.Localization"
-             xmlns:pad="using:Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="420"
              x:Class="Cgf.CameraControl.App.Views.ControlSurfaceView"
-             x:DataType="vm:ControlSurfaceViewModel">
+             x:DataType="vm:InterfaceViewModel">
+
+  <UserControl.Resources>
+    <!-- A button and a picture of a key at once: clicking it runs the binding, holding the key it
+         names lights it up. The corner stays empty when nothing is bound, which is what stops the
+         panel claiming a shortcut the file never gave it. -->
+    <DataTemplate x:Key="SourceButton" x:DataType="vm:KeyButtonViewModel">
+      <Button Classes="source" Classes.held="{Binding IsHeld}" Classes.preview="{Binding IsPreview}"
+              Classes.program="{Binding IsProgram}" Command="{Binding Command}">
+        <StackPanel>
+          <TextBlock Classes="number" Text="{Binding Label}" HorizontalAlignment="Center" />
+          <!-- Always drawn, empty when nothing is bound, so a button with no shortcut is the same
+               size and shape as one that has it. -->
+          <TextBlock Classes="keycap" Text="{Binding KeyText}" HorizontalAlignment="Center" />
+        </StackPanel>
+      </Button>
+    </DataTemplate>
+
+    <DataTemplate x:Key="KeyButton" x:DataType="vm:KeyButtonViewModel">
+      <Button Classes="key" Classes.held="{Binding IsHeld}" Command="{Binding Command}">
+        <StackPanel>
+          <TextBlock Text="{Binding Label}" HorizontalAlignment="Center" />
+          <!-- Always drawn, empty when nothing is bound, so a button with no shortcut is the same
+               size and shape as one that has it. -->
+          <TextBlock Classes="keycap" Text="{Binding KeyText}" HorizontalAlignment="Center" />
+        </StackPanel>
+      </Button>
+    </DataTemplate>
+  </UserControl.Resources>
 
   <UserControl.Styles>
+    <!-- Fixed rather than stretched. A pad big enough to aim in is about this big, and one that
+         grows with the window buys nothing while pushing everything else off the bottom. -->
     <Style Selector="views|StickPad">
       <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="6" />
-      <Setter Property="MinHeight" Value="150" />
+      <Setter Property="Width" Value="230" />
+      <Setter Property="Height" Value="170" />
       <Setter Property="Cursor" Value="Hand" />
     </Style>
-    <Style Selector="Button.key">
-      <Setter Property="MinWidth" Value="44" />
-      <Setter Property="Margin" Value="0,0,4,4" />
+
+    <!-- A vision mixer fills the live button rather than outlining it, which is what makes the row
+         readable from across a room and out of the corner of an eye. -->
+    <Style Selector="Button.source">
+      <Setter Property="Width" Value="58" />
+      <Setter Property="Height" Value="46" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="4" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <Style Selector="ToggleButton.key">
-      <Setter Property="MinWidth" Value="76" />
-      <Setter Property="Margin" Value="0,0,4,4" />
+    <Style Selector="Button.source.program /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#E74C3C" />
+    </Style>
+    <Style Selector="Button.source.preview /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#2ECC71" />
+    </Style>
+    <Style Selector="Button.source.program TextBlock, Button.source.preview TextBlock">
+      <Setter Property="Foreground" Value="#101010" />
+    </Style>
+    <Style Selector="Button.source.held /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="#4A9EE0" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="TextBlock.number">
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Button.key">
+      <Setter Property="MinWidth" Value="70" />
+      <Setter Property="Height" Value="46" />
+      <Setter Property="Margin" Value="0,0,6,6" />
+      <Setter Property="Padding" Value="10,0" />
+      <Setter Property="CornerRadius" Value="4" />
       <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.key.held /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#4A9EE0" />
+    </Style>
+
+    <Style Selector="TextBlock.keycap">
+      <Setter Property="Opacity" Value="0.55" />
+      <Setter Property="FontSize" Value="10" />
     </Style>
     <Style Selector="TextBlock.group">
       <Setter Property="Opacity" Value="0.7" />
       <Setter Property="FontSize" Value="12" />
       <Setter Property="Margin" Value="0,0,0,4" />
     </Style>
+    <!-- A label beside its buttons rather than above them. Above, it adds a row that the blocks
+         next to it do not have, and the whole column drops by the height of one line. -->
+    <Style Selector="TextBlock.bank">
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Width" Value="62" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.legend">
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Margin" Value="0,0,10,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
   </UserControl.Styles>
 
-  <DockPanel>
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel HorizontalAlignment="Left">
 
-    <TextBlock DockPanel.Dock="Bottom" Opacity="0.7" FontSize="12" TextWrapping="Wrap"
-               Margin="0,8,0,0"
-               Text="{Binding [surface.keys]^, Source={x:Static loc:Localizer.Current}}" />
+      <!-- The switcher, laid out as one is read: what is live on top, what is queued under it, and
+           the transition between the two rows rather than off on its own. -->
+      <StackPanel Orientation="Horizontal">
 
-    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,10,0,0">
-
-      <StackPanel Margin="0,0,20,0">
-        <TextBlock Classes="group" Text="{Binding [surface.select]^, Source={x:Static loc:Localizer.Current}}" />
-        <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto">
-          <Button Grid.Row="0" Grid.Column="1" Classes="key" Content="&#x2191;"
-                  Command="{Binding SelectCommand}" CommandParameter="{x:Static pad:ButtonDirection.Up}" />
-          <Button Grid.Row="1" Grid.Column="0" Classes="key" Content="&#x2190;"
-                  Command="{Binding SelectCommand}" CommandParameter="{x:Static pad:ButtonDirection.Left}" />
-          <Button Grid.Row="1" Grid.Column="1" Classes="key" Content="&#x2193;"
-                  Command="{Binding SelectCommand}" CommandParameter="{x:Static pad:ButtonDirection.Down}" />
-          <Button Grid.Row="1" Grid.Column="2" Classes="key" Content="&#x2192;"
-                  Command="{Binding SelectCommand}" CommandParameter="{x:Static pad:ButtonDirection.Right}" />
-        </Grid>
-      </StackPanel>
-
-      <StackPanel Margin="0,0,20,0">
-        <TextBlock Classes="group" Text="{Binding [surface.functions]^, Source={x:Static loc:Localizer.Current}}" />
-        <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto">
-          <Button Grid.Row="0" Grid.Column="1" Classes="key" Content="4"
-                  Command="{Binding RunCommand}" CommandParameter="{x:Static pad:ButtonDirection.Up}" />
-          <Button Grid.Row="1" Grid.Column="0" Classes="key" Content="3"
-                  Command="{Binding RunCommand}" CommandParameter="{x:Static pad:ButtonDirection.Left}" />
-          <Button Grid.Row="1" Grid.Column="1" Classes="key" Content="1"
-                  Command="{Binding RunCommand}" CommandParameter="{x:Static pad:ButtonDirection.Down}" />
-          <Button Grid.Row="1" Grid.Column="2" Classes="key" Content="2"
-                  Command="{Binding RunCommand}" CommandParameter="{x:Static pad:ButtonDirection.Right}" />
-        </Grid>
-      </StackPanel>
-
-      <StackPanel Margin="0,0,20,0">
-        <TextBlock Classes="group" Text="{Binding [surface.transition]^, Source={x:Static loc:Localizer.Current}}" />
-        <StackPanel Orientation="Horizontal">
-          <Button Classes="key" MinWidth="76" Command="{Binding TransitionCommand}"
-                  CommandParameter="{x:Static pad:MixerTransition.Cut}"
-                  Content="{Binding [mixer.cut]^, Source={x:Static loc:Localizer.Current}}" />
-          <Button Classes="key" MinWidth="76" Command="{Binding TransitionCommand}"
-                  CommandParameter="{x:Static pad:MixerTransition.Auto}"
-                  Content="{Binding [mixer.auto]^, Source={x:Static loc:Localizer.Current}}" />
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+            <TextBlock Classes="bank" Text="{Binding [surface.program]^, Source={x:Static loc:Localizer.Current}}" />
+            <ItemsControl ItemsSource="{Binding ProgramInputs}" ItemTemplate="{StaticResource SourceButton}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+            </ItemsControl>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Classes="bank" Text="{Binding [surface.preview]^, Source={x:Static loc:Localizer.Current}}" />
+            <ItemsControl ItemsSource="{Binding PreviewInputs}" ItemTemplate="{StaticResource SourceButton}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+            </ItemsControl>
+          </StackPanel>
         </StackPanel>
+
+        <StackPanel Margin="24,0,0,0" VerticalAlignment="Center">
+          <ContentControl Content="{Binding Cut}" ContentTemplate="{StaticResource KeyButton}" />
+          <ContentControl Content="{Binding Auto}" ContentTemplate="{StaticResource KeyButton}" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center"
+                    IsVisible="{Binding Functions.Count}">
+          <TextBlock Classes="legend" Text="{Binding [surface.functions]^, Source={x:Static loc:Localizer.Current}}" />
+          <ItemsControl ItemsSource="{Binding Functions}" ItemTemplate="{StaticResource KeyButton}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel MaxWidth="340" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+        </StackPanel>
+
       </StackPanel>
 
-      <StackPanel>
-        <TextBlock Classes="group" Text="{Binding [surface.modifiers]^, Source={x:Static loc:Localizer.Current}}" />
-        <StackPanel Orientation="Horizontal">
-          <ToggleButton Classes="key" IsChecked="{Binding Alt}"
-                        Content="{Binding [surface.alt]^, Source={x:Static loc:Localizer.Current}}" />
-          <ToggleButton Classes="key" IsChecked="{Binding AltLower}"
-                        Content="{Binding [surface.altLower]^, Source={x:Static loc:Localizer.Current}}" />
+      <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+        <StackPanel Margin="0,0,16,0">
+          <TextBlock Classes="group" Text="{Binding [surface.panTilt]^, Source={x:Static loc:Localizer.Current}}" />
+          <views:StickPad Name="MovePad" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Classes="group" Text="{Binding [surface.zoomFocus]^, Source={x:Static loc:Localizer.Current}}" />
+          <views:StickPad Name="LensPad" />
         </StackPanel>
       </StackPanel>
 
     </StackPanel>
-
-    <Grid ColumnDefinitions="*,16,*">
-      <DockPanel Grid.Column="0">
-        <TextBlock DockPanel.Dock="Top" Classes="group"
-                   Text="{Binding [surface.panTilt]^, Source={x:Static loc:Localizer.Current}}" />
-        <views:StickPad Name="MovePad" />
-      </DockPanel>
-      <DockPanel Grid.Column="2">
-        <TextBlock DockPanel.Dock="Top" Classes="group"
-                   Text="{Binding [surface.zoomFocus]^, Source={x:Static loc:Localizer.Current}}" />
-        <views:StickPad Name="LensPad" />
-      </DockPanel>
-    </Grid>
-
-  </DockPanel>
+  </ScrollViewer>
 
 </UserControl>

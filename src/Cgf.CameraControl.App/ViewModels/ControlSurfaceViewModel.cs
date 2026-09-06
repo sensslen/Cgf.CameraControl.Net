@@ -11,14 +11,6 @@ public sealed partial class ControlSurfaceViewModel(ControlSurfaceDevice device)
 {
     public int Instance => device.Instance;
 
-    /// Held rather than pressed: the modifier is what the next button means, so it stays down until
-    /// it is clicked again. A keyboard holds Shift instead, and both write the same state.
-    [ObservableProperty]
-    public partial bool Alt { get; set; }
-
-    [ObservableProperty]
-    public partial bool AltLower { get; set; }
-
     /// Pan on X, tilt on Y.
     public void Move(double pan, double tilt) => device.Move(pan, tilt);
 
@@ -43,8 +35,4 @@ public sealed partial class ControlSurfaceViewModel(ControlSurfaceDevice device)
 
     [RelayCommand]
     public void Transition(MixerTransition kind) => device.Transition(kind);
-
-    partial void OnAltChanged(bool value) => device.SetModifiers(value, AltLower);
-
-    partial void OnAltLowerChanged(bool value) => device.SetModifiers(Alt, value);
 }

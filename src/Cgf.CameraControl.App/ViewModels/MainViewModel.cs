@@ -50,6 +50,13 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     public bool HasUnassigned => UnassignedMixers.Count > 0 || UnassignedCameras.Count > 0;
 
+    /// The pane is collapsed by default, so its lamp is all an operator sees of what is inside it.
+    /// Green means every one of them is up: anything less is worth opening the pane for, and one
+    /// camera down among nine is exactly the case a lamp that averaged them would hide.
+    public bool AllMixersConnected => Mixers.Count > 0 && Mixers.All(mixer => mixer.IsConnected);
+
+    public bool AllCamerasConnected => Cameras.Count > 0 && Cameras.All(camera => camera.IsConnected);
+
     /// Reported per entry rather than as one failed load, so a typo in one camera does not hide the
     /// nine that are fine.
     public ObservableCollection<string> Issues { get; } = [];
@@ -140,12 +147,16 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
         foreach (var (instance, mixer) in _host.Core.MixerFactory.Instances.OrderBy(entry => entry.Key))
         {
-            Mixers.Add(new MixerViewModel(instance, mixer));
+            var view = new MixerViewModel(instance, mixer);
+            view.PropertyChanged += OnChildChanged;
+            Mixers.Add(view);
         }
 
         foreach (var camera in _host.Cameras)
         {
-            Cameras.Add(new CameraViewModel(camera));
+            var view = new CameraViewModel(camera);
+            view.PropertyChanged += OnChildChanged;
+            Cameras.Add(view);
         }
 
         var mixerViews = _host.Core.MixerFactory.Instances
@@ -177,6 +188,13 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(UnassignedMixers));
         OnPropertyChanged(nameof(UnassignedCameras));
         OnPropertyChanged(nameof(HasUnassigned));
+        OnChildChanged(this, new System.ComponentModel.PropertyChangedEventArgs(null));
+    }
+
+    private void OnChildChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        OnPropertyChanged(nameof(AllMixersConnected));
+        OnPropertyChanged(nameof(AllCamerasConnected));
     }
 
     /// The interface knows what it resolved, which is not the same as what its configuration asked
@@ -194,11 +212,13 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     {
         foreach (var mixer in Mixers)
         {
+            mixer.PropertyChanged -= OnChildChanged;
             mixer.Dispose();
         }
 
         foreach (var camera in Cameras)
         {
+            camera.PropertyChanged -= OnChildChanged;
             camera.Dispose();
         }
 

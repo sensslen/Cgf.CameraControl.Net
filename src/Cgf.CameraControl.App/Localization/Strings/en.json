@@ -22,14 +22,16 @@
   },
   "interface": {
     "disconnected": "not connected",
-    "clickHint": "click an interface to open its control window"
+    "clickHint": "select an interface to drive it",
+    "padOnly": "a gamepad interface is driven by its pad; configure a keyboard interface on the same mixer to drive it from here"
   },
   "mixer": {
     "preview": "preview",
     "program": "program",
     "onAir": "preview is on air",
     "cut": "Cut",
-    "auto": "Auto"
+    "auto": "Auto",
+    "nothingSelected": "nothing selected yet"
   },
   "log": {
     "allSources": "All"
@@ -49,12 +51,10 @@
   "surface": {
     "panTilt": "Pan and tilt",
     "zoomFocus": "Zoom and focus",
-    "select": "Preview",
     "functions": "Functions",
     "transition": "Transition",
-    "modifiers": "Modifiers",
-    "alt": "Alt",
-    "altLower": "Alt lower",
-    "keys": "Keyboard: W A S D pans and tilts, I K zooms, J L focuses, the arrow keys change the preview selection, 1 to 4 run the special functions, Enter cuts, Space autos, and Shift or Ctrl hold the alt bindings."
+    "inputLabel": "input {0}",
+    "program": "Program",
+    "preview": "Preview"
   }
 }

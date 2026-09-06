@@ -104,10 +104,6 @@ public sealed record KeyBindings
     public string? Cut { get; set; }
 
     public string? Auto { get; set; }
-
-    public string? Alt { get; set; }
-
-    public string? AltLower { get; set; }
 }
 
 /// The four axis pairs are named for the direction the camera moves rather than for a sign, because
