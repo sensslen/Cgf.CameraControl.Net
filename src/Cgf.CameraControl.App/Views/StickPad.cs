@@ -7,7 +7,9 @@ using Avalonia.Media;
 namespace Cgf.CameraControl.App.Views;
 
 /// A mouse stand-in for one gamepad stick: press anywhere inside it and the offset from the centre
-/// is the speed on each axis, release and it springs back to nothing.
+/// is the speed on each axis, release and it springs back to nothing. Made horizontal, it is one axis
+/// of that stick as a slider on a track, for a pair of controls that have nothing to do with each
+/// other.
 ///
 /// Springing back is the whole point. A camera driven by a control that stays where it was left
 /// keeps moving after the operator has stopped paying attention to it, which is how a shot ends up
@@ -15,8 +17,12 @@ namespace Cgf.CameraControl.App.Views;
 public sealed class StickPad : Border
 {
     private const double KnobSize = 28;
+    private const double TrackThickness = 2;
+    private const double TickLength = 10;
 
     private readonly Canvas _surface = new();
+    private readonly Rectangle _track = new() { Height = TrackThickness, IsVisible = false };
+    private readonly Rectangle _tick = new() { Width = TrackThickness, Height = TickLength, IsVisible = false };
     private readonly Ellipse _knob = new()
     {
         Width = KnobSize,
@@ -29,6 +35,8 @@ public sealed class StickPad : Border
 
     public StickPad()
     {
+        _surface.Children.Add(_track);
+        _surface.Children.Add(_tick);
         _surface.Children.Add(_knob);
         Child = _surface;
 
@@ -39,6 +47,9 @@ public sealed class StickPad : Border
 
     /// The position of the stick, each axis in [-1 .. 1], with up and right positive.
     public event Action<double, double>? Moved;
+
+    /// One axis only: a track with a mark at its middle, a knob that rides it, and Y always zero.
+    public bool Horizontal { get; set; }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
@@ -97,7 +108,7 @@ public sealed class StickPad : Border
         }
 
         _x = Math.Clamp((pointer.X - half.X) / half.X, -1, 1);
-        _y = Math.Clamp((half.Y - pointer.Y) / half.Y, -1, 1);
+        _y = Horizontal ? 0 : Math.Clamp((half.Y - pointer.Y) / half.Y, -1, 1);
 
         Place();
         Moved?.Invoke(_x, _y);
@@ -106,7 +117,17 @@ public sealed class StickPad : Border
     private void Place()
     {
         var half = new Point(_surface.Bounds.Width / 2, _surface.Bounds.Height / 2);
-        Canvas.SetLeft(_knob, half.X + (_x * half.X) - (KnobSize / 2));
+
+        // The knob's own radius keeps it on the track at either end rather than hanging off it.
+        var reach = Horizontal ? half.X - (KnobSize / 2) : half.X;
+        Canvas.SetLeft(_knob, half.X + (_x * reach) - (KnobSize / 2));
         Canvas.SetTop(_knob, half.Y - (_y * half.Y) - (KnobSize / 2));
+
+        _track.IsVisible = _tick.IsVisible = Horizontal;
+        _track.Fill = _tick.Fill = BorderBrush;
+        _track.Width = _surface.Bounds.Width;
+        Canvas.SetTop(_track, half.Y - (TrackThickness / 2));
+        Canvas.SetLeft(_tick, half.X - (TrackThickness / 2));
+        Canvas.SetTop(_tick, half.Y - (TickLength / 2));
     }
 }

@@ -53,5 +53,5 @@ public sealed class Passthrough(ILogger logger) : IVideoMixer
         _preview.OnNext(new PreviewChange(wasOnAir, false));
     }
 
-    private void Log(string message) => logger.Log($"Passthrough video mixer:{message}");
+    private void Log(string message) => logger.Log("Passthrough video mixer", message);
 }

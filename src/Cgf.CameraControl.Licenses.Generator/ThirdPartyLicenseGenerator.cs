@@ -12,8 +12,8 @@ using Newtonsoft.Json.Linq;
 
 namespace Cgf.CameraControl.Licenses.Generator;
 
-/// Turns the nuget-license report and the licence texts beside it into what the licences window
-/// shows.
+/// Turns the licence reports and the licence texts beside them into what the licences window shows:
+/// the nuget-license report of the packages, and the hand-written report of the artwork.
 ///
 /// Both are fixed at build time, so reading them, parsing them and formatting them again on every
 /// start would be work done to arrive at a constant. What this emits is the finished strings the
@@ -22,7 +22,7 @@ namespace Cgf.CameraControl.Licenses.Generator;
 [Generator]
 public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
 {
-    private const string FileName = "third-party-licenses.json";
+    private const string ReportExtension = ".json";
     private const string PackageFolder = "packages";
     private const string SpdxFolder = "spdx";
 
@@ -32,7 +32,7 @@ public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Missing = new(
         "CGFLIC001",
         "The third party licence report is missing",
-        "No additional file named " + FileName + " was supplied, so the licences window would be empty",
+        "No " + ReportExtension + " additional file was supplied, so the licences window would be empty",
         "Licences",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -59,8 +59,10 @@ public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
         // Tuples rather than classes of their own: what travels the pipeline has to compare by value
         // or the generator runs again on every keystroke, and netstandard2.0 has no records without
         // a polyfill package to supply the init accessor they compile to.
+        // Every report in the folder, in the shape nuget-license writes: the packages it reported, and
+        // beside them the artwork the application ships, which no package manager knows about.
         var reports = context.AdditionalTextsProvider
-            .Where(text => Path.GetFileName(text.Path) == FileName)
+            .Where(text => Path.GetExtension(text.Path) == ReportExtension)
             .Select((text, token) => (Path: text.Path, Content: Read(text, token)))
             .Collect();
 
@@ -163,7 +165,7 @@ public sealed class ThirdPartyLicenseGenerator : IIncrementalGenerator
         source.AppendLine();
         source.AppendLine("namespace Cgf.CameraControl.App.Licenses;");
         source.AppendLine();
-        source.AppendLine("/// The packages this application ships, as nuget-license reported them at build time.");
+        source.AppendLine("/// The packages and artwork this application ships, as the licence reports listed them at build time.");
         source.AppendLine("public static class ThirdPartyLicenses");
         source.AppendLine("{");
         source.AppendLine("    public static global::System.Collections.Generic.IReadOnlyList<ThirdPartyLicense> All { get; } =");

@@ -1,4 +1,4 @@
-using System.Reactive.Subjects;
+﻿using System.Reactive.Subjects;
 using Cgf.CameraControl.Core.CameraConnection;
 using Cgf.CameraControl.Core.Logger;
 using Cgf.CameraControl.Core.VideoMixer;
@@ -339,7 +339,7 @@ public class GamepadTests
         }
 
         [Fact]
-        public void RumbleTurnedOffInConfigurationStaysSilent()
+        public void APadThatWillNotRumbleStaysSilent()
         {
             Build(rumble: false);
 
@@ -360,33 +360,34 @@ public class GamepadTests
         return camera;
     }
 
-    private Gamepad Build(bool enableChangingProgram = true, bool rumble = true) =>
-        new(
+    private Gamepad Build(bool enableChangingProgram = true, bool rumble = true)
+    {
+        _device.SupportsRumble = rumble;
+        return new Gamepad(
             new GamepadConfiguration
             {
                 VideoMixer = 1,
                 EnableChangingProgram = enableChangingProgram,
-                Rumble = rumble,
                 CameraMap = _cameras.Keys.ToDictionary(key => key, key => key),
                 ConnectionChange = new DirectConnectionChangeConfiguration
                 {
                     Default = new Dictionary<ButtonDirection, int> { [ButtonDirection.Right] = 2 },
                     Alt = new Dictionary<ButtonDirection, int> { [ButtonDirection.Right] = 7 },
                 },
-                SpecialFunction = new SpecialFunctionSet
+                Functions = new Dictionary<string, SpecialFunctionConfiguration>
                 {
-                    Default = new Dictionary<ButtonDirection, SpecialFunctionConfiguration>
-                    {
-                        [ButtonDirection.Down] = new KeySpecialFunctionConfiguration { Index = 1 },
-                    },
-                    Alt = new Dictionary<ButtonDirection, SpecialFunctionConfiguration>
-                    {
-                        [ButtonDirection.Down] = new KeySpecialFunctionConfiguration { Index = 9 },
-                    },
+                    ["iso"] = new KeySpecialFunctionConfiguration { Index = 1 },
+                    ["lower"] = new KeySpecialFunctionConfiguration { Index = 9 },
                 },
             },
             _device,
             _mixer,
             instance => _cameras.GetValueOrDefault(instance),
-            _logger);
+            _logger,
+            new PadBindings
+            {
+                Default = new Dictionary<ButtonDirection, string> { [ButtonDirection.Down] = "iso" },
+                Alt = new Dictionary<ButtonDirection, string> { [ButtonDirection.Down] = "lower" },
+            });
+    }
 }

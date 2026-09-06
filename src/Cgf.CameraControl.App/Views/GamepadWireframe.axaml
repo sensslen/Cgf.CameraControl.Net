@@ -1,0 +1,174 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Cgf.CameraControl.App.ViewModels"
+             xmlns:loc="using:Cgf.CameraControl.App.Localization"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="346"
+             x:Class="Cgf.CameraControl.App.Views.GamepadWireframe"
+             x:DataType="vm:InterfaceViewModel">
+
+  <UserControl.Styles>
+    <Style Selector=":is(Shape).outline">
+      <Setter Property="Stroke" Value="#8A8A8A" />
+      <Setter Property="StrokeThickness" Value="1.7" />
+      <Setter Property="StrokeJoin" Value="Round" />
+    </Style>
+    <Style Selector="Ellipse.button">
+      <Setter Property="Width" Value="17" />
+      <Setter Property="Height" Value="17" />
+    </Style>
+    <Style Selector="TextBlock.cap">
+      <Setter Property="FontSize" Value="9" />
+      <Setter Property="Foreground" Value="#606060" />
+      <Setter Property="TextAlignment" Value="Center" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+    <!-- A label has a fixed box and the text shrinks to fit it, so a long function name cannot push
+         into the next control or off the body. -->
+    <Style Selector="Border.plate">
+      <Setter Property="Height" Value="12" />
+      <Setter Property="Padding" Value="2,0" />
+    </Style>
+    <Style Selector="Border.plate > Viewbox">
+      <Setter Property="Stretch" Value="Uniform" />
+      <Setter Property="StretchDirection" Value="DownOnly" />
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontSize" Value="9" />
+      <Setter Property="Foreground" Value="#606060" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- Every shape here is an ordinary one, so the whole drawing dims as one when the pad is gone and
+       any part of it can be lit. The body is Skwarek's Joypad from Openclipart (item 204910, CC0, see
+       the licences window), redrawn: the shoulders are cut off and the top corners rounded, so both
+       shoulder buttons on each side are shapes of their own standing on the flat top right at its
+       ends; the sticks sit on the body's lower edge, which passes behind them and so is not drawn
+       where they are; the body is a little wider than the original and the button clusters sit a
+       little further in, which is what makes room for a label on the outer side of each cluster
+       without it crossing the outline; and the right half mirrors the left, as do the clusters.
+
+       Every position is in the drawing's own coordinates, which the Viewbox scales as one, so the
+       overlays stay on their controls at any size. -->
+  <Viewbox Stretch="Uniform" Margin="12,12,12,18">
+    <Canvas Width="360" Height="216">
+
+      <!-- The bumper stands on the body's top edge where the corner rounding ends, with no bottom
+           of its own because the body's edge is its bottom. It is drawn before the body so that its
+           fill stops under the body's line rather than over it. The trigger above it takes a shield,
+           which is what one looks like from the front and what tells the two apart at a glance. -->
+      <Path Name="LeftShoulder" Classes="outline" Canvas.Left="59.7" Canvas.Top="60.82"
+            Data="M0,12 L0,6 Q0,0 6,0 L44,0 Q50,0 50,6 L50,12" />
+      <Path Name="RightShoulder" Classes="outline" Canvas.Left="220.9" Canvas.Top="60.82"
+            Data="M0,12 L0,6 Q0,0 6,0 L44,0 Q50,0 50,6 L50,12" />
+
+      <Path Name="LeftTrigger" Classes="outline" Canvas.Left="59.7" Canvas.Top="34"
+            Data="M4,0 L46,0 Q50,0 50,4 L50,12 Q50,19 39,22 Q25,25 11,22 Q0,19 0,12 L0,4 Q0,0 4,0 Z" />
+      <Path Name="RightTrigger" Classes="outline" Canvas.Left="220.9" Canvas.Top="34"
+            Data="M4,0 L46,0 Q50,0 50,4 L50,12 Q50,19 39,22 Q25,25 11,22 Q0,19 0,12 L0,4 Q0,0 4,0 Z" />
+
+      <Path Classes="outline" Canvas.Left="36" Canvas.Top="50"
+            Data="M23.71,22.82
+                  C16.21,22.82 4.75,28.79 -0.34,34.96
+                  C-4.25,39.7 -6.3,45.53 -8.06,51.2
+                  C-9.23,54.96 -9.51,58.9 -9.91,62.78
+                  C-12.51,88.41 -15.52,111.73 -13.3,139.93
+                  C-12.51,150 -7.59,154.93 -0.95,159.5
+                  C5.2,163.73 13.9,165.72 21.58,164.74
+                  C31.5,163.48 49.01,150.67 54,142
+                  L69.53,115.01
+                  M103.5,105.18 L155.08,105.18
+                  M189.05,115.01
+                  L204.58,142
+                  C209.57,150.67 227.08,163.48 237,164.74
+                  C244.68,165.72 253.38,163.73 259.53,159.5
+                  C266.17,154.93 271.09,150 271.88,139.93
+                  C274.1,111.73 271.09,88.41 268.49,62.78
+                  C268.09,58.9 267.81,54.96 266.64,51.2
+                  C264.88,45.53 262.83,39.7 258.92,34.96
+                  C253.83,28.79 242.37,22.82 234.87,22.82
+                  L23.71,22.82" />
+
+      <Ellipse Classes="outline" Canvas.Left="105.05" Canvas.Top="143.86" Width="36.64" Height="36.64" />
+      <Ellipse Classes="outline" Canvas.Left="188.89" Canvas.Top="143.86" Width="36.64" Height="36.64" />
+
+      <TextBlock Classes="cap" Canvas.Left="59.7" Canvas.Top="40" Width="50" Text="alt lower" />
+      <TextBlock Classes="cap" Canvas.Left="220.9" Canvas.Top="40" Width="50" Text="Auto" />
+      <TextBlock Classes="cap" Canvas.Left="59.7" Canvas.Top="60.8" Width="50" Text="alt" />
+      <TextBlock Classes="cap" Canvas.Left="220.9" Canvas.Top="60.8" Width="50" Text="Cut" />
+
+      <Ellipse Name="DPadUp" Classes="outline button" Canvas.Left="86.8" Canvas.Top="88.6" />
+      <Ellipse Name="DPadDown" Classes="outline button" Canvas.Left="86.8" Canvas.Top="115.9" />
+      <Ellipse Name="DPadLeft" Classes="outline button" Canvas.Left="73.7" Canvas.Top="102.3" />
+      <Ellipse Name="DPadRight" Classes="outline button" Canvas.Left="99.9" Canvas.Top="102.3" />
+
+      <Ellipse Name="FaceUp" Classes="outline button" Canvas.Left="226.8" Canvas.Top="88.6" />
+      <Ellipse Name="FaceDown" Classes="outline button" Canvas.Left="226.8" Canvas.Top="115.9" />
+      <Ellipse Name="FaceLeft" Classes="outline button" Canvas.Left="213.7" Canvas.Top="102.3" />
+      <Ellipse Name="FaceRight" Classes="outline button" Canvas.Left="239.9" Canvas.Top="102.3" />
+
+      <Ellipse Name="LeftKnob" Classes="button" />
+      <Ellipse Name="RightKnob" Classes="button" />
+
+      <!-- The sticks say what they drive the way the keyboard panel's pads do. -->
+      <Border Classes="plate" Width="70" Canvas.Left="88.4" Canvas.Top="186">
+        <Viewbox>
+          <TextBlock Classes="label" Text="{Binding [surface.panTilt]^, Source={x:Static loc:Localizer.Current}}" />
+        </Viewbox>
+      </Border>
+      <Border Classes="plate" Width="70" Canvas.Left="172.2" Canvas.Top="186">
+        <Viewbox>
+          <TextBlock Classes="label" Text="{Binding [surface.zoomFocus]^, Source={x:Static loc:Localizer.Current}}" />
+        </Viewbox>
+      </Border>
+
+      <!-- Each label sits on the side of its button away from the cluster's centre, so the two that
+           face each other across the body are read by which button they are next to, and the text
+           hugs that button's side of its box. -->
+      <Border Name="DPadUpPlate" Classes="plate" Width="60" Canvas.Left="65.3" Canvas.Top="76.5">
+        <Viewbox>
+          <TextBlock Name="DPadUpLabel" Classes="label" />
+        </Viewbox>
+      </Border>
+      <Border Name="DPadDownPlate" Classes="plate" Width="60" Canvas.Left="65.3" Canvas.Top="134.9">
+        <Viewbox>
+          <TextBlock Name="DPadDownLabel" Classes="label" />
+        </Viewbox>
+      </Border>
+      <Border Name="DPadLeftPlate" Classes="plate" Width="40" Canvas.Left="30.7" Canvas.Top="104.3">
+        <Viewbox HorizontalAlignment="Right">
+          <TextBlock Name="DPadLeftLabel" Classes="label" />
+        </Viewbox>
+      </Border>
+      <Border Name="DPadRightPlate" Classes="plate" Width="44" Canvas.Left="119.9" Canvas.Top="104.3">
+        <Viewbox HorizontalAlignment="Left">
+          <TextBlock Name="DPadRightLabel" Classes="label" />
+        </Viewbox>
+      </Border>
+
+      <Border Name="FaceUpPlate" Classes="plate" Width="60" Canvas.Left="205.3" Canvas.Top="76.5">
+        <Viewbox>
+          <TextBlock Name="FaceUpLabel" Classes="label" />
+        </Viewbox>
+      </Border>
+      <Border Name="FaceDownPlate" Classes="plate" Width="60" Canvas.Left="205.3" Canvas.Top="134.9">
+        <Viewbox>
+          <TextBlock Name="FaceDownLabel" Classes="label" />
+        </Viewbox>
+      </Border>
+      <Border Name="FaceLeftPlate" Classes="plate" Width="44" Canvas.Left="166.7" Canvas.Top="104.3">
+        <Viewbox HorizontalAlignment="Right">
+          <TextBlock Name="FaceLeftLabel" Classes="label" />
+        </Viewbox>
+      </Border>
+      <Border Name="FaceRightPlate" Classes="plate" Width="40" Canvas.Left="259.9" Canvas.Top="104.3">
+        <Viewbox HorizontalAlignment="Left">
+          <TextBlock Name="FaceRightLabel" Classes="label" />
+        </Viewbox>
+      </Border>
+
+    </Canvas>
+  </Viewbox>
+
+</UserControl>

@@ -1,11 +1,10 @@
-using Cgf.CameraControl.Core.Configuration;
+﻿using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 
 namespace Cgf.CameraControl.Input.Sdl.Tests;
 
-/// One configuration file in production predates the current schema: it omits connectionChange.type
-/// and specialFunction, and the TypeScript build rejects it too. It stays rejected here, so what
-/// matters is that the operator is told which entry and which property to fix.
+/// A configuration file is written by hand, so what matters when one is wrong is that the operator is
+/// told which entry and which property to fix rather than being handed a serializer's own words.
 public class GamepadConfigurationRejectionTests
 {
     [Fact]
@@ -18,7 +17,6 @@ public class GamepadConfigurationRejectionTests
               "instance": 4,
               "videoMixer": 1,
               "connectionChange": { "default": { "right": 2 } },
-              "specialFunction": { "default": {} },
               "cameraMap": { "1": 1 }
             }
             """));
@@ -27,27 +25,30 @@ public class GamepadConfigurationRejectionTests
         Assert.DoesNotContain("Path:", failure.Message, StringComparison.Ordinal);
     }
 
+    // A pad cannot be driven from the window, so a keys block on one is a set of bindings that will
+    // never fire. Saying so is the whole reason the two kinds have separate schemas.
     [Fact]
-    public void AMissingSpecialFunctionSetNamesTheEntry()
+    public void ASectionTheInterfaceKindCannotUseIsRejected()
     {
         var failure = Assert.Throws<ConfigValidationException>(() => Read(
             """
             {
-              "type": "logitech/F710",
+              "type": "gamepad",
               "instance": 4,
               "videoMixer": 1,
               "connectionChange": { "type": "direct", "default": { "right": 2 } },
+              "keys": { "cut": "Enter" },
               "cameraMap": { "1": 1 }
             }
             """));
 
-        Assert.Contains("logitech/F710[4]", failure.Path, StringComparison.Ordinal);
-        Assert.Contains("specialFunction", failure.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("gamepad[4]", failure.Path, StringComparison.Ordinal);
+        Assert.Contains("keys", failure.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static GamepadConfiguration Read(string json)
     {
         var config = ConfigLoader.Load($$"""{ "interfaces": [ {{json}} ] }""", out _);
-        return Assert.Single(config.Interfaces).Deserialize(GamepadConfigurationContext.Default.GamepadConfiguration);
+        return Assert.Single(config.Interfaces).Deserialize(InterfaceConfigurationContext.Default.GamepadConfiguration);
     }
 }

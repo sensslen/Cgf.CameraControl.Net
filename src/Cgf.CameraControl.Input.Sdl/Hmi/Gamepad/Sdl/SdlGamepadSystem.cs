@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Reactive.Subjects;
 using Cgf.CameraControl.Core.Logger;
 using SDL3;
@@ -31,9 +31,9 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
     /// device picker lists, so a serial can be read off a connected pad instead of guessed.
     public IObservable<IReadOnlyList<SdlGamepadPresence>> WhenPresenceChanged => _presence;
 
-    public SdlGamepadDevice Claim(string label, string? serialNumber, double deadzone)
+    public SdlGamepadDevice Claim(string label, string? serialNumber, double deadzone, bool rumble)
     {
-        var device = new SdlGamepadDevice(this, label, serialNumber, deadzone);
+        var device = new SdlGamepadDevice(this, label, serialNumber, deadzone, rumble);
         Post(() =>
         {
             _devices.Add(device);
@@ -95,7 +95,7 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
         SDL.SetHint(SDL.Hints.JoystickAllowBackgroundEvents, "1");
         if (!SDL.Init(SDL.InitFlags.Gamepad))
         {
-            _logger.Error($"SDL: gamepad support is unavailable - {SDL.GetError()}");
+            _logger.Error("SDL", $"gamepad support is unavailable - {SDL.GetError()}");
             return;
         }
 
@@ -180,7 +180,7 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
         var handle = SDL.OpenGamepad(instanceId);
         if (handle == IntPtr.Zero)
         {
-            _logger.Error($"SDL: gamepad {instanceId} could not be opened - {SDL.GetError()}");
+            _logger.Error("SDL", $"gamepad {instanceId} could not be opened - {SDL.GetError()}");
             return;
         }
 
@@ -202,7 +202,8 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
         }
 
         _logger.Log(
-            $"SDL:connected {info.Name}, serial {info.Serial ?? "not reported"}, rumble {(info.SupportsRumble ? "yes" : "no")}");
+            "SDL",
+            $"connected {info.Name}, serial {info.Serial ?? "not reported"}, rumble {(info.SupportsRumble ? "yes" : "no")}");
         Rebind();
     }
 
@@ -215,7 +216,7 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
 
         pad.ClaimedBy?.Unbind();
         SDL.CloseGamepad(pad.Handle);
-        _logger.Log($"SDL:disconnected {pad.Info.Name}");
+        _logger.Log("SDL", $"disconnected {pad.Info.Name}");
         Rebind();
     }
 
@@ -241,7 +242,7 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
         foreach (var device in unbound.Where(Unmatched))
         {
             device.ReportedUnmatched = true;
-            _logger.Error($"SDL:{device.Label} matches no connected pad with serial {device.SerialNumber}. Seen: {Seen()}");
+            _logger.Error("SDL", $"{device.Label} matches no connected pad with serial {device.SerialNumber}. Seen: {Seen()}");
         }
 
         _presence.OnNext(_pads.Values

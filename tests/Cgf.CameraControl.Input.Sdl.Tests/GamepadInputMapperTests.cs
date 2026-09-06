@@ -168,6 +168,22 @@ public class GamepadInputMapperTests
 
             Assert.Equal(2, transitions.Count);
         }
+
+        // The drawing lights a trigger when the mapper has switched it, not when it has moved, so
+        // the picture and the transition it stands for agree at the threshold.
+        [Fact]
+        public void TheDrawnTriggerSwitchesWhereTheTransitionDoes()
+        {
+            var states = Record(_mapper.State);
+
+            _mapper.Axis(SDL.GamepadAxis.RightTrigger, (short)(Max * 0.55));
+            _mapper.Axis(SDL.GamepadAxis.RightTrigger, (short)(Max * 0.65));
+            _mapper.Axis(SDL.GamepadAxis.RightTrigger, (short)(Max * 0.55));
+
+            Assert.Equal(
+                [false, true, true],
+                states.Skip(1).Select(state => state.IsPressed(GamepadButtons.RightTrigger)));
+        }
     }
 
     public class Buttons : GamepadInputMapperTests

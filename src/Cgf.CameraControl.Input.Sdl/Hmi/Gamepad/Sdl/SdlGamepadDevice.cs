@@ -1,4 +1,4 @@
-using System.Reactive.Subjects;
+﻿using System.Reactive.Subjects;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using SDL3;
 
@@ -15,10 +15,18 @@ public sealed class SdlGamepadDevice : IGamepadDevice
 
     private volatile SdlGamepadInfo? _bound;
 
-    internal SdlGamepadDevice(SdlGamepadSystem system, string label, string? serialNumber, double deadzone)
+    private readonly bool _rumbleWanted;
+
+    internal SdlGamepadDevice(
+        SdlGamepadSystem system,
+        string label,
+        string? serialNumber,
+        double deadzone,
+        bool rumble)
     {
         _system = system;
         _mapper = new GamepadInputMapper(deadzone);
+        _rumbleWanted = rumble;
         Label = label;
         SerialNumber = serialNumber;
     }
@@ -39,7 +47,9 @@ public sealed class SdlGamepadDevice : IGamepadDevice
             ? $"{Label} · {serial}"
             : Label;
 
-    public bool SupportsRumble => _bound?.SupportsRumble ?? false;
+    /// A pad the operator turned rumble off for reports the same thing as a pad that cannot rumble,
+    /// so an interface asks one question rather than reading the configuration a second time.
+    public bool SupportsRumble => _rumbleWanted && (_bound?.SupportsRumble ?? false);
 
     public IObservable<bool> WhenConnectedChanged => _connected;
 
@@ -55,7 +65,15 @@ public sealed class SdlGamepadDevice : IGamepadDevice
 
     public IObservable<AltKeyConfiguration> Modifiers => _mapper.Modifiers;
 
-    public void Rumble(double intensity, TimeSpan duration) => _system.Rumble(this, intensity, duration);
+    public IObservable<GamepadState> State => _mapper.State;
+
+    public void Rumble(double intensity, TimeSpan duration)
+    {
+        if (_rumbleWanted)
+        {
+            _system.Rumble(this, intensity, duration);
+        }
+    }
 
     public async ValueTask DisposeAsync()
     {

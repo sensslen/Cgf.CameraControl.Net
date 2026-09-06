@@ -191,7 +191,7 @@ public sealed class SignalrStateTransport : ISignalrStateTransport
         }
     }
 
-    private void Log(string message) => _logger.Log($"CgfPtzCamera({_url}):{message}");
+    private void Log(string message) => _logger.Log("CgfPtzCamera", $"({_url}) {message}");
 
-    private void LogError(string message) => _logger.Error($"CgfPtzCamera({_url}):{message}");
+    private void LogError(string message) => _logger.Error("CgfPtzCamera", $"({_url}) {message}");
 }

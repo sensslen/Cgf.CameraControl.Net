@@ -60,19 +60,27 @@ public static class ViscaPacket
         Terminator,
     ];
 
+    /// 8x 09 00 02 FF, the version inquiry. Every VISCA camera answers it and nothing about the
+    /// answer matters: that one arrived at all is what says a camera is on the other end of a socket
+    /// that would look exactly the same pointed at an empty address.
+    public static byte[] Presence() => [Header, 0x09, 0x00, 0x02, Terminator];
+
     /// 8x 01 04 07 pp FF: 00 stop, 2p tele, 3p wide, over speed steps 1 to LensSpeeds.
     public static byte[] Zoom(int speed) => Lens(0x07, speed);
 
     /// 8x 01 04 08 pp FF: 00 stop, 2p far, 3p near, over speed steps 1 to LensSpeeds.
     public static byte[] Focus(int speed) => Lens(0x08, speed);
 
+    /// An inquiry is answered with a completion that carries the answer after it, so length is what
+    /// separates "the command in buffer y has run" from "here is the camera's version". Reading the
+    /// second as the first would open the command gate for a command nobody has answered for.
     public static ViscaReply Classify(byte[] packet) =>
         packet.Length < 3 || packet[^1] != Terminator
             ? ViscaReply.Other
             : (packet[1] & 0xF0) switch
             {
                 0x40 => ViscaReply.Acknowledged,
-                0x50 => ViscaReply.Completed,
+                0x50 => packet.Length == 3 ? ViscaReply.Completed : ViscaReply.Other,
                 0x60 => ViscaReply.Failed,
                 _ => ViscaReply.Other,
             };

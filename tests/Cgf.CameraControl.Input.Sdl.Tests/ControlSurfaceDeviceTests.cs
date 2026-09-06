@@ -1,4 +1,4 @@
-using System.Reactive.Linq;
+﻿using System.Reactive.Linq;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 
 namespace Cgf.CameraControl.Input.Sdl.Tests;
@@ -37,18 +37,22 @@ public class ControlSurfaceDeviceTests
         public void ButtonsAndTransitionsAreReportedAsAPadReportsThem()
         {
             var selected = new List<ButtonDirection>();
-            var ran = new List<ButtonDirection>();
+            var ran = new List<string>();
+            var inputs = new List<int>();
             var transitions = new List<MixerTransition>();
             using var one = _device.ConnectionChangeRequested.Subscribe(selected.Add);
-            using var two = _device.SpecialFunctionRequested.Subscribe(ran.Add);
+            using var two = _device.FunctionRequested.Subscribe(ran.Add);
             using var three = _device.TransitionRequested.Subscribe(transitions.Add);
+            using var four = _device.InputRequested.Subscribe(inputs.Add);
 
             _device.Select(ButtonDirection.Left);
-            _device.Run(ButtonDirection.Up);
+            _device.Run("iso");
+            _device.SelectInput(5);
             _device.Transition(MixerTransition.Auto);
 
             Assert.Equal(ButtonDirection.Left, Assert.Single(selected));
-            Assert.Equal(ButtonDirection.Up, Assert.Single(ran));
+            Assert.Equal("iso", Assert.Single(ran));
+            Assert.Equal(5, Assert.Single(inputs));
             Assert.Equal(MixerTransition.Auto, Assert.Single(transitions));
         }
 
@@ -92,51 +96,34 @@ public class ControlSurfaceDeviceTests
         }
     }
 
-    // A pad and the window drive one interface between them rather than two interfaces fighting over
-    // the same cameras, so both sets of hands arrive on the same streams.
-    public class WrappingAPad
+    // Nothing draws a keyboard, so the state it reports is the two pads on screen and nothing else.
+    public class DrawnState
     {
-        private readonly FakeGamepadDevice _pad = new();
+        private readonly ControlSurfaceDevice _device = new(1);
 
         [Fact]
-        public void EitherSetOfHandsMovesTheCamera()
+        public void TheSticksFollowTheMouse()
         {
-            var device = new ControlSurfaceDevice(1, _pad);
-            var seen = new List<StickPosition>();
-            using var subscription = device.LeftStick.Subscribe(seen.Add);
+            var seen = new List<GamepadState>();
+            using var subscription = _device.State.Subscribe(seen.Add);
 
-            device.Move(1, 0);
-            _pad.MoveLeftStick(-1, 0);
+            _device.Move(1, -1);
+            _device.Lens(0.5, 0);
 
-            Assert.Equal([new StickPosition(1, 0), new StickPosition(-1, 0)], seen);
+            Assert.Equal(new StickPosition(1, -1), seen[^1].LeftStick);
+            Assert.Equal(new StickPosition(0.5, 0), seen[^1].RightStick);
         }
 
         [Fact]
-        public void ItIsStillThePadThatDescribesTheInterface()
+        public void NoButtonIsEverDrawnAsHeld()
         {
-            var device = new ControlSurfaceDevice(1, _pad);
+            var seen = new List<GamepadState>();
+            using var subscription = _device.State.Subscribe(seen.Add);
 
-            Assert.Equal(_pad.Description, device.Description);
-        }
+            _device.Run("iso");
+            _device.Transition(MixerTransition.Cut);
 
-        [Fact]
-        public void RumbleReachesThePad()
-        {
-            var device = new ControlSurfaceDevice(1, _pad);
-
-            device.Rumble(0.5, TimeSpan.FromMilliseconds(120));
-
-            Assert.Equal(0.5, Assert.Single(_pad.Rumbles).Intensity);
-        }
-
-        [Fact]
-        public async Task DisposingTheSurfaceReleasesThePad()
-        {
-            var device = new ControlSurfaceDevice(1, _pad);
-
-            await device.DisposeAsync();
-
-            Assert.True(_pad.Disposed);
+            Assert.All(seen, state => Assert.Equal(GamepadButtons.None, state.Pressed));
         }
     }
 }

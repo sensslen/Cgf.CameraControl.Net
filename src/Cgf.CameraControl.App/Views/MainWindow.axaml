@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:Cgf.CameraControl.App.Views"
         xmlns:vm="using:Cgf.CameraControl.App.ViewModels"
         xmlns:hosting="using:Cgf.CameraControl.App.Hosting"
         xmlns:loc="using:Cgf.CameraControl.App.Localization"
@@ -45,6 +46,36 @@
         </StackPanel>
       </Border>
     </DataTemplate>
+
+    <!-- One interface, drawn. A pad is watched and a keyboard is worked, which is the whole
+         difference between the two kinds, so the strip above them is the only part they share. -->
+    <DataTemplate x:Key="InterfacePanel" x:DataType="vm:InterfaceViewModel">
+      <DockPanel>
+
+        <Border DockPanel.Dock="Top" Classes="card" Margin="0,0,0,10"
+                IsVisible="{Binding ShowsSelection}">
+          <Grid ColumnDefinitions="Auto,*,24,Auto,*">
+            <TextBlock Grid.Column="0" Classes="detail" VerticalAlignment="Center" Margin="0,0,8,0"
+                       Text="{Binding [surface.program]^, Source={x:Static loc:Localizer.Current}}" />
+            <TextBlock Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                       Text="{Binding ProgramText}" />
+            <TextBlock Grid.Column="3" Classes="detail" VerticalAlignment="Center" Margin="0,0,8,0"
+                       Text="{Binding [surface.preview]^, Source={x:Static loc:Localizer.Current}}" />
+            <TextBlock Grid.Column="4" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                       Text="{Binding PreviewText}" />
+          </Grid>
+        </Border>
+
+        <!-- Both fill the same space and only one is ever visible. Docked instead, the wireframe
+             would be sized to what it asks for, which for a control that only paints is nothing. -->
+        <Panel>
+          <views:GamepadWireframe IsVisible="{Binding IsGamepad}" />
+
+          <views:ControlSurfaceView IsVisible="{Binding !IsGamepad}" />
+        </Panel>
+
+      </DockPanel>
+    </DataTemplate>
   </Window.Resources>
 
   <Window.Styles>
@@ -68,23 +99,6 @@
       <Setter Property="Padding" Value="8" />
       <Setter Property="Margin" Value="0,0,0,6" />
     </Style>
-    <!-- An interface header is a button that looks like the card around it, because clicking it is
-         what opens the control window. -->
-    <Style Selector="Button.tile">
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="Cursor" Value="Hand" />
-    </Style>
-    <Style Selector="Button.tile /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="CornerRadius" Value="6" />
-    </Style>
-    <Style Selector="Button.tile:pointerover Border.card">
-      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
-    </Style>
     <Style Selector="Border.problem">
       <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCriticalBrush}" />
@@ -100,20 +114,40 @@
       <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
       <Setter Property="Opacity" Value="0.9" />
     </Style>
+    <!-- Yellow rather than grey for something that is not there. Grey reads as switched off and
+         accounted for, which is the wrong thing to say about a camera that should be answering.
+         On a group lamp it also covers the half-up case, where some are there and some are not. -->
     <Style Selector="Border.lamp">
       <Setter Property="Width" Value="10" />
       <Setter Property="Height" Value="10" />
       <Setter Property="CornerRadius" Value="5" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="Margin" Value="0,0,6,0" />
-      <Setter Property="Background" Value="#4d4d4d" />
+      <Setter Property="Background" Value="#F1C40F" />
     </Style>
     <Style Selector="Border.lamp.connected">
       <Setter Property="Background" Value="#2ecc71" />
     </Style>
+    <!-- Preview and program are the two colours a video desk is read in, and an operator reads them
+         without being told which is which. -->
+    <Style Selector="Border.tally">
+      <Setter Property="Width" Value="12" />
+      <Setter Property="Height" Value="12" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+    </Style>
+    <Style Selector="Border.tally.preview">
+      <Setter Property="Background" Value="#2ECC71" />
+    </Style>
+    <Style Selector="Border.tally.program">
+      <Setter Property="Background" Value="#E74C3C" />
+    </Style>
   </Window.Styles>
 
-  <!-- The interfaces are the desk; the log is a strip to glance at, and the splitter moves it. -->
+  <!-- Interfaces on the left pick what fills the middle and what the keyboard drives. The mixers and
+       cameras sit under it as two shut drawers with a lamp each, because a desk that is up needs no
+       more than that, and the log is a strip to glance at. -->
   <Grid Name="Root" RowDefinitions="Auto,Auto,3*,Auto,*">
 
     <!-- The title bar itself. The client area is extended into it and the decorations theme leaves
@@ -131,26 +165,26 @@
       <Menu Grid.Column="2" Name="InWindowMenu" Background="Transparent"
             WindowDecorationProperties.ElementRole="DecorationsElement"
             HorizontalAlignment="Left" VerticalAlignment="Center">
-      <MenuItem Header="{Binding Strings[menu.file]^}">
-        <MenuItem Header="{Binding Strings[config.import]^}" Command="{Binding ImportCommand}"
-                  IsEnabled="{Binding !IsBusy}" />
-        <MenuItem Header="{Binding Strings[config.reload]^}" Command="{Binding ReloadCommand}"
-                  IsEnabled="{Binding !IsBusy}" />
-      </MenuItem>
-      <MenuItem Header="{Binding Strings[language.label]^}" ItemsSource="{Binding Languages}">
-        <MenuItem.ItemContainerTheme>
-          <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}"
-                        x:DataType="vm:LanguageViewModel">
-            <Setter Property="Header" Value="{Binding Display}" />
-            <Setter Property="Command" Value="{Binding SelectCommand}" />
-            <Setter Property="ToggleType" Value="Radio" />
-            <Setter Property="IsChecked" Value="{Binding IsActive}" />
-          </ControlTheme>
-        </MenuItem.ItemContainerTheme>
-      </MenuItem>
-      <MenuItem Header="{Binding Strings[menu.help]^}">
-        <MenuItem Header="{Binding Strings[licenses.label]^}" Command="{Binding ShowLicensesCommand}" />
-      </MenuItem>
+        <MenuItem Header="{Binding Strings[menu.file]^}">
+          <MenuItem Header="{Binding Strings[config.import]^}" Command="{Binding ImportCommand}"
+                    IsEnabled="{Binding !IsBusy}" />
+          <MenuItem Header="{Binding Strings[config.reload]^}" Command="{Binding ReloadCommand}"
+                    IsEnabled="{Binding !IsBusy}" />
+        </MenuItem>
+        <MenuItem Header="{Binding Strings[language.label]^}" ItemsSource="{Binding Languages}">
+          <MenuItem.ItemContainerTheme>
+            <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}"
+                          x:DataType="vm:LanguageViewModel">
+              <Setter Property="Header" Value="{Binding Display}" />
+              <Setter Property="Command" Value="{Binding SelectCommand}" />
+              <Setter Property="ToggleType" Value="Radio" />
+              <Setter Property="IsChecked" Value="{Binding IsActive}" />
+            </ControlTheme>
+          </MenuItem.ItemContainerTheme>
+        </MenuItem>
+        <MenuItem Header="{Binding Strings[menu.help]^}">
+          <MenuItem Header="{Binding Strings[licenses.label]^}" Command="{Binding ShowLicensesCommand}" />
+        </MenuItem>
       </Menu>
       <!-- Kept clear for the caption buttons the decorations theme draws over this strip. -->
       <Panel Grid.Column="3" Width="138" />
@@ -169,89 +203,90 @@
       </ItemsControl>
     </StackPanel>
 
-    <ScrollViewer Grid.Row="2" Margin="16,0,16,0" Padding="0,0,8,0">
-      <StackPanel>
+    <DockPanel Grid.Row="2" Margin="16,0,16,0">
 
-        <TextBlock Classes="heading" Text="{Binding Strings[panel.interfaces]^}" />
-        <TextBlock Classes="detail" Margin="0,0,0,6" Text="{Binding Strings[interface.clickHint]^}" />
-
-        <ItemsControl ItemsSource="{Binding Interfaces}">
-          <ItemsControl.ItemTemplate>
+      <DockPanel DockPanel.Dock="Left" Width="220" Margin="0,0,16,0">
+        <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding Strings[panel.interfaces]^}" />
+        <TextBlock DockPanel.Dock="Bottom" Classes="detail" TextWrapping="Wrap" Margin="0,6,0,0"
+                   Text="{Binding Strings[interface.clickHint]^}" />
+        <ListBox ItemsSource="{Binding Interfaces}" SelectedItem="{Binding SelectedInterface}"
+                 Background="Transparent" BorderThickness="0">
+          <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:InterfaceViewModel">
-              <Border Classes="card">
-                <StackPanel>
-
-                  <Button Classes="tile" Command="{Binding OpenCommand}">
-                    <StackPanel>
-                      <StackPanel Orientation="Horizontal">
-                        <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
-                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
-                      </StackPanel>
-                      <TextBlock Classes="detail" Margin="16,2,0,0" IsVisible="{Binding !IsConnected}"
-                                 Text="{Binding [interface.disconnected]^, Source={x:Static loc:Localizer.Current}}" />
-                    </StackPanel>
-                  </Button>
-
-                  <!-- Open, because an interface drawn as two shut drawers shows nothing at all. -->
-                  <Expander Margin="0,8,0,0" HorizontalAlignment="Stretch" IsExpanded="True"
-                            Header="{Binding [panel.mixers]^, Source={x:Static loc:Localizer.Current}}">
-                    <ItemsControl ItemsSource="{Binding Mixers}" ItemTemplate="{StaticResource MixerTile}" />
-                  </Expander>
-
-                  <Expander Margin="0,4,0,0" HorizontalAlignment="Stretch" IsExpanded="True"
-                            Header="{Binding [panel.cameras]^, Source={x:Static loc:Localizer.Current}}">
-                    <ItemsControl ItemsSource="{Binding Cameras}" ItemTemplate="{StaticResource CameraTile}" />
-                  </Expander>
-
-                </StackPanel>
-              </Border>
+              <StackPanel Orientation="Horizontal">
+                <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
+                <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
+              </StackPanel>
             </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
 
-        <!-- Nothing here belongs to an interface, so nothing here can be driven. It is drawn anyway,
-             because a camera missing from the panel reads as one that failed to load. -->
-        <Expander Margin="0,4,0,0" HorizontalAlignment="Stretch" IsVisible="{Binding HasUnassigned}"
-                  Header="{Binding Strings[panel.unassigned]^}">
-          <StackPanel>
-            <ItemsControl ItemsSource="{Binding UnassignedMixers}" ItemTemplate="{StaticResource MixerTile}" />
-            <ItemsControl ItemsSource="{Binding UnassignedCameras}" ItemTemplate="{StaticResource CameraTile}" />
-          </StackPanel>
-        </Expander>
+      <!-- Focusable, because this is where a key press reaches the selected interface. The panel
+           fills whatever the list leaves, which a star column would not: it hands the panel its
+           desired width and lets the pads run off the side of the window. -->
+      <ContentControl Name="Stage" Focusable="True"
+                      Content="{Binding SelectedInterface}"
+                      ContentTemplate="{StaticResource InterfacePanel}" />
 
-      </StackPanel>
-    </ScrollViewer>
+    </DockPanel>
 
     <GridSplitter Grid.Row="3" Height="6" HorizontalAlignment="Stretch" Background="Transparent" />
 
-    <DockPanel Grid.Row="4" DataContext="{Binding Log}" x:DataType="vm:LogViewModel" Margin="16,0,16,16">
-        <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*">
-          <TextBlock Grid.Column="0" Classes="heading" Text="{Binding [panel.log]^, Source={x:Static loc:Localizer.Current}}" VerticalAlignment="Center" />
-          <ComboBox Grid.Column="1" HorizontalAlignment="Right" MinWidth="160" Margin="0,0,0,6"
-                    ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}">
-            <ComboBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:LogSource">
-                <TextBlock Text="{Binding Display^}" />
+    <DockPanel Grid.Row="4" Margin="16,0,16,16">
+
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,12,*" Margin="0,0,0,8">
+        <Expander Grid.Column="0" HorizontalAlignment="Stretch">
+          <Expander.Header>
+            <StackPanel Orientation="Horizontal">
+              <Border Classes="lamp" Classes.connected="{Binding AllMixersConnected}" />
+              <TextBlock Text="{Binding Strings[panel.mixers]^}" />
+            </StackPanel>
+          </Expander.Header>
+          <ItemsControl ItemsSource="{Binding Mixers}" ItemTemplate="{StaticResource MixerTile}" />
+        </Expander>
+        <Expander Grid.Column="2" HorizontalAlignment="Stretch">
+          <Expander.Header>
+            <StackPanel Orientation="Horizontal">
+              <Border Classes="lamp" Classes.connected="{Binding AllCamerasConnected}" />
+              <TextBlock Text="{Binding Strings[panel.cameras]^}" />
+            </StackPanel>
+          </Expander.Header>
+          <ItemsControl ItemsSource="{Binding Cameras}" ItemTemplate="{StaticResource CameraTile}" />
+        </Expander>
+      </Grid>
+
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" DataContext="{Binding Log}"
+            x:DataType="vm:LogViewModel">
+        <TextBlock Grid.Column="0" Classes="heading" VerticalAlignment="Center"
+                   Text="{Binding [panel.log]^, Source={x:Static loc:Localizer.Current}}" />
+        <ComboBox Grid.Column="1" HorizontalAlignment="Right" MinWidth="160" Margin="0,0,0,6"
+                  ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:LogSource">
+              <TextBlock Text="{Binding Display^}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </Grid>
+
+      <Border Classes="card" DataContext="{Binding Log}" x:DataType="vm:LogViewModel">
+        <ScrollViewer Padding="0,0,8,0">
+          <ItemsControl ItemsSource="{Binding Entries}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="hosting:LogEntry">
+                <Grid ColumnDefinitions="Auto,Auto,*">
+                  <TextBlock Grid.Column="0" Classes="detail" Text="{Binding Time}" Margin="0,0,8,0" />
+                  <TextBlock Grid.Column="1" Classes="detail" Text="{Binding Source}" Margin="0,0,8,0"
+                             MinWidth="140" />
+                  <SelectableTextBlock Grid.Column="2" Text="{Binding Message}" TextWrapping="Wrap" />
+                </Grid>
               </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-        </Grid>
-        <Border Classes="card">
-          <ScrollViewer Padding="0,0,8,0">
-            <ItemsControl ItemsSource="{Binding Entries}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="hosting:LogEntry">
-                  <Grid ColumnDefinitions="Auto,Auto,*">
-                    <TextBlock Grid.Column="0" Classes="detail" Text="{Binding Time}" Margin="0,0,8,0" />
-                    <TextBlock Grid.Column="1" Classes="detail" Text="{Binding Source}" Margin="0,0,8,0"
-                               MinWidth="140" />
-                    <SelectableTextBlock Grid.Column="2" Text="{Binding Message}" TextWrapping="Wrap" />
-                  </Grid>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </ScrollViewer>
-        </Border>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Border>
+
     </DockPanel>
 
   </Grid>

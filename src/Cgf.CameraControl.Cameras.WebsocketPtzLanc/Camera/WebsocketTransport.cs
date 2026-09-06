@@ -70,7 +70,7 @@ public sealed class WebsocketTransport(Uri address, ILogger logger) : IWebsocket
                 if (!_reportedFailure)
                 {
                     _reportedFailure = true;
-                    logger.Log($"WebsocketCamera({address}):connection lost - {ex.Message}");
+                    logger.Log("WebsocketCamera", $"({address}) connection lost - {ex.Message}");
                 }
             }
 
@@ -92,7 +92,7 @@ public sealed class WebsocketTransport(Uri address, ILogger logger) : IWebsocket
         using var socket = new ClientWebSocket();
         await socket.ConnectAsync(address, cancellationToken).ConfigureAwait(false);
         _reportedFailure = false;
-        logger.Log($"WebsocketCamera({address}):connected");
+        logger.Log("WebsocketCamera", $"({address}) connected");
         Report(connected: true);
 
         // Draining anything queued while disconnected would replay stale movement, so the sender

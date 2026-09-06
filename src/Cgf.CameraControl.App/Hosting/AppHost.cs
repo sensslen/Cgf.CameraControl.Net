@@ -1,4 +1,4 @@
-using AtemSharp.DependencyInjection;
+﻿using AtemSharp.DependencyInjection;
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 using Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
 using Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
@@ -40,7 +40,7 @@ public sealed class AppHost : IAsyncDisposable
         Core.CameraFactory.AddBuilder(new ObservingCameraBuilder(new ViscaOverIpCameraBuilder(Logger), _cameras));
         Core.MixerFactory.AddBuilder(new AtemBuilder(Logger, atemServices));
         Core.MixerFactory.AddBuilder(new PassthroughBuilder(Logger));
-        Core.HmiFactory.AddBuilder(new GamepadBuilder(Gamepads, Core.MixerFactory, Core.CameraFactory, _surfaces, Logger));
+        Core.HmiFactory.AddBuilder(new GamepadBuilder(Gamepads, Core.MixerFactory, Core.CameraFactory, Logger));
         Core.HmiFactory.AddBuilder(new KeyboardBuilder(Core.MixerFactory, Core.CameraFactory, _surfaces, Logger));
     }
 
@@ -70,13 +70,13 @@ public sealed class AppHost : IAsyncDisposable
         }
         catch (Exception ex) when (ex is ConfigFormatException or IOException or UnauthorizedAccessException)
         {
-            Logger.Error($"Configuration:{ex.Message}");
+            Logger.Error("Configuration", ex.Message);
             return new ConfigLoadResult(path, [ex.Message], []);
         }
 
         foreach (var issue in fileIssues)
         {
-            Logger.Error($"Configuration:{issue}");
+            Logger.Error("Configuration", issue);
         }
 
         _cameras.Clear();
@@ -86,7 +86,7 @@ public sealed class AppHost : IAsyncDisposable
         Configuration = config;
         ConfigPath = path;
         Settings.Update(settings => settings.ConfigPath = path);
-        Logger.Log($"Configuration:loaded {path}");
+        Logger.Log("Configuration", $"loaded {path}");
         return new ConfigLoadResult(path, fileIssues, entryIssues);
     }
 
