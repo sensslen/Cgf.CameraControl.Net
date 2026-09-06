@@ -13,6 +13,58 @@
     "openTitle": "Konfiguration öffnen",
     "fileType": "Konfiguration"
   },
+  "edit": {
+    "mode": "Konfiguration bearbeiten",
+    "banner": "Die Konfiguration wird bearbeitet. Das Pult ist so lange gestoppt.",
+    "done": "Fertig",
+    "add": "Hinzufügen",
+    "delete": "Löschen",
+    "save": "Speichern",
+    "discard": "Verwerfen",
+    "cancel": "Abbrechen",
+    "leaveTitle": "Bearbeitung beenden",
+    "leaveQuestion": "Die Änderungen an der Konfiguration speichern?",
+    "leaveBlocked": "Das lässt sich erst speichern, wenn das hier geklärt ist:",
+    "deleteTitle": "Löschen",
+    "deleteQuestion": "{0} löschen?",
+    "deleteReferences": "Das hier verweist weiterhin darauf und muss anderswohin zeigen:",
+    "deleteReferencesCleared": "Das hier verweist darauf und wird den Verweis verlieren:",
+    "addTitle": "Hinzufügen",
+    "type": "Typ",
+    "nothingSelected": "links einen Eintrag auswählen oder einen hinzufügen",
+    "noConfiguration": "noch keine Konfiguration",
+    "saveAsTitle": "Konfiguration speichern unter",
+    "instance": "Instanz",
+    "ip": "Adresse",
+    "port": "Port",
+    "portDefault": "52381",
+    "panTiltInvert": "Schwenken und Neigen umkehren",
+    "tallyMode": "Tally",
+    "showTallyLight": "Tally-Licht anzeigen",
+    "connectionUrl": "Controller-URL",
+    "connectionPort": "Serieller Port",
+    "mixEffectBlock": "Mix-Effect-Block",
+    "videoMixer": "Videomischer",
+    "cameraMap": "Kameras hinter den Eingängen",
+    "input": "Eingang",
+    "camera": "Kamera",
+    "enableChangingProgram": "Darf einen Eingang auf Sendung schalten",
+    "serialNumber": "Seriennummer",
+    "anyPad": "das erste freie Pad",
+    "deadzone": "Totzone",
+    "rumble": "Vibration",
+    "required": "ist erforderlich",
+    "notANumber": "ist keine Zahl",
+    "tooSmall": "muss mindestens {0} sein",
+    "outOfRange": "muss zwischen {0} und {1} liegen",
+    "mapNeedsNumbers": "jede Zeile braucht zwei Zahlen",
+    "mapRepeatsAnInput": "ein Eingang ist doppelt aufgeführt",
+    "issue.field": "{0}: {1} {2}",
+    "issue.repeatedInstance": "Zwei Einträge unter {0} beanspruchen Instanz {1}.",
+    "issue.noCamera": "{0} verweist auf Kamera {1}, die nicht konfiguriert ist.",
+    "issue.noMixer": "{0} nennt Videomischer {1}, der nicht konfiguriert ist.",
+    "issue.noFunction": "{0} bindet \"{1}\", was keine seiner Funktionen ist."
+  },
   "panel": {
     "mixers": "Videomischer",
     "cameras": "Kameras",
@@ -22,14 +74,16 @@
   },
   "interface": {
     "disconnected": "nicht verbunden",
-    "clickHint": "Schnittstelle anklicken, um ihr Steuerfenster zu öffnen"
+    "clickHint": "Schnittstelle anklicken, um ihr Steuerfenster zu öffnen",
+    "padOnly": "eine Gamepad-Schnittstelle wird von ihrem Pad gesteuert; für die Steuerung von hier aus eine Tastatur-Schnittstelle am selben Mischer einrichten"
   },
   "mixer": {
     "preview": "Vorschau",
     "program": "Programm",
     "onAir": "Vorschau ist auf Sendung",
     "cut": "Cut",
-    "auto": "Auto"
+    "auto": "Auto",
+    "nothingSelected": "noch nichts ausgewählt"
   },
   "log": {
     "allSources": "Alle"
@@ -49,12 +103,11 @@
   "surface": {
     "panTilt": "Schwenken und Neigen",
     "zoomFocus": "Zoom und Fokus",
-    "select": "Vorschau",
+    "zoom": "Zoom",
+    "focus": "Fokus",
     "functions": "Funktionen",
     "transition": "Übergang",
-    "modifiers": "Modifikatoren",
-    "alt": "Alt",
-    "altLower": "Alt unten",
-    "keys": "Tastatur: W A S D schwenkt und neigt, I K zoomt, J L stellt scharf, die Pfeiltasten wechseln die Vorschauauswahl, 1 bis 4 lösen die Sonderfunktionen aus, Enter schneidet, Leertaste blendet um, und Umschalt oder Strg halten die Alt-Belegungen."
+    "program": "Programm",
+    "preview": "Vorschau"
   }
 }

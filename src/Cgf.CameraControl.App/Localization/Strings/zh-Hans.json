@@ -13,6 +13,58 @@
     "openTitle": "打开配置",
     "fileType": "配置"
   },
+  "edit": {
+    "mode": "编辑配置",
+    "banner": "正在编辑配置。期间控制台已停止。",
+    "done": "完成",
+    "add": "添加",
+    "delete": "删除",
+    "save": "保存",
+    "discard": "放弃",
+    "cancel": "取消",
+    "leaveTitle": "退出编辑模式",
+    "leaveQuestion": "保存对配置的更改吗？",
+    "leaveBlocked": "解决以下问题之前无法保存：",
+    "deleteTitle": "删除",
+    "deleteQuestion": "删除 {0}？",
+    "deleteReferences": "以下仍然引用它，需要改指到别处：",
+    "deleteReferencesCleared": "以下引用它，引用将被移除：",
+    "addTitle": "添加",
+    "type": "类型",
+    "nothingSelected": "在左侧选择一项，或添加一项",
+    "noConfiguration": "尚无配置",
+    "saveAsTitle": "将配置另存为",
+    "instance": "实例",
+    "ip": "地址",
+    "port": "端口",
+    "portDefault": "52381",
+    "panTiltInvert": "反转平移和俯仰",
+    "tallyMode": "Tally",
+    "showTallyLight": "显示 tally 指示灯",
+    "connectionUrl": "控制器 URL",
+    "connectionPort": "串行端口",
+    "mixEffectBlock": "Mix effect 块",
+    "videoMixer": "视频切换台",
+    "cameraMap": "各输入对应的摄像机",
+    "input": "输入",
+    "camera": "摄像机",
+    "enableChangingProgram": "可以将输入切到播出",
+    "serialNumber": "序列号",
+    "anyPad": "第一个空闲手柄",
+    "deadzone": "死区",
+    "rumble": "震动",
+    "required": "为必填项",
+    "notANumber": "不是数字",
+    "tooSmall": "必须不小于 {0}",
+    "outOfRange": "必须在 {0} 和 {1} 之间",
+    "mapNeedsNumbers": "每行需要两个数字",
+    "mapRepeatsAnInput": "有一个输入列出了两次",
+    "issue.field": "{0}：{1} {2}",
+    "issue.repeatedInstance": "{0} 下有两项都使用实例 {1}。",
+    "issue.noCamera": "{0} 指向摄像机 {1}，但它未配置。",
+    "issue.noMixer": "{0} 指定视频切换台 {1}，但它未配置。",
+    "issue.noFunction": "{0} 绑定了“{1}”，但它不是该接口的功能之一。"
+  },
   "panel": {
     "mixers": "视频切换台",
     "cameras": "摄像机",
@@ -22,14 +74,16 @@
   },
   "interface": {
     "disconnected": "未连接",
-    "clickHint": "点击接口即可打开其控制窗口"
+    "clickHint": "点击接口即可打开其控制窗口",
+    "padOnly": "手柄接口由其手柄操作；若要在此操作，请在同一切换台上配置一个键盘接口"
   },
   "mixer": {
     "preview": "预监",
     "program": "播出",
     "onAir": "预监正在播出",
     "cut": "Cut",
-    "auto": "Auto"
+    "auto": "Auto",
+    "nothingSelected": "尚未选择任何内容"
   },
   "log": {
     "allSources": "全部"
@@ -49,12 +103,11 @@
   "surface": {
     "panTilt": "云台摇移与俯仰",
     "zoomFocus": "变焦与对焦",
-    "select": "预监",
+    "zoom": "变焦",
+    "focus": "对焦",
     "functions": "功能",
     "transition": "转场",
-    "modifiers": "修饰键",
-    "alt": "Alt",
-    "altLower": "Alt 下",
-    "keys": "键盘：W A S D 摇移与俯仰，I K 变焦，J L 对焦，方向键切换预监选择，1 至 4 触发特殊功能，回车键 Cut，空格键 Auto，Shift 或 Ctrl 按住 alt 绑定。"
+    "program": "播出",
+    "preview": "预监"
   }
 }
