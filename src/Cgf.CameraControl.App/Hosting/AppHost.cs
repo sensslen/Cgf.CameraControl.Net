@@ -1,4 +1,4 @@
-using AtemSharp.DependencyInjection;
+﻿using AtemSharp.DependencyInjection;
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 using Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
 using Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
@@ -40,7 +40,7 @@ public sealed class AppHost : IAsyncDisposable
         Core.CameraFactory.AddBuilder(new ObservingCameraBuilder(new ViscaOverIpCameraBuilder(Logger), _cameras));
         Core.MixerFactory.AddBuilder(new AtemBuilder(Logger, atemServices));
         Core.MixerFactory.AddBuilder(new PassthroughBuilder(Logger));
-        Core.HmiFactory.AddBuilder(new GamepadBuilder(Gamepads, Core.MixerFactory, Core.CameraFactory, _surfaces, Logger));
+        Core.HmiFactory.AddBuilder(new GamepadBuilder(Gamepads, Core.MixerFactory, Core.CameraFactory, Logger));
         Core.HmiFactory.AddBuilder(new KeyboardBuilder(Core.MixerFactory, Core.CameraFactory, _surfaces, Logger));
     }
 

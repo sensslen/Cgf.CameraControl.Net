@@ -1,4 +1,4 @@
-using Cgf.CameraControl.Core.Configuration;
+﻿using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange;
 
@@ -20,16 +20,15 @@ public class GamepadConfigurationTests
             "default": { "up": 1, "right": 2, "down": 3, "left": 4 },
             "alt": { "up": 5, "right": 7, "down": 10, "left": 16 }
           },
-          "specialFunction": {
-            "default": {
-              "down": {
-                "type": "macroToggle",
-                "indexOn": 23,
-                "indexOff": 24,
-                "condition": { "type": "key", "key": 0 }
-              }
+          "functions": {
+            "lower": {
+              "type": "macroToggle",
+              "indexOn": 23,
+              "indexOff": 24,
+              "condition": { "type": "key", "key": 0 }
             }
           },
+          "pad": { "default": { "down": "lower" } },
           "cameraMap": { "1": 1, "2": 2, "3": 3, "4": 4, "7": 6 }
         }
         """;
@@ -56,9 +55,15 @@ public class GamepadConfigurationTests
     }
 
     [Fact]
+    public void APadBindsAFaceButtonToAFunctionByName()
+    {
+        Assert.Equal("lower", Read(Shipped).Pad.Default[ButtonDirection.Down]);
+    }
+
+    [Fact]
     public void ReadsAMacroToggleWithItsCondition()
     {
-        var special = Read(Shipped).SpecialFunction.Default[ButtonDirection.Down];
+        var special = Read(Shipped).Functions["lower"];
 
         var toggle = Assert.IsType<MacroToggleSpecialFunctionConfiguration>(special);
         Assert.Equal(23, toggle.IndexOn);
@@ -69,10 +74,10 @@ public class GamepadConfigurationTests
     [Fact]
     public void ReadsAnAuxSelectionCondition()
     {
-        var special = Read(WithSpecialFunction(
+        var special = Read(WithFunction(
             """{ "type": "macroToggle", "indexOn": 20, "indexOff": 21, "condition": { "type": "aux_selection", "aux": 5, "selection": 16 } }"""));
 
-        var toggle = Assert.IsType<MacroToggleSpecialFunctionConfiguration>(special.SpecialFunction.Default[ButtonDirection.Up]);
+        var toggle = Assert.IsType<MacroToggleSpecialFunctionConfiguration>(special.Functions["iso"]);
         var condition = Assert.IsType<AuxSelectionConditionConfiguration>(toggle.Condition);
         Assert.Equal(5, condition.Aux);
         Assert.Equal(16, condition.Selection);
@@ -84,7 +89,7 @@ public class GamepadConfigurationTests
     [InlineData("""{ "type": "macroLoop", "indexes": [1, 2, 3] }""", typeof(MacroLoopSpecialFunctionConfiguration))]
     public void ReadsEverySpecialFunctionType(string json, Type expected)
     {
-        Assert.IsType(expected, Read(WithSpecialFunction(json)).SpecialFunction.Default[ButtonDirection.Up]);
+        Assert.IsType(expected, Read(WithFunction(json)).Functions["iso"]);
     }
 
     [Fact]
@@ -135,13 +140,13 @@ public class GamepadConfigurationTests
         [Fact]
         public void AKeyIndexMustBePositive()
         {
-            Assert.Throws<ConfigValidationException>(() => Read(WithSpecialFunction("""{ "type": "key", "index": 0 }""")));
+            Assert.Throws<ConfigValidationException>(() => Read(WithFunction("""{ "type": "key", "index": 0 }""")));
         }
 
         [Fact]
         public void AnUnknownSpecialFunctionTypeIsRejected()
         {
-            var error = Assert.Throws<ConfigValidationException>(() => Read(WithSpecialFunction("""{ "type": "explode" }""")));
+            var error = Assert.Throws<ConfigValidationException>(() => Read(WithFunction("""{ "type": "explode" }""")));
 
             Assert.Contains("explode", error.Message, StringComparison.Ordinal);
         }
@@ -161,13 +166,19 @@ public class GamepadConfigurationTests
           "instance": 1,
           "videoMixer": 1,
           "connectionChange": { "type": "direct", "default": { "up": 1 } },
-          "specialFunction": { "default": {} },
           "cameraMap": { "1": 1 }
         }
         """;
 
-    private static string WithSpecialFunction(string json) =>
-        Minimal().Replace("\"default\": {}", $"\"default\": {{ \"up\": {json} }}");
+    /// The function is named once and bound by that name, which is the shape every binding takes.
+    private static string WithFunction(string json) =>
+        Minimal().Replace(
+            "\"cameraMap\"",
+            $$"""
+              "functions": { "iso": {{json}} },
+              "pad": { "default": { "up": "iso" } },
+              "cameraMap"
+              """);
 
     private static string WithConnectionChange(string json) =>
         Minimal().Replace("""{ "type": "direct", "default": { "up": 1 } }""", json);
@@ -175,6 +186,6 @@ public class GamepadConfigurationTests
     private static GamepadConfiguration Read(string json)
     {
         var config = ConfigLoader.Load($$"""{ "interfaces": [ {{json}} ] }""", out _);
-        return Assert.Single(config.Interfaces).Deserialize(GamepadConfigurationContext.Default.GamepadConfiguration);
+        return Assert.Single(config.Interfaces).Deserialize(InterfaceConfigurationContext.Default.GamepadConfiguration);
     }
 }

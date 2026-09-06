@@ -1,4 +1,4 @@
-using System.Reactive.Disposables;
+﻿using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Cgf.CameraControl.Core.CameraConnection;
 using Cgf.CameraControl.Core.Hmi;
@@ -17,15 +17,16 @@ public sealed class Gamepad : IHmi
     private static readonly TimeSpan OnAirPulse = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan ConnectionLostPulse = TimeSpan.FromMilliseconds(600);
 
-    private readonly GamepadConfiguration _config;
+    private readonly InterfaceConfiguration _config;
     private readonly IGamepadDevice _device;
     private readonly ILogger _logger;
     private readonly IVideoMixer _mixer;
     private readonly Dictionary<int, ICameraConnection> _cameras = [];
     private readonly IConnectionChange _connectionChange;
-    private readonly Dictionary<ButtonDirection, ISpecialFunction> _default = [];
-    private readonly Dictionary<ButtonDirection, ISpecialFunction> _alt = [];
-    private readonly Dictionary<ButtonDirection, ISpecialFunction> _altLower = [];
+    private readonly Dictionary<string, ISpecialFunction> _functions = [];
+    private readonly Dictionary<ButtonDirection, string> _default = [];
+    private readonly Dictionary<ButtonDirection, string> _alt = [];
+    private readonly Dictionary<ButtonDirection, string> _altLower = [];
     private readonly CompositeDisposable _subscriptions = [];
     private readonly CancellationTokenSource _stopping = new();
 
@@ -35,12 +36,18 @@ public sealed class Gamepad : IHmi
     private int _selectedInput = -1;
     private bool _mixerWasConnected;
 
+    /// A keyboard reports the functions it runs by name and the inputs it selects outright, neither of
+    /// which a pad has any way to say. They arrive as streams rather than as members on the device,
+    /// so the pad path stays exactly what it was and nothing here has to ask which kind it holds.
     public Gamepad(
-        GamepadConfiguration config,
+        InterfaceConfiguration config,
         IGamepadDevice device,
         IVideoMixer mixer,
         Func<int, ICameraConnection?> resolveCamera,
-        ILogger logger)
+        ILogger logger,
+        PadBindings? pad = null,
+        IObservable<string>? functions = null,
+        IObservable<int>? inputs = null)
     {
         _config = config;
         _device = device;
@@ -56,15 +63,30 @@ public sealed class Gamepad : IHmi
             }
         }
 
-        Fill(_default, config.SpecialFunction.Default);
-        Fill(_alt, config.SpecialFunction.Alt);
-        Fill(_altLower, config.SpecialFunction.AltLower);
+        foreach (var (name, definition) in config.Functions)
+        {
+            _functions[name] = SpecialFunctionFactory.Get(definition);
+        }
+
+        Bind(_default, pad?.Default);
+        Bind(_alt, pad?.Alt);
+        Bind(_altLower, pad?.AltLower);
 
         _subscriptions.Add(device.Modifiers.Subscribe(modifiers => _modifiers = modifiers));
         _subscriptions.Add(device.LeftStick.Subscribe(OnLeftStick));
         _subscriptions.Add(device.RightStick.Subscribe(OnRightStick));
         _subscriptions.Add(device.ConnectionChangeRequested.Subscribe(ChangeConnection));
-        _subscriptions.Add(device.SpecialFunctionRequested.Subscribe(RunSpecialFunction));
+        _subscriptions.Add(device.SpecialFunctionRequested.Subscribe(OnFaceButton));
+        if (functions is not null)
+        {
+            _subscriptions.Add(functions.Subscribe(RunNamed));
+        }
+
+        if (inputs is not null)
+        {
+            _subscriptions.Add(inputs.Subscribe(SelectInput));
+        }
+
         _subscriptions.Add(device.TransitionRequested.Subscribe(RunTransition));
         _subscriptions.Add(mixer.WhenPreviewChanged.Subscribe(OnMixerPreviewChanged));
         _subscriptions.Add(mixer.WhenProgramChanged.Subscribe(OnMixerProgramChanged));
@@ -96,18 +118,18 @@ public sealed class Gamepad : IHmi
         await _device.DisposeAsync().ConfigureAwait(false);
     }
 
-    private static void Fill(
-        Dictionary<ButtonDirection, ISpecialFunction> target,
-        IReadOnlyDictionary<ButtonDirection, SpecialFunctionConfiguration>? source)
+    private static void Bind(
+        Dictionary<ButtonDirection, string> target,
+        IReadOnlyDictionary<ButtonDirection, string>? source)
     {
         if (source is null)
         {
             return;
         }
 
-        foreach (var (direction, config) in source)
+        foreach (var (direction, name) in source)
         {
-            target[direction] = SpecialFunctionFactory.Get(config);
+            target[direction] = name;
         }
     }
 
@@ -131,7 +153,7 @@ public sealed class Gamepad : IHmi
         }
     }
 
-    private void RunSpecialFunction(ButtonDirection direction)
+    private void OnFaceButton(ButtonDirection direction)
     {
         // A modifier only overrides the default when it has something bound for that button.
         var bound = _modifiers switch
@@ -141,13 +163,26 @@ public sealed class Gamepad : IHmi
             _ => _default.GetValueOrDefault(direction),
         };
 
-        if (bound is null)
+        if (bound is not null)
         {
+            RunNamed(bound);
+        }
+    }
+
+    /// The name is the operator's, taken from their file, so a name with nothing behind it is worth
+    /// saying out loud rather than swallowing: the button they pressed did nothing.
+    private void RunNamed(string name)
+    {
+        if (_functions.TryGetValue(name, out var function))
+        {
+            _ = RunSafelyAsync(function);
             return;
         }
 
-        _ = RunSafelyAsync(bound);
+        LogError($"no function named {name} is configured");
     }
+
+    private void SelectInput(int input) => _mixer.ChangeInput(input);
 
     private async Task RunSafelyAsync(ISpecialFunction function)
     {
@@ -266,13 +301,7 @@ public sealed class Gamepad : IHmi
         Rumble(1, ConnectionLostPulse);
     }
 
-    private void Rumble(double intensity, TimeSpan duration)
-    {
-        if (_config.Rumble)
-        {
-            _device.Rumble(intensity, duration);
-        }
-    }
+    private void Rumble(double intensity, TimeSpan duration) => _device.Rumble(intensity, duration);
 
     private static string OnAirSuffix(bool onAir) => onAir ? " - OnAir" : string.Empty;
 

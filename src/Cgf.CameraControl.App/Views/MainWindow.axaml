@@ -181,7 +181,7 @@
               <Border Classes="card">
                 <StackPanel>
 
-                  <Button Classes="tile" Command="{Binding OpenCommand}">
+                  <Button Classes="tile">
                     <StackPanel>
                       <StackPanel Orientation="Horizontal">
                         <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />

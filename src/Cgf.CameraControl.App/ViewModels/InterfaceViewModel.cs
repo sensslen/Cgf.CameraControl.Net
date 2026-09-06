@@ -1,4 +1,4 @@
-using System.Reactive.Disposables;
+﻿using System.Reactive.Disposables;
 using Cgf.CameraControl.Core.Hmi;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -33,9 +33,6 @@ public sealed partial class InterfaceViewModel : ViewModelBase, IDisposable
         }));
     }
 
-    /// Supplied by the window, because opening one needs an owner and a view model must not hold it.
-    public Func<InterfaceViewModel, Task>? Open { get; set; }
-
     public int Instance { get; }
 
     /// Every interface has one: a pad is driven from the window as well as from the desk.
@@ -52,13 +49,4 @@ public sealed partial class InterfaceViewModel : ViewModelBase, IDisposable
     public partial bool IsConnected { get; set; }
 
     public void Dispose() => _subscriptions.Dispose();
-
-    [RelayCommand]
-    private async Task OpenAsync()
-    {
-        if (Open is { } open)
-        {
-            await open(this).ConfigureAwait(true);
-        }
-    }
 }

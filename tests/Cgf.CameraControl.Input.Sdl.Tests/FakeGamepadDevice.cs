@@ -1,4 +1,4 @@
-using System.Reactive.Subjects;
+﻿using System.Reactive.Subjects;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 
 namespace Cgf.CameraControl.Input.Sdl.Tests;
@@ -12,6 +12,7 @@ public sealed class FakeGamepadDevice : IGamepadDevice
     private readonly Subject<ButtonDirection> _face = new();
     private readonly Subject<MixerTransition> _transition = new();
     private readonly BehaviorSubject<AltKeyConfiguration> _modifiers = new(AltKeyConfiguration.None);
+    private readonly BehaviorSubject<GamepadState> _state = new(default);
 
     public string Description => "fake pad";
 
@@ -35,6 +36,8 @@ public sealed class FakeGamepadDevice : IGamepadDevice
 
     public IObservable<AltKeyConfiguration> Modifiers => _modifiers;
 
+    public IObservable<GamepadState> State => _state;
+
     public void MoveLeftStick(double x, double y) => _left.OnNext(new StickPosition(x, y));
 
     public void MoveRightStick(double x, double y) => _right.OnNext(new StickPosition(x, y));
@@ -51,7 +54,15 @@ public sealed class FakeGamepadDevice : IGamepadDevice
 
     public void ReleaseModifiers() => _modifiers.OnNext(AltKeyConfiguration.None);
 
-    public void Rumble(double intensity, TimeSpan duration) => Rumbles.Add((intensity, duration));
+    /// A pad the operator turned rumble off for answers the same as one that cannot rumble, which is
+    /// what an interface asks about before it shakes anything.
+    public void Rumble(double intensity, TimeSpan duration)
+    {
+        if (SupportsRumble)
+        {
+            Rumbles.Add((intensity, duration));
+        }
+    }
 
     public ValueTask DisposeAsync()
     {

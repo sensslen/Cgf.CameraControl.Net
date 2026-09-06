@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Reactive.Subjects;
 using Cgf.CameraControl.Core.Logger;
 using SDL3;
@@ -31,9 +31,9 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
     /// device picker lists, so a serial can be read off a connected pad instead of guessed.
     public IObservable<IReadOnlyList<SdlGamepadPresence>> WhenPresenceChanged => _presence;
 
-    public SdlGamepadDevice Claim(string label, string? serialNumber, double deadzone)
+    public SdlGamepadDevice Claim(string label, string? serialNumber, double deadzone, bool rumble)
     {
-        var device = new SdlGamepadDevice(this, label, serialNumber, deadzone);
+        var device = new SdlGamepadDevice(this, label, serialNumber, deadzone, rumble);
         Post(() =>
         {
             _devices.Add(device);

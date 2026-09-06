@@ -1,4 +1,4 @@
-using System.Reactive.Subjects;
+﻿using System.Reactive.Subjects;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using SDL3;
 
@@ -24,6 +24,7 @@ public sealed class GamepadInputMapper : IDisposable
     private readonly Subject<ButtonDirection> _specialFunction = new();
     private readonly Subject<MixerTransition> _transition = new();
     private readonly BehaviorSubject<AltKeyConfiguration> _modifiers = new(AltKeyConfiguration.None);
+    private readonly BehaviorSubject<GamepadState> _state = new(default);
 
     private StickPosition _left;
     private StickPosition _right;
@@ -46,6 +47,8 @@ public sealed class GamepadInputMapper : IDisposable
 
     public IObservable<AltKeyConfiguration> Modifiers => _modifiers;
 
+    public IObservable<GamepadState> State => _state;
+
     public void Axis(SDL.GamepadAxis axis, short raw)
     {
         switch (axis)
@@ -64,6 +67,7 @@ public sealed class GamepadInputMapper : IDisposable
                 break;
             case SDL.GamepadAxis.LeftTrigger:
                 _leftTrigger = Gate(_leftTrigger, raw);
+                Draw(state => state with { LeftTrigger = Travel(raw) });
                 SetModifiers(_alt, _leftTrigger);
                 break;
             case SDL.GamepadAxis.RightTrigger:
@@ -74,12 +78,24 @@ public sealed class GamepadInputMapper : IDisposable
                 }
 
                 _rightTrigger = pressed;
+                Draw(state => state with { RightTrigger = Travel(raw) });
                 break;
         }
     }
 
     public void Button(SDL.GamepadButton button, bool down)
     {
+        // The events below fire on the press alone, because pressing is what an interface acts on.
+        // A drawing needs the release too, so the held picture is kept beside them rather than
+        // rebuilt from events that never report one.
+        if (Drawn(button) is { } drawn)
+        {
+            Draw(state => state with
+            {
+                Pressed = down ? state.Pressed | drawn : state.Pressed & ~drawn,
+            });
+        }
+
         switch (button)
         {
             case SDL.GamepadButton.DPadUp when down:
@@ -121,6 +137,7 @@ public sealed class GamepadInputMapper : IDisposable
     {
         _leftTrigger = false;
         _rightTrigger = false;
+        _state.OnNext(default);
         SetLeft(default);
         SetRight(default);
         SetModifiers(false, false);
@@ -134,9 +151,38 @@ public sealed class GamepadInputMapper : IDisposable
         _specialFunction.Dispose();
         _transition.Dispose();
         _modifiers.Dispose();
+        _state.Dispose();
     }
 
     private static double Normalize(short raw) => Math.Clamp(raw / AxisRange, -1, 1);
+
+    /// A trigger rests at zero and only travels one way, so its drawn depth is the positive half.
+    private static double Travel(short raw) => Math.Clamp(Normalize(raw), 0, 1);
+
+    /// Null for a control no interface reads, which is what keeps the wireframe to parts that light.
+    private static GamepadButtons? Drawn(SDL.GamepadButton button) => button switch
+    {
+        SDL.GamepadButton.DPadUp => GamepadButtons.DPadUp,
+        SDL.GamepadButton.DPadDown => GamepadButtons.DPadDown,
+        SDL.GamepadButton.DPadLeft => GamepadButtons.DPadLeft,
+        SDL.GamepadButton.DPadRight => GamepadButtons.DPadRight,
+        SDL.GamepadButton.North => GamepadButtons.FaceUp,
+        SDL.GamepadButton.South => GamepadButtons.FaceDown,
+        SDL.GamepadButton.West => GamepadButtons.FaceLeft,
+        SDL.GamepadButton.East => GamepadButtons.FaceRight,
+        SDL.GamepadButton.LeftShoulder => GamepadButtons.LeftShoulder,
+        SDL.GamepadButton.RightShoulder => GamepadButtons.RightShoulder,
+        _ => null,
+    };
+
+    private void Draw(Func<GamepadState, GamepadState> change)
+    {
+        var next = change(_state.Value);
+        if (next != _state.Value)
+        {
+            _state.OnNext(next);
+        }
+    }
 
     /// The F310 reports its triggers as full-travel axes, so a plain threshold would chatter between
     /// press and release while a finger rests on the edge of it.
@@ -163,6 +209,7 @@ public sealed class GamepadInputMapper : IDisposable
         }
 
         _left = position;
+        Draw(state => state with { LeftStick = position });
         _leftStick.OnNext(position);
     }
 
@@ -174,6 +221,7 @@ public sealed class GamepadInputMapper : IDisposable
         }
 
         _right = position;
+        Draw(state => state with { RightStick = position });
         _rightStick.OnNext(position);
     }
 

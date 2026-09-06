@@ -1,4 +1,4 @@
-using System.Reactive.Linq;
+﻿using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
 namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
@@ -10,54 +10,75 @@ namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 /// second copy of that for a mouse would be a second place for it to be wrong, so this reports the
 /// same events a pad does and nothing downstream can tell the difference.
 ///
-/// Given a pad, it merges rather than replaces: the interface is then driven from the desk and from
-/// the window at the same time, which is one interface with two sets of hands rather than two
-/// interfaces fighting over the same cameras.
-public sealed class ControlSurfaceDevice(int instance, IGamepadDevice? pad = null) : IGamepadDevice
+/// It stands alone rather than wrapping a pad. Two interfaces pointed at one mixer is how a desk
+/// gets both, and it says so in the configuration file instead of appearing by itself.
+public sealed class ControlSurfaceDevice(int instance) : IGamepadDevice
 {
     private readonly Subject<StickPosition> _left = new();
     private readonly Subject<StickPosition> _right = new();
     private readonly Subject<ButtonDirection> _connectionChange = new();
-    private readonly Subject<ButtonDirection> _specialFunction = new();
+    private readonly Subject<int> _input = new();
+    private readonly Subject<string> _function = new();
     private readonly Subject<MixerTransition> _transition = new();
     private readonly BehaviorSubject<AltKeyConfiguration> _modifiers = new(AltKeyConfiguration.None);
+    private readonly BehaviorSubject<GamepadState> _state = new(default);
 
     // A window is not something that gets unplugged.
     private readonly BehaviorSubject<bool> _connected = new(true);
 
     public int Instance { get; } = instance;
 
-    public string Description => pad?.Description ?? $"keyboard and mouse[{Instance}]";
+    public string Description => $"keyboard and mouse[{Instance}]";
 
-    public bool SupportsRumble => pad?.SupportsRumble ?? false;
+    public bool SupportsRumble => false;
 
-    public IObservable<bool> WhenConnectedChanged => pad?.WhenConnectedChanged ?? _connected;
+    public IObservable<bool> WhenConnectedChanged => _connected;
 
-    public IObservable<StickPosition> LeftStick => Merge(_left, pad?.LeftStick);
+    public IObservable<StickPosition> LeftStick => _left;
 
-    public IObservable<StickPosition> RightStick => Merge(_right, pad?.RightStick);
+    public IObservable<StickPosition> RightStick => _right;
 
-    public IObservable<ButtonDirection> ConnectionChangeRequested =>
-        Merge(_connectionChange, pad?.ConnectionChangeRequested);
+    public IObservable<ButtonDirection> ConnectionChangeRequested => _connectionChange;
 
-    public IObservable<ButtonDirection> SpecialFunctionRequested =>
-        Merge(_specialFunction, pad?.SpecialFunctionRequested);
+    /// A keyboard has no face buttons to report. Its functions come out of FunctionRequested by name,
+    /// which is what lets it carry more than the four a pad has room for.
+    public IObservable<ButtonDirection> SpecialFunctionRequested => Observable.Never<ButtonDirection>();
 
-    public IObservable<MixerTransition> TransitionRequested => Merge(_transition, pad?.TransitionRequested);
+    /// A key bound straight to a mixer input, which is the room a pad does not have.
+    public IObservable<int> InputRequested => _input;
 
-    /// The modifiers held on the window and the modifiers held on the pad are one state, so whichever
-    /// moved last is the one that counts.
-    public IObservable<AltKeyConfiguration> Modifiers => Merge(_modifiers, pad?.Modifiers);
+    /// The name of a function in the interface's `functions`, rather than the direction a pad would
+    /// report, because a keyboard is not limited to four of them.
+    public IObservable<string> FunctionRequested => _function;
+
+    public IObservable<MixerTransition> TransitionRequested => _transition;
+
+    public IObservable<AltKeyConfiguration> Modifiers => _modifiers;
+
+    /// Nothing draws a keyboard, so this carries only what the two pads on screen show.
+    public IObservable<GamepadState> State => _state;
 
     /// Pan on X, tilt on Y, both in [-1 .. 1].
-    public void Move(double pan, double tilt) => _left.OnNext(new StickPosition(pan, tilt));
+    public void Move(double pan, double tilt)
+    {
+        var position = new StickPosition(pan, tilt);
+        _state.OnNext(_state.Value with { LeftStick = position });
+        _left.OnNext(position);
+    }
 
     /// Focus on X, zoom on Y, both in [-1 .. 1].
-    public void Lens(double focus, double zoom) => _right.OnNext(new StickPosition(focus, zoom));
+    public void Lens(double focus, double zoom)
+    {
+        var position = new StickPosition(focus, zoom);
+        _state.OnNext(_state.Value with { RightStick = position });
+        _right.OnNext(position);
+    }
 
     public void Select(ButtonDirection direction) => _connectionChange.OnNext(direction);
 
-    public void Run(ButtonDirection direction) => _specialFunction.OnNext(direction);
+    public void SelectInput(int input) => _input.OnNext(input);
+
+    public void Run(string function) => _function.OnNext(function);
 
     public void Transition(MixerTransition kind) => _transition.OnNext(kind);
 
@@ -70,24 +91,22 @@ public sealed class ControlSurfaceDevice(int instance, IGamepadDevice? pad = nul
         }
     }
 
-    public void Rumble(double intensity, TimeSpan duration) => pad?.Rumble(intensity, duration);
-
-    public async ValueTask DisposeAsync()
+    public void Rumble(double intensity, TimeSpan duration)
     {
-        if (pad is not null)
-        {
-            await pad.DisposeAsync().ConfigureAwait(false);
-        }
+        // Nothing to shake.
+    }
 
+    public ValueTask DisposeAsync()
+    {
         _left.Dispose();
         _right.Dispose();
         _connectionChange.Dispose();
-        _specialFunction.Dispose();
+        _input.Dispose();
+        _function.Dispose();
         _transition.Dispose();
         _modifiers.Dispose();
+        _state.Dispose();
         _connected.Dispose();
+        return ValueTask.CompletedTask;
     }
-
-    private static IObservable<T> Merge<T>(IObservable<T> own, IObservable<T>? other) =>
-        other is null ? own : own.Merge(other);
 }

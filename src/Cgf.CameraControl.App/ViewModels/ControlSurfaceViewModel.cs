@@ -1,4 +1,4 @@
-using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
+﻿using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -34,8 +34,12 @@ public sealed partial class ControlSurfaceViewModel(ControlSurfaceDevice device)
     [RelayCommand]
     public void Select(ButtonDirection direction) => device.Select(direction);
 
+    /// The name the operator gave the function in their file, which is also what the button says.
     [RelayCommand]
-    public void Run(ButtonDirection direction) => device.Run(direction);
+    public void Run(string function) => device.Run(function);
+
+    [RelayCommand]
+    public void SelectInput(int input) => device.SelectInput(input);
 
     [RelayCommand]
     public void Transition(MixerTransition kind) => device.Transition(kind);

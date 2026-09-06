@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.Core.CameraConnection;
@@ -39,8 +39,10 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     public ObservableCollection<InterfaceViewModel> Interfaces { get; } = [];
 
-    /// Supplied by the window, because opening one needs an owner and a view model must not hold it.
-    public Func<InterfaceViewModel, Task>? ShowInterface { get; set; }
+    /// The one the main area draws and the keyboard drives. One interface at a time, because a
+    /// keystroke that moves three desks at once is not something an operator can take back.
+    [ObservableProperty]
+    public partial InterfaceViewModel? SelectedInterface { get; set; }
 
     public IReadOnlyList<MixerViewModel> UnassignedMixers { get; private set; } = [];
 
@@ -162,14 +164,13 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
                 hmi,
                 device is null ? null : new ControlSurfaceViewModel(device),
                 Owned(hmi, mixerViews, gamepad => [gamepad.Mixer]),
-                Owned(hmi, cameraViews, gamepad => gamepad.Cameras))
-            {
-                Open = ShowInterface,
-            });
+                Owned(hmi, cameraViews, gamepad => gamepad.Cameras)));
         }
 
         // Anything no interface claims would otherwise not be drawn at all, and a camera missing
         // from the panel reads as one that failed to load rather than one nothing can reach.
+        SelectedInterface = Interfaces.FirstOrDefault();
+
         UnassignedMixers = [.. Mixers.Where(view => Interfaces.All(entry => !entry.Mixers.Contains(view)))];
         UnassignedCameras = [.. Cameras.Where(view => Interfaces.All(entry => !entry.Cameras.Contains(view)))];
 
