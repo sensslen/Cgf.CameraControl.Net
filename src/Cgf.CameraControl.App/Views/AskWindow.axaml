@@ -1,0 +1,37 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:Cgf.CameraControl.App.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="260"
+        x:Class="Cgf.CameraControl.App.Views.AskWindow"
+        x:DataType="loc:Localizer" FlowDirection="{Binding FlowDirection^}"
+        Width="460" SizeToContent="Height" CanResize="False"
+        Icon="/Assets/appicon.ico"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="20">
+    <TextBlock Name="Question" TextWrapping="Wrap" />
+
+    <!-- What the answer depends on: whatever still names the entry, or whatever stops the save. The
+         list is here rather than in the log because it is the reason the question is being asked. -->
+    <TextBlock Name="Preamble" Margin="0,14,0,6" Opacity="0.7" FontSize="12" TextWrapping="Wrap" />
+    <Border Name="Detail" Background="{DynamicResource SystemControlBackgroundListLowBrush}"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+            BorderThickness="1" CornerRadius="4" Padding="8" MaxHeight="220">
+      <ScrollViewer>
+        <ItemsControl Name="Points">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,2" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+
+    <StackPanel Name="Answers" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0"
+                Spacing="8" />
+  </StackPanel>
+
+</Window>

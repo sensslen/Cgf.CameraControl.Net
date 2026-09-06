@@ -1,0 +1,121 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:edit="using:Cgf.CameraControl.App.Editing"
+             xmlns:loc="using:Cgf.CameraControl.App.Localization"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="400"
+             x:Class="Cgf.CameraControl.App.Views.EntryEditorView"
+             x:DataType="edit:EntryDraft">
+
+  <UserControl.Styles>
+    <Style Selector="TextBlock.caption">
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Width" Value="180" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Margin" Value="0,0,12,0" />
+    </Style>
+    <Style Selector="TextBlock.wrong">
+      <Setter Property="Foreground" Value="#E74C3C" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Margin" Value="192,2,0,0" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBox.value">
+      <Setter Property="Width" Value="220" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- One template per kind of field rather than one per configuration type: the types differ in
+       which fields they carry, not in how a number or a switch is edited. -->
+  <UserControl.DataTemplates>
+
+    <DataTemplate DataType="edit:TextField">
+      <StackPanel Margin="0,0,0,10">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Classes="caption" Text="{Binding Caption^}" />
+          <TextBox Classes="value" Text="{Binding Value}" />
+        </StackPanel>
+        <TextBlock Classes="wrong" Text="{Binding Error}"
+                   IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="edit:NumberField">
+      <StackPanel Margin="0,0,0,10">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Classes="caption" Text="{Binding Caption^}" />
+          <TextBox Classes="value" Width="120" Text="{Binding Value}" />
+        </StackPanel>
+        <TextBlock Classes="wrong" Text="{Binding Error}"
+                   IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="edit:FractionField">
+      <StackPanel Margin="0,0,0,10">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Classes="caption" Text="{Binding Caption^}" />
+          <TextBox Classes="value" Width="120" Text="{Binding Value}" />
+        </StackPanel>
+        <TextBlock Classes="wrong" Text="{Binding Error}"
+                   IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="edit:SwitchField">
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+        <TextBlock Classes="caption" Text="{Binding Caption^}" />
+        <CheckBox IsChecked="{Binding Value}" VerticalAlignment="Center" />
+      </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="edit:ChoiceField">
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+        <TextBlock Classes="caption" Text="{Binding Caption^}" />
+        <ComboBox Width="220" ItemsSource="{Binding Options}" SelectedItem="{Binding Value}" />
+      </StackPanel>
+    </DataTemplate>
+
+    <!-- Rows rather than a text box: what is being edited is a list of pairs, and a JSON object typed
+         by hand is a syntax error reported against the whole entry. -->
+    <DataTemplate DataType="edit:MapField">
+      <StackPanel Margin="0,0,0,10">
+        <TextBlock Classes="caption" Width="NaN" Text="{Binding Caption^}" Margin="0,0,0,6" />
+        <Grid ColumnDefinitions="120,12,120" Margin="0,0,0,4">
+          <TextBlock Grid.Column="0" Classes="caption" Width="NaN" Text="{Binding LeftCaption^}" />
+          <TextBlock Grid.Column="2" Classes="caption" Width="NaN" Text="{Binding RightCaption^}" />
+        </Grid>
+        <ItemsControl ItemsSource="{Binding Rows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="edit:MapRow">
+              <Grid ColumnDefinitions="120,12,120,8,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Text="{Binding Key}" />
+                <TextBox Grid.Column="2" Text="{Binding Value}" />
+                <Button Grid.Column="4" Content="&#x2715;" Padding="8,2"
+                        Command="{Binding $parent[ItemsControl].((edit:MapField)DataContext).RemoveRowCommand}"
+                        CommandParameter="{Binding}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button HorizontalAlignment="Left" Margin="0,4,0,0" Command="{Binding AddRowCommand}"
+                Content="{Binding [edit.add]^, Source={x:Static loc:Localizer.Current}}" />
+        <TextBlock Classes="wrong" Margin="0,4,0,0" Text="{Binding Error}"
+                   IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+    </DataTemplate>
+
+  </UserControl.DataTemplates>
+
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="0,0,8,0">
+      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Margin="0,0,0,12" />
+      <ItemsControl ItemsSource="{Binding Fields}" />
+    </StackPanel>
+  </ScrollViewer>
+
+</UserControl>

@@ -80,6 +80,37 @@ camera does not take the desk down with it.
 Every key of every entry is described in [docs/Configuration](docs/Configuration/README.md).
 [samples/two-operators.json](samples/two-operators.json) puts a pad and two keyboards on one mixer.
 
+### Editing the configuration
+
+**File → Edit configuration** turns the window into an editor for the file it has open. Starting the
+application with no configuration turns it on by itself, because a window with nothing in it but a
+menu is not an answer to having nothing configured.
+
+![Edit mode](docs/images/edit-mode.png)
+
+Nothing is connected while the mode is on. The cameras and the mixers are torn down, so a pad left in
+a pocket cannot move a camera while its bindings are being changed, and a half-written address cannot
+be dialled.
+
+The left column becomes the whole file: interfaces, cameras and video mixers, each with an add at the
+foot of it. Add asks for the type first and then the fields that type carries, and a cancelled add
+leaves nothing behind. Deleting says what still names the entry: a camera goes out of the maps that
+named it, and a video mixer leaves the interfaces that drove it to be pointed somewhere else.
+
+**Done** asks whether to save. Saving rewrites the whole file, the entries that were edited from the
+form and everything else from the JSON it was read as, and then loads what it wrote, so what the desk
+runs is what is on the disk. Comments in the file do not survive, because the loader has always
+skipped them. Discarding reloads the file as it is.
+
+A save is refused, with the reasons listed above the panel, while the file names something it does
+not define: two entries claiming one instance, a required field left empty, a `cameraMap` naming a
+camera that is not configured, an interface naming a mixer that is not configured, or a binding
+naming a function the interface has not got. A direction selecting a mixer input with no camera
+behind it is not one of those, because that is an ordinary desk.
+
+The functions and the bindings themselves are not edited here yet: an interface's entry keeps them
+exactly as they were written. Clicking a control on the drawing to bind it is the next piece of work.
+
 ### Cameras
 
 | `type` | Talks to | Needs |

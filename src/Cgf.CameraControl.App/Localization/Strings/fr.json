@@ -13,6 +13,56 @@
     "openTitle": "Ouvrir la configuration",
     "fileType": "Configuration"
   },
+  "edit": {
+    "mode": "Modifier la configuration",
+    "banner": "La configuration est en cours de modification. La régie est arrêtée pendant ce temps.",
+    "done": "Terminé",
+    "add": "Ajouter",
+    "delete": "Supprimer",
+    "save": "Enregistrer",
+    "discard": "Abandonner",
+    "cancel": "Annuler",
+    "leaveTitle": "Quitter le mode modification",
+    "leaveQuestion": "Enregistrer les modifications de la configuration ?",
+    "leaveBlocked": "Impossible d'enregistrer tant que ceci n'est pas réglé :",
+    "deleteTitle": "Supprimer",
+    "deleteQuestion": "Supprimer {0} ?",
+    "deleteReferences": "Ceci y fait encore référence et devra pointer ailleurs :",
+    "deleteReferencesCleared": "Ceci y fait référence et cessera de le faire :",
+    "addTitle": "Ajouter",
+    "type": "Type",
+    "nothingSelected": "sélectionnez une entrée à gauche, ou ajoutez-en une",
+    "noConfiguration": "pas encore de configuration",
+    "saveAsTitle": "Enregistrer la configuration sous",
+    "instance": "Instance",
+    "ip": "Adresse",
+    "port": "Port",
+    "panTiltInvert": "Inverser le panoramique et l'inclinaison",
+    "tallyMode": "Tally",
+    "showTallyLight": "Afficher le voyant tally",
+    "connectionUrl": "URL du contrôleur",
+    "connectionPort": "Port série",
+    "mixEffectBlock": "Bloc mix effect",
+    "videoMixer": "Mélangeur vidéo",
+    "cameraMap": "Caméras derrière les entrées",
+    "input": "Entrée",
+    "camera": "Caméra",
+    "enableChangingProgram": "Peut mettre une entrée à l'antenne",
+    "serialNumber": "Numéro de série",
+    "deadzone": "Zone morte",
+    "rumble": "Vibration",
+    "required": "est obligatoire",
+    "notANumber": "n'est pas un nombre",
+    "tooSmall": "doit valoir au moins {0}",
+    "outOfRange": "doit être compris entre {0} et {1}",
+    "mapNeedsNumbers": "chaque ligne demande deux nombres",
+    "mapRepeatsAnInput": "une entrée est listée deux fois",
+    "issue.field": "{0} : {1} {2}",
+    "issue.repeatedInstance": "Deux entrées sous {0} revendiquent l'instance {1}.",
+    "issue.noCamera": "{0} pointe vers la caméra {1}, qui n'est pas configurée.",
+    "issue.noMixer": "{0} nomme le mélangeur vidéo {1}, qui n'est pas configuré.",
+    "issue.noFunction": "{0} lie « {1} », qui n'est pas une de ses fonctions."
+  },
   "panel": {
     "mixers": "Mélangeurs vidéo",
     "cameras": "Caméras",
@@ -22,14 +72,16 @@
   },
   "interface": {
     "disconnected": "non connectée",
-    "clickHint": "cliquez sur une interface pour ouvrir sa fenêtre de commande"
+    "clickHint": "cliquez sur une interface pour ouvrir sa fenêtre de commande",
+    "padOnly": "une interface manette est pilotée par sa manette ; configurez une interface clavier sur le même mélangeur pour la piloter d'ici"
   },
   "mixer": {
     "preview": "prévisualisation",
     "program": "programme",
     "onAir": "la prévisualisation est à l'antenne",
     "cut": "Cut",
-    "auto": "Auto"
+    "auto": "Auto",
+    "nothingSelected": "rien de sélectionné pour le moment"
   },
   "log": {
     "allSources": "Tous"
@@ -49,12 +101,11 @@
   "surface": {
     "panTilt": "Panoramique et inclinaison",
     "zoomFocus": "Zoom et mise au point",
-    "select": "Prévisualisation",
+    "zoom": "Zoom",
+    "focus": "Mise au point",
     "functions": "Fonctions",
     "transition": "Transition",
-    "modifiers": "Modificateurs",
-    "alt": "Alt",
-    "altLower": "Alt bas",
-    "keys": "Clavier : W A S D pour le panoramique et l'inclinaison, I K pour le zoom, J L pour la mise au point, les flèches changent la prévisualisation, 1 à 4 lancent les fonctions spéciales, Entrée coupe, Espace enchaîne, Maj ou Ctrl maintiennent les affectations alt."
+    "program": "programme",
+    "preview": "prévisualisation"
   }
 }

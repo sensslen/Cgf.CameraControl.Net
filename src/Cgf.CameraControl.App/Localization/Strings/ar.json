@@ -13,6 +13,56 @@
     "openTitle": "فتح ملف الإعداد",
     "fileType": "إعداد"
   },
+  "edit": {
+    "mode": "تحرير الإعدادات",
+    "banner": "يجري تحرير الإعدادات. المنضدة متوقفة أثناء ذلك.",
+    "done": "تم",
+    "add": "إضافة",
+    "delete": "حذف",
+    "save": "حفظ",
+    "discard": "تجاهل",
+    "cancel": "إلغاء",
+    "leaveTitle": "الخروج من وضع التحرير",
+    "leaveQuestion": "هل تحفظ التغييرات على الإعدادات؟",
+    "leaveBlocked": "لا يمكن الحفظ قبل معالجة ما يلي:",
+    "deleteTitle": "حذف",
+    "deleteQuestion": "حذف {0}؟",
+    "deleteReferences": "ما يلي ما زال يشير إليه وسيلزم توجيهه إلى غيره:",
+    "deleteReferencesCleared": "ما يلي يشير إليه وستُزال الإشارة:",
+    "addTitle": "إضافة",
+    "type": "النوع",
+    "nothingSelected": "اختر عنصرًا من اليمين، أو أضف واحدًا",
+    "noConfiguration": "لا توجد إعدادات بعد",
+    "saveAsTitle": "حفظ الإعدادات باسم",
+    "instance": "المثيل",
+    "ip": "العنوان",
+    "port": "المنفذ",
+    "panTiltInvert": "عكس التحريك والإمالة",
+    "tallyMode": "مؤشر البث",
+    "showTallyLight": "إظهار ضوء مؤشر البث",
+    "connectionUrl": "عنوان وحدة التحكم",
+    "connectionPort": "المنفذ التسلسلي",
+    "mixEffectBlock": "كتلة mix effect",
+    "videoMixer": "خلاط الفيديو",
+    "cameraMap": "الكاميرات خلف المداخل",
+    "input": "المدخل",
+    "camera": "الكاميرا",
+    "enableChangingProgram": "يمكنه وضع مدخل على الهواء",
+    "serialNumber": "الرقم التسلسلي",
+    "deadzone": "المنطقة الميتة",
+    "rumble": "الاهتزاز",
+    "required": "مطلوب",
+    "notANumber": "ليس رقمًا",
+    "tooSmall": "يجب أن يكون {0} أو أكثر",
+    "outOfRange": "يجب أن يكون بين {0} و{1}",
+    "mapNeedsNumbers": "كل صف يحتاج إلى رقمين",
+    "mapRepeatsAnInput": "أحد المداخل مُدرج مرتين",
+    "issue.field": "{0}: {1} {2}",
+    "issue.repeatedInstance": "إدخالان ضمن {0} يطالبان بالمثيل {1}.",
+    "issue.noCamera": "{0} يشير إلى الكاميرا {1} وهي غير مُعدَّة.",
+    "issue.noMixer": "{0} يسمي خلاط الفيديو {1} وهو غير مُعدّ.",
+    "issue.noFunction": "{0} يربط \"{1}\" وهي ليست من وظائفه."
+  },
   "panel": {
     "mixers": "خلاطات الفيديو",
     "cameras": "الكاميرات",
@@ -22,14 +72,16 @@
   },
   "interface": {
     "disconnected": "غير متصل",
-    "clickHint": "انقر على واجهة لفتح نافذة التحكم الخاصة بها"
+    "clickHint": "انقر على واجهة لفتح نافذة التحكم الخاصة بها",
+    "padOnly": "واجهة ذراع التحكم تُدار بذراعها؛ لإدارتها من هنا أعدّ واجهة لوحة مفاتيح على الخلاط نفسه"
   },
   "mixer": {
     "preview": "المعاينة",
     "program": "البث",
     "onAir": "المعاينة على الهواء",
     "cut": "Cut",
-    "auto": "Auto"
+    "auto": "Auto",
+    "nothingSelected": "لم يُحدَّد شيء بعد"
   },
   "log": {
     "allSources": "الكل"
@@ -49,12 +101,11 @@
   "surface": {
     "panTilt": "التحريك الأفقي والرأسي",
     "zoomFocus": "التقريب والتركيز",
-    "select": "المعاينة",
+    "zoom": "التقريب",
+    "focus": "التركيز",
     "functions": "الوظائف",
     "transition": "الانتقال",
-    "modifiers": "المعدِّلات",
-    "alt": "Alt",
-    "altLower": "Alt السفلي",
-    "keys": "لوحة المفاتيح: W A S D للتحريك الأفقي والرأسي، و I K للتقريب، و J L للتركيز، وأسهم الاتجاه تغيّر اختيار المعاينة، ومن 1 إلى 4 تشغّل الوظائف الخاصة، و Enter للقطع، والمسافة للانتقال التلقائي، و Shift أو Ctrl تثبّتان ارتباطات alt."
+    "program": "البث",
+    "preview": "المعاينة"
   }
 }
