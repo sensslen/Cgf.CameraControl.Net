@@ -31,6 +31,9 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
     /// device picker lists, so a serial can be read off a connected pad instead of guessed.
     public IObservable<IReadOnlyList<SdlGamepadPresence>> WhenPresenceChanged => _presence;
 
+    /// The same list as it stands now, for a caller that needs an answer rather than a subscription.
+    public IReadOnlyList<SdlGamepadPresence> Present => _presence.Value;
+
     public SdlGamepadDevice Claim(string label, string? serialNumber, double deadzone, bool rumble)
     {
         var device = new SdlGamepadDevice(this, label, serialNumber, deadzone, rumble);

@@ -53,8 +53,18 @@ public sealed partial class MapField : Field
     private static int? Number(string text) =>
         int.TryParse(text, NumberStyles.Integer, CultureInfo.CurrentUICulture, out var parsed) ? parsed : null;
 
+    /// A new row is proposed rather than left blank: the lowest input nothing has taken, and the
+    /// camera of the same number, which is how every desk that has not been rearranged is wired.
     [RelayCommand]
-    private void AddRow() => Add(string.Empty, string.Empty);
+    private void AddRow()
+    {
+        var taken = Rows.Select(row => Number(row.Key)).OfType<int>().ToHashSet();
+        var input = Enumerable.Range(1, taken.Count + 1).First(number => !taken.Contains(number));
+        Add(
+            input.ToString(CultureInfo.CurrentUICulture),
+            input.ToString(CultureInfo.CurrentUICulture));
+        Save();
+    }
 
     [RelayCommand]
     private void RemoveRow(MapRow row)

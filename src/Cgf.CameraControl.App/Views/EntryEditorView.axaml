@@ -37,7 +37,14 @@
       <StackPanel Margin="0,0,0,10">
         <StackPanel Orientation="Horizontal">
           <TextBlock Classes="caption" Text="{Binding Caption^}" />
-          <TextBox Classes="value" Text="{Binding Value}" />
+          <!-- A picker where something can be offered, a box where nothing can. Both take anything
+               typed, because a desk is often built away from the hardware it will drive. -->
+          <TextBox Classes="value" Text="{Binding Value}" PlaceholderText="{Binding Hint^}"
+                   IsVisible="{Binding !HasSuggestions}" />
+          <AutoCompleteBox Classes="value" Text="{Binding Value}" PlaceholderText="{Binding Hint^}"
+                           IsVisible="{Binding HasSuggestions}"
+                           ItemsSource="{Binding Suggestions}" MinimumPrefixLength="0"
+                           FilterMode="Contains" IsTextCompletionEnabled="False" />
         </StackPanel>
         <TextBlock Classes="wrong" Text="{Binding Error}"
                    IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
@@ -48,7 +55,7 @@
       <StackPanel Margin="0,0,0,10">
         <StackPanel Orientation="Horizontal">
           <TextBlock Classes="caption" Text="{Binding Caption^}" />
-          <TextBox Classes="value" Width="120" Text="{Binding Value}" />
+          <TextBox Classes="value" Width="120" Text="{Binding Value}" PlaceholderText="{Binding Hint^}" />
         </StackPanel>
         <TextBlock Classes="wrong" Text="{Binding Error}"
                    IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />

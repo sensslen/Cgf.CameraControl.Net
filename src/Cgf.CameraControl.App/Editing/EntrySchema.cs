@@ -19,49 +19,52 @@ internal static class EntrySchema
 
     /// A type nothing here knows is still shown and still saved, from the JSON it arrived with. The
     /// configuration is older than this editor and will outlive it.
-    public static IReadOnlyList<Field> Fields(string type, JsonObject entry) => Kind(type) switch
-    {
-        "viscaoverip" =>
-        [
-            new TextField(entry, "ip", "edit.ip", required: true),
-            new NumberField(entry, "port", "edit.port", required: false, minimum: 1),
-            new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
-            new ChoiceField(entry, "tallyMode", "edit.tallyMode", ["none", "avonic", "ptzoptics"], "none"),
-        ],
-        "websocket.ptzlanc" =>
-        [
-            new TextField(entry, "ip", "edit.ip", required: true),
-            new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
-            new SwitchField(entry, "showTallyLight", "edit.showTallyLight", fallback: true),
-        ],
-        "signalr.ptzlanc" =>
-        [
-            new TextField(entry, "connectionUrl", "edit.connectionUrl", required: true),
-            new TextField(entry, "connectionPort", "edit.connectionPort", required: true),
-            new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
-        ],
-        "blackmagicdesign/atem" =>
-        [
-            new TextField(entry, "ip", "edit.ip", required: true),
-            new NumberField(entry, "mixEffectBlock", "edit.mixEffectBlock", required: true, minimum: 0),
-        ],
-        "gamepad" =>
-        [
-            new NumberField(entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
-            new MapField(entry, "cameraMap", "edit.cameraMap", "edit.input", "edit.camera"),
-            new SwitchField(entry, "enableChangingProgram", "edit.enableChangingProgram", fallback: true),
-            new TextField(entry, "serialNumber", "edit.serialNumber", required: false),
-            new FractionField(entry, "deadzone", "edit.deadzone", fallback: 0.05, maximum: 1),
-            new SwitchField(entry, "rumble", "edit.rumble", fallback: true),
-        ],
-        "keyboard" =>
-        [
-            new NumberField(entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
-            new MapField(entry, "cameraMap", "edit.cameraMap", "edit.input", "edit.camera"),
-            new SwitchField(entry, "enableChangingProgram", "edit.enableChangingProgram", fallback: true),
-        ],
-        _ => [],
-    };
+    public static IReadOnlyList<Field> Fields(
+        string type,
+        JsonObject entry,
+        IReadOnlyList<string> pads) => Kind(type) switch
+        {
+            "viscaoverip" =>
+            [
+                new TextField(entry, "ip", "edit.ip", required: true),
+                new NumberField(entry, "port", "edit.port", required: false, minimum: 1, "edit.portDefault"),
+                new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
+                new ChoiceField(entry, "tallyMode", "edit.tallyMode", ["none", "avonic", "ptzoptics"], "none"),
+            ],
+            "websocket.ptzlanc" =>
+            [
+                new TextField(entry, "ip", "edit.ip", required: true),
+                new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
+                new SwitchField(entry, "showTallyLight", "edit.showTallyLight", fallback: true),
+            ],
+            "signalr.ptzlanc" =>
+            [
+                new TextField(entry, "connectionUrl", "edit.connectionUrl", required: true),
+                new TextField(entry, "connectionPort", "edit.connectionPort", required: true),
+                new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
+            ],
+            "blackmagicdesign/atem" =>
+            [
+                new TextField(entry, "ip", "edit.ip", required: true),
+                new NumberField(entry, "mixEffectBlock", "edit.mixEffectBlock", required: true, minimum: 0),
+            ],
+            "gamepad" =>
+            [
+                new NumberField(entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
+                new MapField(entry, "cameraMap", "edit.cameraMap", "edit.input", "edit.camera"),
+                new SwitchField(entry, "enableChangingProgram", "edit.enableChangingProgram", fallback: true),
+                new TextField(entry, "serialNumber", "edit.serialNumber", required: false, "edit.anyPad", pads),
+                new FractionField(entry, "deadzone", "edit.deadzone", fallback: 0.05, maximum: 1),
+                new SwitchField(entry, "rumble", "edit.rumble", fallback: true),
+            ],
+            "keyboard" =>
+            [
+                new NumberField(entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
+                new MapField(entry, "cameraMap", "edit.cameraMap", "edit.input", "edit.camera"),
+                new SwitchField(entry, "enableChangingProgram", "edit.enableChangingProgram", fallback: true),
+            ],
+            _ => [],
+        };
 
     /// What a newly added entry has to carry before the loader will take it. An interface without a
     /// `connectionChange` or a `cameraMap` is rejected whole, so a new one is born holding the empty
