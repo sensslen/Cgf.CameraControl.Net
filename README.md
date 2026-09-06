@@ -21,10 +21,12 @@ which is TypeScript and headless. It reads the same configuration files.
 - **Runs the switcher.** Cut, auto, keyer toggles, macros, and a macro toggle that picks one of two
   macros from the live state of a keyer or an auxiliary output.
 - **Lights the tally.** Cameras that carry a tally light follow the preview and program buses.
-- **Shows what is happening.** Every interface with the mixer and the cameras it drives underneath
-  it, and a log you can filter by component.
-- **Runs without a controller.** Clicking an interface opens a control window: two mouse pads for the
-  two sticks, and the keyboard for everything else.
+- **Shows what is happening.** Select an interface and the window draws it: a pad as a wireframe
+  whose buttons light as they are pressed, labelled with what each one does right now. Mixers and
+  cameras sit underneath with one lamp each, and a log you can filter by component.
+- **Runs without a controller.** A keyboard interface is a small mixer panel: a program and a preview
+  row of the inputs, cut and auto, every configured function, a mouse pad for pan and tilt and two
+  sliders for zoom and focus. Every key is configurable.
 - **Rumbles** on a transition, when one of your cameras goes on air, and when a connection drops.
 
 ## Install
@@ -64,7 +66,8 @@ a laptop.
       "instance": 1,
       "videoMixer": 1,
       "connectionChange": { "type": "direct", "default": { "up": 1, "right": 2, "down": 3, "left": 4 } },
-      "specialFunction": { "default": { "down": { "type": "key", "index": 1 } } },
+      "functions": { "wide": { "type": "key", "index": 1 } },
+      "pad": { "default": { "down": "wide" } },
       "cameraMap": { "1": 1 }
     }
   ]
@@ -73,6 +76,9 @@ a laptop.
 
 A problem with one entry is reported against that entry and the rest still load, so a typo in one
 camera does not take the desk down with it.
+
+Every key of every entry is described in [docs/Configuration](docs/Configuration/README.md).
+[samples/two-operators.json](samples/two-operators.json) puts a pad and two keyboards on one mixer.
 
 ### Cameras
 
@@ -99,7 +105,7 @@ against and what a VISCA camera has to accept to work at all.
 | Left stick | pan and tilt |
 | Right stick | zoom and focus |
 | D-pad | change the preview selection |
-| A / B / X / Y | special function bound to down / right / left / up |
+| A / B / X / Y | the function `pad` binds to down / right / left / up |
 | Right shoulder | cut |
 | Right trigger | auto |
 | Left shoulder | hold for the `alt` bindings |
@@ -109,24 +115,22 @@ SDL normalises every controller to this one layout, so `gamepad` is the only int
 matters. The old `logitech/F310`, `logitech/F710` and `logitech/Rumblepad2` strings still load, but
 they are labels now rather than behaviour.
 
-### The control window
+### The keyboard panel
 
-Clicking an interface opens it. The two pads are the two sticks: drag inside one and let go to stop.
-The keyboard drives the same interface, whether or not a controller is bound to it.
+![A keyboard interface](docs/images/interface-keyboard.png)
 
-| Key | Does |
-| --- | --- |
-| `W` `A` `S` `D` | pan and tilt |
-| `I` `K` / `J` `L` | zoom / focus |
-| Arrow keys | change the preview selection |
-| `1` `2` `3` `4` | the special functions bound to down, right, left and up |
-| `Enter` / `Space` | cut / auto |
-| `Shift` / `Ctrl` | hold for the `alt` and `altLower` bindings |
+An interface of type `keyboard` is driven from the window. It is laid out like a mixer: the inputs
+twice, once to put on program and once on preview, cut and auto between the rows, and every function
+from `functions` to the right. Each button names the key that also fires it and lights while that
+key is held. Below them the mouse takes the sticks' place: a pad for pan and tilt, and a slider each
+for zoom and focus. Drag and let go, and each springs back to the middle and stops the camera.
 
-An interface of type `keyboard` has no controller behind it at all and takes the same configuration
-as a `gamepad`, minus `serialNumber` and `deadzone`. One with a controller behind it accepts both at
-once: the pad and the window are two sets of hands on one interface rather than two interfaces
-fighting over the same cameras.
+Nothing about the keys is fixed. Pan, tilt, zoom, focus, the selection steps, the inputs, the
+functions, cut and auto are each bound in `keys`, and only what is bound appears on the panel.
+[docs/Configuration/Interfaces.md](docs/Configuration/Interfaces.md) has every key name.
+
+A desk that wants a pad and a keyboard on the same mixer configures one interface of each kind
+against the same `videoMixer`.
 
 Two controllers on one machine are told apart by `serialNumber`. That is an absolute filter, never a
 preference: an interface whose serial is not present stays unbound and says so, because putting an
@@ -188,7 +192,8 @@ uploaded.
 it is under and the full text of that licence: what the package published for itself where it
 published anything, and the text of the SPDX identifier it declared otherwise. Report and texts are
 committed and compiled into the binary by `Cgf.CameraControl.Licenses.Generator`, so showing them
-costs nothing at run time and they cannot drift from what is actually shipped. A licence with no text
+costs nothing at run time and they cannot drift from what is actually shipped. The artwork the window
+draws is listed the same way, from a hand-written report beside the package one. A licence with no text
 fails the build rather than leaving an empty page. Regenerate all of it after changing a package
 reference:
 

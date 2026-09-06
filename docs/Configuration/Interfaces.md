@@ -62,12 +62,23 @@ A modifier only overrides the default where it has something bound for that butt
 labels each face with the function it would run right now, so the drawing follows the held modifier.
 
 A pad interface is not driven from the window. The wireframe shows what the pad is doing; it is not
-a control to click.
+a control to click. Each button carries the name of what pressing it would do right now, and a
+direction whose input is on preview or program is tinted in that bus's colour.
+
+![A gamepad interface, with the right shoulder and two buttons held](../images/interface-gamepad.png)
 
 ## `keyboard`
 
 Every key it answers to is in the file. Nothing is bound that is not named here, and nothing named
 here is left off the panel, so the window and the file say the same thing.
+
+![A keyboard interface: the input rows, cut and auto, the functions, the pan and tilt pad and the zoom and focus sliders](../images/interface-keyboard.png)
+
+The panel is a small mixer: a program row and a preview row of the same inputs, cut and auto between
+them, and every configured function to the right. Each button names the key that also fires it, and
+lights while that key is held. Below them the mouse takes the sticks' place: a pad for pan and tilt,
+and a slider each for zoom and focus. Drag and let go, and each springs back to the middle and stops
+the camera.
 
 ```json
 {
