@@ -35,9 +35,9 @@ public class ViscaOverIpCameraConfigurationTests
             Read("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1", "port": 70000 }"""));
     }
 
-    // The names are the ones the TypeScript schema accepts, so the same file loads on both.
+    // The names are the ones the TypeScript schema accepts, less 'sony-lumens', whose two lamps sit
+    // on two commands and so cannot be one payload.
     [Theory]
-    [InlineData("sony-lumens", ViscaTallyMode.SonyLumens)]
     [InlineData("avonic", ViscaTallyMode.Avonic)]
     [InlineData("ptzoptics", ViscaTallyMode.PtzOptics)]
     [InlineData("none", ViscaTallyMode.None)]

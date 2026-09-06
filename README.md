@@ -83,9 +83,14 @@ camera does not take the desk down with it.
 | `viscaoverip` | a VISCA camera over UDP | `ip`, and `port` if it is not 52381 |
 
 All three take `panTiltInvert`. A VISCA camera also takes `tallyMode`, naming the vendor whose tally
-payload it understands: `sony-lumens`, `avonic`, `ptzoptics`, or `none`, which is the default.
+payload it understands: `avonic`, `ptzoptics`, or `none`, which is the default. `avonic` carries a
+red and a green lamp, and CineTreak cameras answer to it too; `ptzoptics` has one lamp, so preview
+leaves it dark.
 Nothing in the VISCA specification covers a tally lamp, so a camera sent the wrong vendor's payload
 does something unrelated rather than nothing.
+
+[Camera compatibility](docs/CameraCompatibility.md) lists the cameras this has actually been run
+against and what a VISCA camera has to accept to work at all.
 
 ### Controller bindings
 
