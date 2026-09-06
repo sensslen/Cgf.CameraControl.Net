@@ -122,7 +122,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             await _host.UnloadAsync(CancellationToken.None).ConfigureAwait(true);
             Clear();
             Issues.Clear();
-            Draft = ConfigDraft.From(configuration);
+            Draft = ConfigDraft.From(configuration, ConnectedPads());
             OnPropertyChanged(nameof(IsEditing));
             OnPropertyChanged(nameof(CanUseFileMenu));
             SelectedInterfaceEntry = Draft.Interfaces.FirstOrDefault();
@@ -295,7 +295,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        if (await ask(new NewEntry(kind, draft.NextInstance(kind))).ConfigureAwait(true) is { } added)
+        if (await ask(new NewEntry(kind, draft.NextInstance(kind), draft.Pads)).ConfigureAwait(true) is { } added)
         {
             draft.Insert(added);
             Select(added);
@@ -315,6 +315,11 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             draft.Remove(entry);
         }
     }
+
+    /// Only pads that report a serial: one that does not cannot be named in a configuration, so
+    /// offering it would be offering something the file cannot hold.
+    private IReadOnlyList<string> ConnectedPads() =>
+        [.. _host.Gamepads.Present.Select(pad => pad.Info.Serial).OfType<string>().Distinct(StringComparer.Ordinal)];
 
     private void Select(EntryDraft entry)
     {

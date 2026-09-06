@@ -24,14 +24,14 @@ public sealed partial class EntryDraft : ViewModelBase
 {
     private readonly JsonObject _entry;
 
-    public EntryDraft(EntryKind kind, string type, JsonObject entry)
+    public EntryDraft(EntryKind kind, string type, JsonObject entry, IReadOnlyList<string>? pads = null)
     {
         Kind = kind;
         Type = type;
         _entry = entry;
 
         InstanceField = new NumberField(entry, "instance", "edit.instance", required: true, minimum: 1);
-        Fields = [InstanceField, .. EntrySchema.Fields(type, entry)];
+        Fields = [InstanceField, .. EntrySchema.Fields(type, entry, pads ?? [])];
 
         foreach (var field in Fields)
         {

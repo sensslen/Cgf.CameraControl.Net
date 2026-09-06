@@ -29,9 +29,13 @@ public sealed partial class ConfigDraft : ViewModelBase
     [ObservableProperty]
     public partial bool IsDirty { get; set; }
 
-    public static ConfigDraft From(RootConfig config)
+    /// The pads SDL reports right now, offered where a configuration names one. Nothing consumes them
+    /// while the mode is on, which is what makes them available to offer.
+    public IReadOnlyList<string> Pads { get; private set; } = [];
+
+    public static ConfigDraft From(RootConfig config, IReadOnlyList<string>? pads = null)
     {
-        var draft = new ConfigDraft();
+        var draft = new ConfigDraft { Pads = pads ?? [] };
         draft.Fill(EntryKind.Camera, draft.Cameras, config.Cams);
         draft.Fill(EntryKind.Mixer, draft.Mixers, config.VideoMixers);
         draft.Fill(EntryKind.Interface, draft.Interfaces, config.Interfaces);
@@ -55,7 +59,7 @@ public sealed partial class ConfigDraft : ViewModelBase
 
     public EntryDraft Add(EntryKind kind, string type)
     {
-        var draft = new EntryDraft(kind, type, EntrySchema.NewEntry(type, NextInstance(kind)));
+        var draft = new EntryDraft(kind, type, EntrySchema.NewEntry(type, NextInstance(kind)), Pads);
         Insert(draft);
         return draft;
     }
@@ -118,7 +122,7 @@ public sealed partial class ConfigDraft : ViewModelBase
         foreach (var entry in entries)
         {
             var node = JsonNode.Parse(entry.Raw.GetRawText()) as JsonObject ?? [];
-            list.Add(Attach(new EntryDraft(kind, entry.Type, node)));
+            list.Add(Attach(new EntryDraft(kind, entry.Type, node, Pads)));
         }
     }
 

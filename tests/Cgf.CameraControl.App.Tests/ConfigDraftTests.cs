@@ -174,6 +174,35 @@ public class ConfigDraftTests
             Assert.True(draft.CanSave);
         }
 
+        /// A blank row is invalid, so the one thing that is always known is filled in: the lowest
+        /// input nothing has taken, and the camera of the same number, which is how an unrearranged
+        /// desk is wired.
+        [Fact]
+        public void ANewMapRowProposesItsNumbers()
+        {
+            var draft = Draft(Desk);
+            var map = Map(draft.Interfaces[0]);
+
+            map.AddRowCommand.Execute(null);
+
+            Assert.Equal("3", map.Rows[^1].Key);
+            Assert.Equal("3", map.Rows[^1].Value);
+        }
+
+        /// A pad is picked from the ones plugged in, and a desk built away from them still takes a
+        /// serial nobody can see right now.
+        [Fact]
+        public void APadIsOfferedTheSerialsThatAreConnected()
+        {
+            var draft = ConfigDraft.From(ConfigLoader.Load(Desk, out _), ["83234F94"]);
+
+            var serial = draft.Interfaces[0].Fields.OfType<TextField>()
+                .First(entry => entry.Key == "serialNumber");
+
+            Assert.True(serial.HasSuggestions);
+            Assert.Equal("83234F94", Assert.Single(serial.Suggestions));
+        }
+
         [Fact]
         public void WhatStillNamesAnEntryIsReportedBeforeItGoes()
         {

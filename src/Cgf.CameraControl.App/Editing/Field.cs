@@ -12,7 +12,8 @@ namespace Cgf.CameraControl.App.Editing;
 /// afterwards, which is what lets an entry somebody merely looked at come out of the writer exactly as
 /// it went in. Everything no field covers, the functions and the bindings among them, rides along
 /// inside the same object untouched.
-public abstract partial class Field(JsonObject entry, string key, string label) : ViewModelBase
+public abstract partial class Field(JsonObject entry, string key, string label, string? placeholder = null)
+    : ViewModelBase
 {
     protected JsonObject Entry { get; } = entry;
 
@@ -21,7 +22,13 @@ public abstract partial class Field(JsonObject entry, string key, string label) 
     /// A localization key, so the form follows the language menu like everything else.
     public string Label { get; } = label;
 
+    /// What an empty box would mean, shown inside it. A field that is optional says what happens when
+    /// it is left alone rather than looking like one somebody forgot.
+    public string? Placeholder { get; } = placeholder;
+
     public IObservable<string> Caption => Localizer.Current[Label];
+
+    public IObservable<string> Hint => Localizer.Current[Placeholder ?? string.Empty];
 
     /// What stops a save, in the words the operator will read. Null while the field is fine.
     [ObservableProperty]
@@ -65,17 +72,31 @@ public abstract partial class Field(JsonObject entry, string key, string label) 
 }
 
 /// A free string: an address, a serial number, a serial port.
+///
+/// Suggestions turn it into a picker that still takes anything typed. A pad's serial is one of the
+/// pads plugged in right now, until it is a desk being built away from them.
 public sealed partial class TextField : Field
 {
     private readonly bool _required;
 
-    public TextField(JsonObject entry, string key, string label, bool required)
-        : base(entry, key, label)
+    public TextField(
+        JsonObject entry,
+        string key,
+        string label,
+        bool required,
+        string? placeholder = null,
+        IReadOnlyList<string>? suggestions = null)
+        : base(entry, key, label, placeholder)
     {
         _required = required;
+        Suggestions = suggestions ?? [];
         Value = entry[key]?.GetValue<string>() ?? string.Empty;
         Ready();
     }
+
+    public IReadOnlyList<string> Suggestions { get; }
+
+    public bool HasSuggestions => Suggestions.Count > 0;
 
     [ObservableProperty]
     public partial string Value { get; set; } = string.Empty;
@@ -95,8 +116,14 @@ public sealed partial class NumberField : Field
     private readonly int _minimum;
     private readonly bool _required;
 
-    public NumberField(JsonObject entry, string key, string label, bool required, int minimum)
-        : base(entry, key, label)
+    public NumberField(
+        JsonObject entry,
+        string key,
+        string label,
+        bool required,
+        int minimum,
+        string? placeholder = null)
+        : base(entry, key, label, placeholder)
     {
         _required = required;
         _minimum = minimum;
