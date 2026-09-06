@@ -58,6 +58,23 @@ public class ViscaOverIpCameraTests
             Assert.Equal(0x27, _transport.Sent[^1][4]);
         }
 
+        // The lens has a speed zero and the axes do not, so a stick just off centre has to reach the
+        // slowest zoom the camera owns rather than the second slowest.
+        [Theory]
+        [InlineData(0.1, 0x20)]
+        [InlineData(0.5, 0x23)]
+        [InlineData(1.0, 0x27)]
+        [InlineData(-1.0, 0x37)]
+        [InlineData(0.0, 0x00)]
+        public void ZoomScalesTheStickOntoTheWholeLensSpeedRange(double input, byte expected)
+        {
+            var camera = Connected();
+
+            camera.Zoom(input);
+
+            Assert.Equal(expected, _transport.Sent[^1][4]);
+        }
+
         [Fact]
         public void ZoomAndFocusAreSeparateOperations()
         {
@@ -333,27 +350,19 @@ public class ViscaOverIpCameraTests
             Assert.Empty(_transport.Sent);
         }
 
+        // Red on the seventh byte and green on the eighth, which is what lets one packet say
+        // program, preview or dark.
         [Theory]
-        [InlineData(TallyState.Program, 0x02)]
-        [InlineData(TallyState.Preview, 0x01)]
-        [InlineData(TallyState.Off, 0x00)]
-        public void SonyAndLumensCarryTheColourInTheLastByte(TallyState state, byte expected)
-        {
-            var camera = Connected(tally: ViscaTallyMode.SonyLumens);
-
-            camera.SetTally(state);
-
-            Assert.Equal(expected, _transport.Sent[^1][^2]);
-        }
-
-        [Fact]
-        public void AvonicUsesItsOwnLongerPayload()
+        [InlineData(TallyState.Program, (byte)0x02, (byte)0x03)]
+        [InlineData(TallyState.Preview, (byte)0x03, (byte)0x02)]
+        [InlineData(TallyState.Off, (byte)0x03, (byte)0x03)]
+        public void AvonicCarriesBothLampsInOnePayload(TallyState state, byte red, byte green)
         {
             var camera = Connected(tally: ViscaTallyMode.Avonic);
 
-            camera.SetTally(TallyState.Preview);
+            camera.SetTally(state);
 
-            Assert.Equal<byte[]>([0x81, 0x01, 0x7E, 0x01, 0x0A, 0x00, 0x03, 0x02, 0xFF], _transport.Sent[^1]);
+            Assert.Equal<byte[]>([0x81, 0x01, 0x7E, 0x01, 0x0A, 0x00, red, green, 0xFF], _transport.Sent[^1]);
         }
 
         // This one has a lamp rather than a colour, so preview leaves it dark.
@@ -373,7 +382,7 @@ public class ViscaOverIpCameraTests
         [Fact]
         public void TallyDoesNotDisplaceMovement()
         {
-            var camera = Connected(tally: ViscaTallyMode.SonyLumens);
+            var camera = Connected(tally: ViscaTallyMode.Avonic);
             camera.Pan(1);
             camera.SetTally(TallyState.Program);
 

@@ -59,10 +59,10 @@ public sealed class ViscaOverIpCamera : ICameraConnection
     }
 
     public void Zoom(double value) =>
-        Enqueue(ViscaCategory.Zoom, ViscaPacket.Zoom(Scale(value, ViscaPacket.MaximumLensSpeed)));
+        Enqueue(ViscaCategory.Zoom, ViscaPacket.Zoom(Scale(value, ViscaPacket.LensSpeeds)));
 
     public void Focus(double value) =>
-        Enqueue(ViscaCategory.Focus, ViscaPacket.Focus(Scale(value, ViscaPacket.MaximumLensSpeed)));
+        Enqueue(ViscaCategory.Focus, ViscaPacket.Focus(Scale(value, ViscaPacket.LensSpeeds)));
 
     public void SetTally(TallyState value)
     {

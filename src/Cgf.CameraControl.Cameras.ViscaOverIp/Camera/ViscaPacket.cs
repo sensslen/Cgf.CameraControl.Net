@@ -41,7 +41,12 @@ public static class ViscaPacket
 
     public const int MaximumPanSpeed = 0x18;
     public const int MaximumTiltSpeed = 0x14;
-    public const int MaximumLensSpeed = 7;
+
+    /// The lens speed the camera accepts is p = 0 (low) to 7 (high), and the stop is the whole byte
+    /// rather than a speed of zero. Counting the steps rather than naming the highest one is what
+    /// keeps the slowest of them reachable: pan and tilt have no speed zero, the lens does, and
+    /// treating it like an axis loses the only zoom slow enough to frame a shot with.
+    public const int LensSpeeds = 8;
 
     /// 8x 01 06 01 VV WW XX YY FF, where XX is 1 left, 2 right, 3 stop and YY is 1 up, 2 down,
     /// 3 stop. A speed byte of zero is not a stop, so a stopped axis still carries a legal speed.
@@ -55,10 +60,10 @@ public static class ViscaPacket
         Terminator,
     ];
 
-    /// 8x 01 04 07 pp FF: 00 stop, 2p tele, 3p wide.
+    /// 8x 01 04 07 pp FF: 00 stop, 2p tele, 3p wide, over speed steps 1 to LensSpeeds.
     public static byte[] Zoom(int speed) => Lens(0x07, speed);
 
-    /// 8x 01 04 08 pp FF: 00 stop, 2p far, 3p near.
+    /// 8x 01 04 08 pp FF: 00 stop, 2p far, 3p near, over speed steps 1 to LensSpeeds.
     public static byte[] Focus(int speed) => Lens(0x08, speed);
 
     public static ViscaReply Classify(byte[] packet) =>
@@ -105,10 +110,10 @@ public static class ViscaPacket
 
     private static byte[] Lens(byte operation, int speed)
     {
-        var magnitude = Math.Min(MaximumLensSpeed, Math.Abs(speed));
+        var magnitude = Math.Min(LensSpeeds, Math.Abs(speed));
         byte instruction = magnitude == 0
             ? (byte)0x00
-            : (byte)((speed > 0 ? 0x20 : 0x30) | magnitude);
+            : (byte)((speed > 0 ? 0x20 : 0x30) | (magnitude - 1));
 
         return [Header, Command, CategoryCamera, operation, instruction, Terminator];
     }

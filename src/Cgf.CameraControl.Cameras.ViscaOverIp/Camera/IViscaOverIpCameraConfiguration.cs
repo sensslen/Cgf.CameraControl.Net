@@ -10,9 +10,6 @@ public enum ViscaTallyMode
     [JsonStringEnumMemberName("none")]
     None,
 
-    [JsonStringEnumMemberName("sony-lumens")]
-    SonyLumens,
-
     [JsonStringEnumMemberName("avonic")]
     Avonic,
 
@@ -25,6 +22,10 @@ public enum ViscaTallyMode
 ///   port: z.number().default(52381).optional(),
 ///   panTiltInvert: z.boolean().default(false).optional(),
 ///   tallyMode: z.enum(['none', 'sony-lumens', 'avonic', 'ptzoptics']).default('none').optional() })
+/// 'sony-lumens' is gone. Sony drives its two lamps from two addresses, 8x 01 7E 01 0A 00 0p FF for
+/// red and 8x 01 7E 04 1A 00 0p FF for green, and extinguishes a lamp that is not told to stay on
+/// every 15 seconds, so it is a mode with a shape none of these payloads have. No Lumens document
+/// carries a tally command at all.
 /// On the `get; set;` and [JsonRequired] conventions, see WebsocketPtzLancCameraConfiguration.
 public sealed record ViscaOverIpCameraConfiguration
 {

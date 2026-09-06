@@ -9,12 +9,9 @@ public static class ViscaTally
 {
     public static byte[]? Payload(ViscaTallyMode mode, TallyState state) => mode switch
     {
-        ViscaTallyMode.SonyLumens => state switch
-        {
-            TallyState.Program => [0x81, 0x01, 0x7E, 0x01, 0x0A, 0x00, 0x02, 0xFF],
-            TallyState.Preview => [0x81, 0x01, 0x7E, 0x01, 0x0A, 0x00, 0x01, 0xFF],
-            _ => [0x81, 0x01, 0x7E, 0x01, 0x0A, 0x00, 0x00, 0xFF],
-        },
+        // Both lamps in one packet, which is what makes this a mode: Sony spends a command per lamp.
+        // CineTreak support confirms the CT-PT31K on these bytes, so the name is narrower than the
+        // cameras that answer to it.
         ViscaTallyMode.Avonic => state switch
         {
             TallyState.Program => [0x81, 0x01, 0x7E, 0x01, 0x0A, 0x00, 0x02, 0x03, 0xFF],

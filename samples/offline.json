@@ -5,7 +5,7 @@
       "instance": 1,
       "ip": "192.168.178.87",
       "port": 1259,
-      "tallyMode": "sony-lumens"
+      "tallyMode": "avonic"
     }
   ],
   "videoMixers": [

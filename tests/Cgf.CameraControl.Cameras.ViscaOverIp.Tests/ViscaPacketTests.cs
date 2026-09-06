@@ -53,11 +53,15 @@ public class ViscaPacketTests
 
     public class Lens
     {
+        // The camera counts lens speed from zero, so the first step is the slowest zoom it has
+        // rather than the second.
         [Theory]
         [InlineData(0, 0x00)]
-        [InlineData(7, 0x27)]
-        [InlineData(-7, 0x37)]
-        [InlineData(3, 0x23)]
+        [InlineData(1, 0x20)]
+        [InlineData(8, 0x27)]
+        [InlineData(-1, 0x30)]
+        [InlineData(-8, 0x37)]
+        [InlineData(4, 0x23)]
         public void ZoomEncodesDirectionInTheHighNibbleAndSpeedInTheLow(int speed, byte expected)
         {
             Assert.Equal<byte[]>([0x81, 0x01, 0x04, 0x07, expected, 0xFF], ViscaPacket.Zoom(speed));
@@ -65,8 +69,9 @@ public class ViscaPacketTests
 
         [Theory]
         [InlineData(0, 0x00)]
-        [InlineData(7, 0x27)]
-        [InlineData(-7, 0x37)]
+        [InlineData(1, 0x20)]
+        [InlineData(8, 0x27)]
+        [InlineData(-8, 0x37)]
         public void FocusUsesTheSameEncodingOnItsOwnOperation(int speed, byte expected)
         {
             Assert.Equal<byte[]>([0x81, 0x01, 0x04, 0x08, expected, 0xFF], ViscaPacket.Focus(speed));
