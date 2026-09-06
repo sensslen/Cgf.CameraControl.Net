@@ -1,0 +1,87 @@
+{
+  "cams": [
+    { "type": "viscaoverip", "instance": 1, "ip": "192.168.178.87", "port": 1259, "tallyMode": "avonic" },
+    { "type": "viscaoverip", "instance": 2, "ip": "192.168.178.88", "port": 1259, "tallyMode": "avonic" },
+    { "type": "viscaoverip", "instance": 3, "ip": "192.168.178.89", "port": 1259, "tallyMode": "avonic" }
+  ],
+  "videoMixers": [
+    { "type": "passthrough/default", "instance": 1 }
+  ],
+  "interfaces": [
+    {
+      "type": "gamepad",
+      "instance": 1,
+      "videoMixer": 1,
+      "deadzone": 0.05,
+      "rumble": true,
+      "cameraMap": { "1": 1, "2": 2, "3": 3 },
+      "connectionChange": {
+        "type": "direct",
+        "default": { "up": 1, "right": 2, "down": 3 },
+        "alt": { "up": 3, "right": 1, "down": 2 }
+      },
+      "functions": {
+        "wide": { "type": "key", "index": 1 },
+        "tight": { "type": "key", "index": 2 },
+        "sweep": { "type": "macroLoop", "indexes": [1, 2] },
+        "reset": { "type": "key", "index": 3 }
+      },
+      "pad": {
+        "default": { "up": "wide", "down": "tight", "left": "sweep" },
+        "alt": { "up": "reset" }
+      }
+    },
+    {
+      "type": "keyboard",
+      "instance": 2,
+      "videoMixer": 1,
+      "cameraMap": { "1": 1, "2": 2, "3": 3 },
+      "connectionChange": {
+        "type": "direct",
+        "default": { "up": 1, "right": 2, "down": 3 }
+      },
+      "functions": {
+        "wide": { "type": "key", "index": 1 },
+        "tight": { "type": "key", "index": 2 },
+        "sweep": { "type": "macroLoop", "indexes": [1, 2] }
+      },
+      "keys": {
+        "pan": { "left": "A", "right": "D" },
+        "tilt": { "up": "W", "down": "S" },
+        "zoom": { "in": "I", "out": "K" },
+        "focus": { "far": "L", "near": "J" },
+        "connectionChange": { "up": "Up", "down": "Down", "left": "Left", "right": "Right" },
+        "input": { "D1": 1, "D2": 2, "D3": 3 },
+        "function": { "F1": "wide", "F2": "tight", "F3": "sweep" },
+        "cut": "Enter",
+        "auto": "Space"
+      }
+    },
+    {
+      "type": "keyboard",
+      "instance": 3,
+      "videoMixer": 1,
+      "enableChangingProgram": false,
+      "cameraMap": { "1": 1, "2": 2, "3": 3 },
+      "connectionChange": {
+        "type": "directional",
+        "directions": {
+          "1": { "right": 2 },
+          "2": { "left": 1, "right": 3 },
+          "3": { "left": 2 }
+        }
+      },
+      "functions": {
+        "wide": { "type": "key", "index": 1 }
+      },
+      "keys": {
+        "pan": { "left": "NumPad4", "right": "NumPad6" },
+        "tilt": { "up": "NumPad8", "down": "NumPad5" },
+        "zoom": { "in": "OemPlus", "out": "OemMinus" },
+        "connectionChange": { "left": "OemComma", "right": "OemPeriod" },
+        "input": { "D7": 1, "D8": 2, "D9": 3 },
+        "function": { "F9": "wide" }
+      }
+    }
+  ]
+}

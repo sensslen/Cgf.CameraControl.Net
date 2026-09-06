@@ -54,6 +54,7 @@ public sealed partial class InterfaceViewModel : ViewModelBase, IDisposable
             // they are read again whenever the modifier moves rather than fixed at load.
             _subscriptions.Add(_gamepad.WhenModifiersChanged.Bind(_ => RelabelPad()));
             RelabelPad();
+
         }
 
         if (surface is not null && _gamepad?.Configuration is KeyboardConfiguration keyboard)

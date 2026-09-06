@@ -33,6 +33,12 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
 
     private readonly CancellationTokenSource _stopping = new();
     private readonly TimeProvider _time = TimeProvider.System;
+
+    /// The probe loop and the receive loop both decide whether a camera is there, so the decision
+    /// and the report have to be one step. Read apart, the probe can find the last answer expired,
+    /// have a reply land while it is deciding, and then report a camera that is plainly answering as
+    /// gone.
+    private readonly Lock _heartbeat = new();
     private Task? _loop;
     private bool _reportedFailure;
     private long _lastHeard;
@@ -90,11 +96,17 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
                 }
             }
 
-            Report(connected: false);
+            lock (_heartbeat)
+            {
+                _heard = false;
+                Report(connected: false);
+            }
+
             await Task.Delay(ReconnectDelay, cancellationToken).ConfigureAwait(false);
         }
     }
 
+    /// Called with _heartbeat held, so two threads cannot both pass the comparison and publish.
     private void Report(bool connected)
     {
         if (_connected.Value != connected)
@@ -117,8 +129,11 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
         }
 
         // An open socket is not a camera, so nothing is claimed until one answers.
-        _heard = false;
-        Report(connected: false);
+        lock (_heartbeat)
+        {
+            _heard = false;
+            Report(connected: false);
+        }
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var sending = SendLoopAsync(client, linked.Token);
@@ -159,9 +174,13 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
         while (true)
         {
             var result = await client.ReceiveAsync(cancellationToken).ConfigureAwait(false);
-            _lastHeard = _time.GetTimestamp();
-            _heard = true;
-            Report(connected: true);
+            lock (_heartbeat)
+            {
+                _lastHeard = _time.GetTimestamp();
+                _heard = true;
+                Report(connected: true);
+            }
+
             _received.OnNext(result.Buffer);
         }
     }
@@ -173,11 +192,14 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
             Send(ViscaPacket.Presence());
             await Task.Delay(ProbeInterval, _time, cancellationToken).ConfigureAwait(false);
 
-            if (_heard && _time.GetElapsedTime(_lastHeard) > Silence)
+            lock (_heartbeat)
             {
-                logger.Log($"ViscaOverIpCamera({host}):no answer for {Silence.TotalSeconds:0} seconds");
-                _heard = false;
-                Report(connected: false);
+                if (_heard && _time.GetElapsedTime(_lastHeard) > Silence)
+                {
+                    logger.Log($"ViscaOverIpCamera({host}):no answer for {Silence.TotalSeconds:0} seconds");
+                    _heard = false;
+                    Report(connected: false);
+                }
             }
         }
     }

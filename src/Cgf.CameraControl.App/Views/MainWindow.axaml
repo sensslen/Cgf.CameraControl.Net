@@ -64,11 +64,19 @@
           </Grid>
         </Border>
 
-        <views:GamepadWireframe IsVisible="{Binding IsGamepad}" State="{Binding PadState}"
-                                IsLive="{Binding IsConnected}" FaceLabels="{Binding FaceLabels}"
-                                DPadLabels="{Binding DPadLabels}" />
+        <!-- Both fill the same space and only one is ever visible. Docked instead, the wireframe
+             would be sized to what it asks for, which for a control that only paints is nothing. -->
+        <Panel>
+          <!-- Capped rather than stretched, for the reason the stick pads are: a drawing of a pad
+               is legible at about this size and gains nothing from filling a maximised window. -->
+          <views:GamepadWireframe IsVisible="{Binding IsGamepad}" State="{Binding PadState}"
+                                  IsLive="{Binding IsConnected}" FaceLabels="{Binding FaceLabels}"
+                                  DPadLabels="{Binding DPadLabels}"
+                                  Width="620" Height="400"
+                                  HorizontalAlignment="Left" VerticalAlignment="Top" />
 
-        <views:ControlSurfaceView IsVisible="{Binding !IsGamepad}" />
+          <views:ControlSurfaceView IsVisible="{Binding !IsGamepad}" />
+        </Panel>
 
       </DockPanel>
     </DataTemplate>
@@ -110,13 +118,16 @@
       <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
       <Setter Property="Opacity" Value="0.9" />
     </Style>
+    <!-- Yellow rather than grey for something that is not there. Grey reads as switched off and
+         accounted for, which is the wrong thing to say about a camera that should be answering.
+         On a group lamp it also covers the half-up case, where some are there and some are not. -->
     <Style Selector="Border.lamp">
       <Setter Property="Width" Value="10" />
       <Setter Property="Height" Value="10" />
       <Setter Property="CornerRadius" Value="5" />
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="Margin" Value="0,0,6,0" />
-      <Setter Property="Background" Value="#4d4d4d" />
+      <Setter Property="Background" Value="#F1C40F" />
     </Style>
     <Style Selector="Border.lamp.connected">
       <Setter Property="Background" Value="#2ecc71" />
