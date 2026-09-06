@@ -190,7 +190,7 @@ public class ViscaOverIpCameraTests
 
             _transport.Refuse();
 
-            _logger.Received().Error(Arg.Is<string>(message =>
+            _logger.Received().Error(Arg.Any<string>(), Arg.Is<string>(message =>
                 message.Contains("the focus command") && message.Contains("command buffer full")));
         }
 
@@ -202,7 +202,7 @@ public class ViscaOverIpCameraTests
 
             _transport.Refuse();
 
-            _logger.Received().Error(Arg.Is<string>(message => message.Contains("the pan and tilt command")));
+            _logger.Received().Error(Arg.Any<string>(), Arg.Is<string>(message => message.Contains("the pan and tilt command")));
         }
 
         // A camera that stops answering must not wedge the gate shut for the rest of the service.
@@ -230,7 +230,7 @@ public class ViscaOverIpCameraTests
 
             _transport.Refuse(socket: 2);
 
-            _logger.Received().Error(Arg.Is<string>(message => message.Contains("the focus command")));
+            _logger.Received().Error(Arg.Any<string>(), Arg.Is<string>(message => message.Contains("the focus command")));
         }
 
         [Fact]
@@ -244,7 +244,7 @@ public class ViscaOverIpCameraTests
 
             _transport.Refuse(socket: 2);
 
-            _logger.DidNotReceive().Error(Arg.Is<string>(message => message.Contains("the focus command")));
+            _logger.DidNotReceive().Error(Arg.Any<string>(), Arg.Is<string>(message => message.Contains("the focus command")));
         }
 
         [Fact]
@@ -255,7 +255,7 @@ public class ViscaOverIpCameraTests
 
             _time.Advance(TimeSpan.FromSeconds(5));
 
-            _logger.Received().Error(Arg.Is<string>(message => message.Contains("the zoom command")));
+            _logger.Received().Error(Arg.Any<string>(), Arg.Is<string>(message => message.Contains("the zoom command")));
         }
 
         [Fact]
@@ -267,7 +267,7 @@ public class ViscaOverIpCameraTests
 
             _time.Advance(TimeSpan.FromSeconds(30));
 
-            _logger.DidNotReceive().Error(Arg.Any<string>());
+            _logger.DidNotReceive().Error(Arg.Any<string>(), Arg.Any<string>());
         }
 
         // A drive command is a level the camera holds, so repeating it asks for nothing. Interfaces

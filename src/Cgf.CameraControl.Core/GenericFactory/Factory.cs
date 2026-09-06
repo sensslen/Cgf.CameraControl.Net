@@ -50,7 +50,7 @@ public abstract class Factory<T>(string section) : IAsyncDisposable
         LoadIssue Issue(ConfigEntry failed, string message)
         {
             var issue = new LoadIssue(section, failed, message);
-            logger.Error(issue.ToString());
+            logger.Error("Configuration", issue.ToString());
             return issue;
         }
     }

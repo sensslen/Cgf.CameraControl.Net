@@ -92,7 +92,7 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
                 if (!_reportedFailure)
                 {
                     _reportedFailure = true;
-                    logger.Log($"ViscaOverIpCamera({host}):connection lost - {ex.Message}");
+                    logger.Log("ViscaOverIpCamera", $"({host}) connection lost - {ex.Message}");
                 }
             }
 
@@ -120,7 +120,7 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
         using var client = new UdpClient();
         client.Connect(host, port);
         _reportedFailure = false;
-        logger.Log($"ViscaOverIpCamera({host}):connected");
+        logger.Log("ViscaOverIpCamera", $"({host}) connected");
 
         // Draining anything queued while disconnected would replay stale movement, so the sender
         // starts from whatever the camera asks for next.
@@ -196,7 +196,7 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
             {
                 if (_heard && _time.GetElapsedTime(_lastHeard) > Silence)
                 {
-                    logger.Log($"ViscaOverIpCamera({host}):no answer for {Silence.TotalSeconds:0} seconds");
+                    logger.Log("ViscaOverIpCamera", $"({host}) no answer for {Silence.TotalSeconds:0} seconds");
                     _heard = false;
                     Report(connected: false);
                 }

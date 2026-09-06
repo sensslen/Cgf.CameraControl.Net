@@ -143,7 +143,7 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
         _ = TransmitAsync();
     }
 
-    private void Log(string message) => _logger.Log($"CgfPtzCamera({_config.ConnectionUrl}):{message}");
+    private void Log(string message) => _logger.Log("CgfPtzCamera", $"({_config.ConnectionUrl}) {message}");
 
     private int Invert(int value) => _config.PanTiltInvert ? -value : value;
 

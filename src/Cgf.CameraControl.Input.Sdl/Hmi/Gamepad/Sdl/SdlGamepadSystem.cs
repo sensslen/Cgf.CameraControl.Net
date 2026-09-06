@@ -95,7 +95,7 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
         SDL.SetHint(SDL.Hints.JoystickAllowBackgroundEvents, "1");
         if (!SDL.Init(SDL.InitFlags.Gamepad))
         {
-            _logger.Error($"SDL: gamepad support is unavailable - {SDL.GetError()}");
+            _logger.Error("SDL", $"gamepad support is unavailable - {SDL.GetError()}");
             return;
         }
 
@@ -180,7 +180,7 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
         var handle = SDL.OpenGamepad(instanceId);
         if (handle == IntPtr.Zero)
         {
-            _logger.Error($"SDL: gamepad {instanceId} could not be opened - {SDL.GetError()}");
+            _logger.Error("SDL", $"gamepad {instanceId} could not be opened - {SDL.GetError()}");
             return;
         }
 
@@ -202,7 +202,8 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
         }
 
         _logger.Log(
-            $"SDL:connected {info.Name}, serial {info.Serial ?? "not reported"}, rumble {(info.SupportsRumble ? "yes" : "no")}");
+            "SDL",
+            $"connected {info.Name}, serial {info.Serial ?? "not reported"}, rumble {(info.SupportsRumble ? "yes" : "no")}");
         Rebind();
     }
 
@@ -215,7 +216,7 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
 
         pad.ClaimedBy?.Unbind();
         SDL.CloseGamepad(pad.Handle);
-        _logger.Log($"SDL:disconnected {pad.Info.Name}");
+        _logger.Log("SDL", $"disconnected {pad.Info.Name}");
         Rebind();
     }
 
@@ -241,7 +242,7 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
         foreach (var device in unbound.Where(Unmatched))
         {
             device.ReportedUnmatched = true;
-            _logger.Error($"SDL:{device.Label} matches no connected pad with serial {device.SerialNumber}. Seen: {Seen()}");
+            _logger.Error("SDL", $"{device.Label} matches no connected pad with serial {device.SerialNumber}. Seen: {Seen()}");
         }
 
         _presence.OnNext(_pads.Values

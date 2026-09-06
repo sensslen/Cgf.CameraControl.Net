@@ -184,7 +184,7 @@ public class SignalrPtzLancCameraTests
 
             _transport.Fail("the hub went away");
 
-            _logger.Received().Log(Arg.Is<string>(message => message.Contains("the hub went away")));
+            _logger.Received().Log(Arg.Any<string>(), Arg.Is<string>(message => message.Contains("the hub went away")));
             Assert.Equal(2, _transport.Sent.Count);
         }
 

@@ -70,13 +70,13 @@ public sealed class AppHost : IAsyncDisposable
         }
         catch (Exception ex) when (ex is ConfigFormatException or IOException or UnauthorizedAccessException)
         {
-            Logger.Error($"Configuration:{ex.Message}");
+            Logger.Error("Configuration", ex.Message);
             return new ConfigLoadResult(path, [ex.Message], []);
         }
 
         foreach (var issue in fileIssues)
         {
-            Logger.Error($"Configuration:{issue}");
+            Logger.Error("Configuration", issue);
         }
 
         _cameras.Clear();
@@ -86,7 +86,7 @@ public sealed class AppHost : IAsyncDisposable
         Configuration = config;
         ConfigPath = path;
         Settings.Update(settings => settings.ConfigPath = path);
-        Logger.Log($"Configuration:loaded {path}");
+        Logger.Log("Configuration", $"loaded {path}");
         return new ConfigLoadResult(path, fileIssues, entryIssues);
     }
 

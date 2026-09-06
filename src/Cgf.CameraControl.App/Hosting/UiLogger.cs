@@ -16,51 +16,13 @@ public sealed class UiLogger : ILogger
 
     public IObservable<LogEntry> WhenLogged => _entries;
 
-    public void Log(string message) => Write(message, isError: false);
+    public void Log(string source, string message) => Write(source, message, isError: false);
 
-    public void Error(string message) => Write(message, isError: true);
+    public void Error(string source, string message) => Write(source, message, isError: true);
 
-    /// Every component prefixes its lines with `Component:` or `Component(which):`, which is what
-    /// the log filter groups by. Which instance it was stays in the message, so filtering by
-    /// component does not merge two cameras reporting the same failure into one indistinguishable
-    /// pair of lines.
-    private void Write(string message, bool isError)
-    {
-        var separator = SeparatorIn(message);
-        if (separator < 0)
-        {
-            _entries.OnNext(new LogEntry(DateTimeOffset.Now, "Application", message, isError));
-            return;
-        }
-
-        var prefix = message[..separator];
-        var text = message[(separator + 1)..].Trim();
-        var detail = prefix.IndexOfAny(['(', '[']);
-
-        _entries.OnNext(detail < 0
-            ? new LogEntry(DateTimeOffset.Now, prefix, text, isError)
-            : new LogEntry(DateTimeOffset.Now, prefix[..detail], $"{prefix[detail..]} {text}", isError));
-    }
-
-    // The colon that ends the prefix, ignoring the ones inside a ws:// address.
-    private static int SeparatorIn(string message)
-    {
-        var depth = 0;
-        for (var index = 0; index < message.Length; index++)
-        {
-            switch (message[index])
-            {
-                case '(' or '[':
-                    depth++;
-                    break;
-                case ')' or ']':
-                    depth--;
-                    break;
-                case ':' when depth == 0:
-                    return index;
-            }
-        }
-
-        return -1;
-    }
+    /// The source is what the filter groups by, so which instance reported it stays in the message:
+    /// grouping by component must not merge two cameras reporting the same failure into one
+    /// indistinguishable pair of lines.
+    private void Write(string source, string message, bool isError) =>
+        _entries.OnNext(new LogEntry(DateTimeOffset.Now, source, message, isError));
 }

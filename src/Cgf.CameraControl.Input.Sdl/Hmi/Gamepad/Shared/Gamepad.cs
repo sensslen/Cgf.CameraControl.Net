@@ -333,7 +333,7 @@ public sealed class Gamepad : IHmi
 
     private static string OnAirSuffix(bool onAir) => onAir ? " - OnAir" : string.Empty;
 
-    private void Log(string message) => _logger.Log($"Gamepad:{message}");
+    private void Log(string message) => _logger.Log("Gamepad", message);
 
-    private void LogError(string message) => _logger.Error($"Gamepad:{message}");
+    private void LogError(string message) => _logger.Error("Gamepad", message);
 }

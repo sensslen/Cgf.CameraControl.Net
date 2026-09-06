@@ -156,7 +156,9 @@ public sealed class ViscaOverIpCamera : ICameraConnection
     }
 
     private void Expire() =>
-        _logger.Error($"ViscaOverIpCamera({_config.Ip}):no answer to {Name(Release())} within {CommandTimeout.TotalSeconds:0} seconds");
+        _logger.Error(
+            "ViscaOverIpCamera",
+            $"({_config.Ip}) no answer to {Name(Release())} within {CommandTimeout.TotalSeconds:0} seconds");
 
     /// A refusal only says what went wrong, never which command it went wrong for, and the answer
     /// arrives after the request is gone. Naming the command here is the difference between a log
@@ -199,7 +201,8 @@ public sealed class ViscaOverIpCamera : ICameraConnection
                     // not something every model agrees about, so the bytes are what settle an
                     // argument about who refused what.
                     _logger.Error(
-                        $"ViscaOverIpCamera({_config.Ip}):{NameIn(socket)} was refused - " +
+                        "ViscaOverIpCamera",
+                        $"({_config.Ip}) {NameIn(socket)} was refused - " +
                         $"{ViscaPacket.Describe(packet)} (reply {Convert.ToHexString(packet)})");
                     break;
                 default:
