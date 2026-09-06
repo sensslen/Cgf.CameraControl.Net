@@ -118,6 +118,11 @@ public sealed partial class InterfaceViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial IReadOnlyList<string?> DPadLabels { get; set; } = [];
 
+    /// What each direction's input is doing, in the same order as the labels, so the drawing can
+    /// colour a direction before it is pressed rather than only after.
+    [ObservableProperty]
+    public partial IReadOnlyList<InputRole> DPadRoles { get; set; } = [];
+
     /// The input number and the camera behind it. An operator reading a strip wants to know which
     /// camera is live, and the number alone only says which button was pressed.
     [ObservableProperty]
@@ -221,12 +226,9 @@ public sealed partial class InterfaceViewModel : ViewModelBase, IDisposable
         }
 
         FaceLabels = [.. Corners.Select(pad.BoundFunction)];
-        DPadLabels = [.. Corners.Select(direction => pad.BoundInput(direction) is { } input
-            ? string.Format(
-                CultureInfo.CurrentUICulture,
-                Localizer.Current.Text("surface.inputLabel"),
-                input)
-            : null)];
+        DPadRoles = [.. Corners.Select(direction => Role(pad.BoundInput(direction)))];
+        DPadLabels = [.. Corners.Select(direction =>
+            pad.BoundInput(direction)?.ToString(CultureInfo.CurrentUICulture))];
     }
 
     private void OnMixerChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -250,6 +252,14 @@ public sealed partial class InterfaceViewModel : ViewModelBase, IDisposable
             button.IsProgram = Mixer?.Program == Number(button);
         }
     }
+
+    private InputRole Role(int? input) => input switch
+    {
+        null => InputRole.None,
+        _ when input == Mixer?.Program => InputRole.Program,
+        _ when input == Mixer?.Preview => InputRole.Preview,
+        _ => InputRole.None,
+    };
 
     private static int Number(KeyButtonViewModel button) =>
         int.Parse(button.Label, CultureInfo.CurrentUICulture);

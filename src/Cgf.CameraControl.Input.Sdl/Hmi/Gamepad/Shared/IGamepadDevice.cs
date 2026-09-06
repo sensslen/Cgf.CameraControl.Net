@@ -24,6 +24,11 @@ public enum GamepadButtons
     FaceRight = 1 << 7,
     LeftShoulder = 1 << 8,
     RightShoulder = 1 << 9,
+
+    /// A trigger is an axis the mapper reads as a switch, so its travel and whether it has switched
+    /// are both drawn: the travel as a fill, the switch as the lit state every other button gets.
+    LeftTrigger = 1 << 10,
+    RightTrigger = 1 << 11,
 }
 
 /// Where every control is right now, as opposed to the events an interface acts on. A drawing needs

@@ -1,0 +1,10 @@
+[
+  {
+    "PackageId": "Joypad (Openclipart 204910)",
+    "Authors": "Skwarek",
+    "License": "CC0-1.0",
+    "LicenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "PackageProjectUrl": "https://openclipart.org/detail/204910/joypad",
+    "Description": "The body of the pad drawn in the interface panel, Views/GamepadWireframe.axaml, simplified from the original."
+  }
+]

@@ -13,8 +13,15 @@ public partial class ControlSurfaceView : UserControl
         InitializeComponent();
 
         MovePad.Moved += (pan, tilt) => Surface?.Move(pan, tilt);
-        LensPad.Moved += (focus, zoom) => Surface?.Lens(focus, zoom);
+
+        // The lens takes both axes at once, and one slider only knows its own, so the other's last
+        // position rides along; a mouse can only be on one of them anyway.
+        ZoomSlider.Moved += (zoom, _) => Surface?.Lens(_focus, _zoom = zoom);
+        FocusSlider.Moved += (focus, _) => Surface?.Lens(_focus = focus, _zoom);
     }
+
+    private double _focus;
+    private double _zoom;
 
     private ControlSurfaceViewModel? Surface => (DataContext as InterfaceViewModel)?.Surface;
 }

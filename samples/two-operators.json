@@ -27,7 +27,7 @@
         "reset": { "type": "key", "index": 3 }
       },
       "pad": {
-        "default": { "up": "wide", "down": "tight", "left": "sweep" },
+        "default": { "up": "wide", "down": "tight", "left": "sweep", "right": "reset" },
         "alt": { "up": "reset" }
       }
     },

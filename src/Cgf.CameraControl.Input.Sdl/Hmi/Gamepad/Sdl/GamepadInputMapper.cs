@@ -67,7 +67,11 @@ public sealed class GamepadInputMapper : IDisposable
                 break;
             case SDL.GamepadAxis.LeftTrigger:
                 _leftTrigger = Gate(_leftTrigger, raw);
-                Draw(state => state with { LeftTrigger = Travel(raw) });
+                Draw(state => state with
+                {
+                    LeftTrigger = Travel(raw),
+                    Pressed = Held(state.Pressed, GamepadButtons.LeftTrigger, _leftTrigger),
+                });
                 SetModifiers(_alt, _leftTrigger);
                 break;
             case SDL.GamepadAxis.RightTrigger:
@@ -78,7 +82,11 @@ public sealed class GamepadInputMapper : IDisposable
                 }
 
                 _rightTrigger = pressed;
-                Draw(state => state with { RightTrigger = Travel(raw) });
+                Draw(state => state with
+                {
+                    RightTrigger = Travel(raw),
+                    Pressed = Held(state.Pressed, GamepadButtons.RightTrigger, pressed),
+                });
                 break;
         }
     }
@@ -90,10 +98,7 @@ public sealed class GamepadInputMapper : IDisposable
         // rebuilt from events that never report one.
         if (Drawn(button) is { } drawn)
         {
-            Draw(state => state with
-            {
-                Pressed = down ? state.Pressed | drawn : state.Pressed & ~drawn,
-            });
+            Draw(state => state with { Pressed = Held(state.Pressed, drawn, down) });
         }
 
         switch (button)
@@ -174,6 +179,9 @@ public sealed class GamepadInputMapper : IDisposable
         SDL.GamepadButton.RightShoulder => GamepadButtons.RightShoulder,
         _ => null,
     };
+
+    private static GamepadButtons Held(GamepadButtons pressed, GamepadButtons button, bool down) =>
+        down ? pressed | button : pressed & ~button;
 
     private void Draw(Func<GamepadState, GamepadState> change)
     {

@@ -54,26 +54,22 @@
 
         <Border DockPanel.Dock="Top" Classes="card" Margin="0,0,0,10"
                 IsVisible="{Binding ShowsSelection}">
-          <Grid ColumnDefinitions="Auto,*,20,Auto,*">
-            <Border Grid.Column="0" Classes="tally preview" />
+          <Grid ColumnDefinitions="Auto,*,24,Auto,*">
+            <TextBlock Grid.Column="0" Classes="detail" VerticalAlignment="Center" Margin="0,0,8,0"
+                       Text="{Binding [surface.program]^, Source={x:Static loc:Localizer.Current}}" />
             <TextBlock Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                       Text="{Binding PreviewText}" />
-            <Border Grid.Column="3" Classes="tally program" />
-            <TextBlock Grid.Column="4" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                        Text="{Binding ProgramText}" />
+            <TextBlock Grid.Column="3" Classes="detail" VerticalAlignment="Center" Margin="0,0,8,0"
+                       Text="{Binding [surface.preview]^, Source={x:Static loc:Localizer.Current}}" />
+            <TextBlock Grid.Column="4" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                       Text="{Binding PreviewText}" />
           </Grid>
         </Border>
 
         <!-- Both fill the same space and only one is ever visible. Docked instead, the wireframe
              would be sized to what it asks for, which for a control that only paints is nothing. -->
         <Panel>
-          <!-- Capped rather than stretched, for the reason the stick pads are: a drawing of a pad
-               is legible at about this size and gains nothing from filling a maximised window. -->
-          <views:GamepadWireframe IsVisible="{Binding IsGamepad}" State="{Binding PadState}"
-                                  IsLive="{Binding IsConnected}" FaceLabels="{Binding FaceLabels}"
-                                  DPadLabels="{Binding DPadLabels}"
-                                  Width="520" Height="475"
-                                  HorizontalAlignment="Left" VerticalAlignment="Top" />
+          <views:GamepadWireframe IsVisible="{Binding IsGamepad}" />
 
           <views:ControlSurfaceView IsVisible="{Binding !IsGamepad}" />
         </Panel>

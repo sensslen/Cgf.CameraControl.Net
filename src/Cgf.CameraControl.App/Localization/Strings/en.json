@@ -49,11 +49,12 @@
     "project": "Project:"
   },
   "surface": {
-    "panTilt": "Pan and tilt",
-    "zoomFocus": "Zoom and focus",
+    "panTilt": "Pan/tilt",
+    "zoomFocus": "Zoom/focus",
+    "zoom": "Zoom",
+    "focus": "Focus",
     "functions": "Functions",
     "transition": "Transition",
-    "inputLabel": "input {0}",
     "program": "Program",
     "preview": "Preview"
   }

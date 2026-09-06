@@ -49,6 +49,13 @@
       <Setter Property="Height" Value="170" />
       <Setter Property="Cursor" Value="Hand" />
     </Style>
+    <!-- Zoom and focus are two things, not one, so they are two sliders rather than one pad whose
+         diagonal would mean both at once. Each springs back to the middle like the pad does. -->
+    <Style Selector="views|StickPad.slider">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Height" Value="32" />
+    </Style>
 
     <!-- A vision mixer fills the live button rather than outlining it, which is what makes the row
          readable from across a room and out of the corner of an eye. -->
@@ -172,8 +179,10 @@
           <views:StickPad Name="MovePad" />
         </StackPanel>
         <StackPanel>
-          <TextBlock Classes="group" Text="{Binding [surface.zoomFocus]^, Source={x:Static loc:Localizer.Current}}" />
-          <views:StickPad Name="LensPad" />
+          <TextBlock Classes="group" Text="{Binding [surface.zoom]^, Source={x:Static loc:Localizer.Current}}" />
+          <views:StickPad Name="ZoomSlider" Classes="slider" Horizontal="True" />
+          <TextBlock Classes="group" Margin="0,16,0,4" Text="{Binding [surface.focus]^, Source={x:Static loc:Localizer.Current}}" />
+          <views:StickPad Name="FocusSlider" Classes="slider" Horizontal="True" />
         </StackPanel>
       </StackPanel>
 

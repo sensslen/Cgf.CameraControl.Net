@@ -90,7 +90,9 @@ with tempfile.TemporaryDirectory() as downloads:
             print(f"{package}: its own licence text")
     prune(PACKAGE_TEXTS, kept)
 
-identifiers = sorted({entry["License"] for entry in report if entry.get("License")})
+# The artwork report beside it is written by hand and names its own licences, which need their text too.
+reports = [json.loads(path.read_text(encoding="utf-8")) for path in sorted(LICENSES.glob("*.json"))]
+identifiers = sorted({entry["License"] for entries in reports for entry in entries if entry.get("License")})
 kept = set()
 for identifier in identifiers:
     with urllib.request.urlopen(SPDX_SOURCE.format(identifier=identifier)) as response:
