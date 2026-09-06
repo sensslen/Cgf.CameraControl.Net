@@ -37,16 +37,19 @@ public partial class App : Application
 
             var window = new MainWindow { DataContext = _model };
             _model.PickFile = window.PickFileAsync;
+            _model.PickSaveFile = window.PickSaveFileAsync;
             _model.ShowLicenses = () => new LicensesWindow().ShowDialog(window);
+            _model.AskToSave = (canSave, issues) => AskWindow.LeavingAsync(window, canSave, issues);
+            _model.AskToDelete = (entry, references) => AskWindow.DeletingAsync(window, entry, references);
+            _model.AskToAdd = entry => AddEntryWindow.AskAsync(window, entry);
             SystemMenu.Attach(window, _model);
             desktop.MainWindow = window;
             desktop.ShutdownRequested += OnShutdownRequested;
 
+            // With nothing to run, the window would be a menu over an empty panel. Edit mode is what
+            // it is for: the configuration that does not exist yet is made here.
             var startup = AppEnvironment.ConfigFile?.FullName ?? settings.ConfigPath;
-            if (startup is not null)
-            {
-                _ = _model.LoadAsync(startup);
-            }
+            _ = startup is not null ? _model.LoadAsync(startup) : _model.BeginEditingAsync();
         }
 
         base.OnFrameworkInitializationCompleted();

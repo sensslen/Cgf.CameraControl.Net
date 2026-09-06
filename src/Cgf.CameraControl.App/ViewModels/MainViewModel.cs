@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using Cgf.CameraControl.App.Editing;
 using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.Core.CameraConnection;
@@ -18,6 +19,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         _host = host;
         Log = new LogViewModel(host.Logger);
         Languages = [.. Localizer.Languages.Select(language => new LanguageViewModel(language))];
+        ConfigPath = Localizer.Current.Text("config.none");
         Localizer.Current.LanguageChanged += OnLanguageChanged;
     }
 
@@ -26,6 +28,20 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     /// Supplied by the window for the same reason: a modal dialog needs an owner.
     public Func<Task>? ShowLicenses { get; set; }
+
+    /// Where the configuration is written when it has never had a path.
+    public Func<Task<string?>>? PickSaveFile { get; set; }
+
+    /// Asked on the way out of edit mode. Save is offered only when nothing blocks it, which is what
+    /// keeps a configuration naming something it does not define from reaching the disk.
+    public Func<bool, IReadOnlyList<string>, Task<SaveChoice>>? AskToSave { get; set; }
+
+    /// Asked before an entry is deleted, carrying whatever still names it.
+    public Func<EntryDraft, IReadOnlyList<string>, Task<bool>>? AskToDelete { get; set; }
+
+    /// The add wizard. Returns the finished entry, or nothing when it is cancelled, so an abandoned
+    /// add leaves the configuration exactly as it was.
+    public Func<NewEntry, Task<EntryDraft?>>? AskToAdd { get; set; }
 
     public Localizer Strings => Localizer.Current;
 
@@ -62,10 +78,60 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     public ObservableCollection<string> Issues { get; } = [];
 
     [ObservableProperty]
-    public partial string ConfigPath { get; set; } = "no configuration loaded";
+    public partial string ConfigPath { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
+
+    /// The configuration being edited, or nothing while the desk is running. Everything about edit
+    /// mode hangs off this: the window reads it to know which half of itself to draw.
+    [ObservableProperty]
+    public partial ConfigDraft? Draft { get; set; }
+
+    public bool IsEditing => Draft is not null;
+
+    /// The file menu replaces the file being edited, so it is out of reach until the mode is left.
+    public bool CanUseFileMenu => !IsBusy && !IsEditing;
+
+    /// One selection across three lists, because one editor fills the area they all point at.
+    [ObservableProperty]
+    public partial EntryDraft? SelectedEntry { get; set; }
+
+    [ObservableProperty]
+    public partial EntryDraft? SelectedCamera { get; set; }
+
+    [ObservableProperty]
+    public partial EntryDraft? SelectedMixer { get; set; }
+
+    [ObservableProperty]
+    public partial EntryDraft? SelectedInterfaceEntry { get; set; }
+
+    /// Entered by the application itself when it starts with no configuration to run, because a
+    /// window with nothing in it but a menu is not an answer to having nothing configured.
+    public async Task BeginEditingAsync()
+    {
+        if (IsEditing || IsBusy)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var configuration = _host.Configuration;
+            await _host.UnloadAsync(CancellationToken.None).ConfigureAwait(true);
+            Clear();
+            Issues.Clear();
+            Draft = ConfigDraft.From(configuration);
+            OnPropertyChanged(nameof(IsEditing));
+            OnPropertyChanged(nameof(CanUseFileMenu));
+            SelectedInterfaceEntry = Draft.Interfaces.FirstOrDefault();
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
 
     public async Task LoadAsync(string path)
     {
@@ -99,6 +165,173 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
+    partial void OnIsBusyChanged(bool value) => OnPropertyChanged(nameof(CanUseFileMenu));
+
+    partial void OnSelectedCameraChanged(EntryDraft? value) => Choose(value, EntryKind.Camera);
+
+    partial void OnSelectedMixerChanged(EntryDraft? value) => Choose(value, EntryKind.Mixer);
+
+    partial void OnSelectedInterfaceEntryChanged(EntryDraft? value) => Choose(value, EntryKind.Interface);
+
+    /// A list clears the other two when it takes the selection. Clearing is idempotent, so the
+    /// notifications this sets off stop after one pass.
+    private void Choose(EntryDraft? value, EntryKind kind)
+    {
+        if (value is null)
+        {
+            if (SelectedCamera is null && SelectedMixer is null && SelectedInterfaceEntry is null)
+            {
+                SelectedEntry = null;
+            }
+
+            return;
+        }
+
+        if (kind != EntryKind.Camera)
+        {
+            SelectedCamera = null;
+        }
+
+        if (kind != EntryKind.Mixer)
+        {
+            SelectedMixer = null;
+        }
+
+        if (kind != EntryKind.Interface)
+        {
+            SelectedInterfaceEntry = null;
+        }
+
+        SelectedEntry = value;
+    }
+
+    [RelayCommand]
+    private async Task ToggleEditAsync()
+    {
+        if (Draft is null)
+        {
+            await BeginEditingAsync().ConfigureAwait(true);
+            return;
+        }
+
+        await LeaveEditingAsync().ConfigureAwait(true);
+    }
+
+    private async Task LeaveEditingAsync()
+    {
+        if (Draft is not { } draft)
+        {
+            return;
+        }
+
+        if (draft.IsDirty && AskToSave is { } ask)
+        {
+            var choice = await ask(draft.CanSave, draft.Issues).ConfigureAwait(true);
+            if (choice == SaveChoice.Cancel)
+            {
+                return;
+            }
+
+            if (choice == SaveChoice.Save)
+            {
+                await SaveAsync(draft).ConfigureAwait(true);
+                return;
+            }
+        }
+
+        await FinishEditingAsync(_host.ConfigPath).ConfigureAwait(true);
+    }
+
+    /// The file is loaded after it is written rather than the draft being adopted, so what the desk
+    /// runs is what is on the disk, and a file that cannot be read back says so at once.
+    private async Task SaveAsync(ConfigDraft draft)
+    {
+        var path = _host.ConfigPath;
+        if (path is null)
+        {
+            if (PickSaveFile is not { } pick || await pick().ConfigureAwait(true) is not { } chosen)
+            {
+                return;
+            }
+
+            path = chosen;
+        }
+
+        if (_host.Save(draft.ToConfig(), path))
+        {
+            await FinishEditingAsync(path).ConfigureAwait(true);
+        }
+    }
+
+    private async Task FinishEditingAsync(string? path)
+    {
+        Draft = null;
+        SelectedCamera = null;
+        SelectedMixer = null;
+        SelectedInterfaceEntry = null;
+        SelectedEntry = null;
+        OnPropertyChanged(nameof(IsEditing));
+        OnPropertyChanged(nameof(CanUseFileMenu));
+
+        if (path is not null)
+        {
+            await LoadAsync(path).ConfigureAwait(true);
+        }
+    }
+
+    [RelayCommand]
+    private Task AddCameraAsync() => AddAsync(EntryKind.Camera);
+
+    [RelayCommand]
+    private Task AddMixerAsync() => AddAsync(EntryKind.Mixer);
+
+    [RelayCommand]
+    private Task AddInterfaceAsync() => AddAsync(EntryKind.Interface);
+
+    private async Task AddAsync(EntryKind kind)
+    {
+        if (Draft is not { } draft || AskToAdd is not { } ask)
+        {
+            return;
+        }
+
+        if (await ask(new NewEntry(kind, draft.NextInstance(kind))).ConfigureAwait(true) is { } added)
+        {
+            draft.Insert(added);
+            Select(added);
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteEntryAsync(EntryDraft entry)
+    {
+        if (Draft is not { } draft || AskToDelete is not { } ask)
+        {
+            return;
+        }
+
+        if (await ask(entry, draft.ReferencesTo(entry)).ConfigureAwait(true))
+        {
+            draft.Remove(entry);
+        }
+    }
+
+    private void Select(EntryDraft entry)
+    {
+        switch (entry.Kind)
+        {
+            case EntryKind.Camera:
+                SelectedCamera = entry;
+                break;
+            case EntryKind.Mixer:
+                SelectedMixer = entry;
+                break;
+            default:
+                SelectedInterfaceEntry = entry;
+                break;
+        }
+    }
+
     public void Dispose()
     {
         Localizer.Current.LanguageChanged -= OnLanguageChanged;
@@ -108,6 +341,11 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
+        if (_host.ConfigPath is null)
+        {
+            ConfigPath = Localizer.Current.Text("config.none");
+        }
+
         foreach (var language in Languages)
         {
             language.IsActive = Localizer.Current.Active == language.Language;

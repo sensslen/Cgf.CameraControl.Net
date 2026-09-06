@@ -77,6 +77,20 @@ public partial class MainWindow : Window
         return chosen.Count == 0 ? null : chosen[0].TryGetLocalPath();
     }
 
+    /// Where a configuration that has never had a path is written.
+    public async Task<string?> PickSaveFileAsync()
+    {
+        var chosen = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = Localization.Localizer.Current.Text("edit.saveAsTitle"),
+            SuggestedFileName = "config.json",
+            DefaultExtension = "json",
+            FileTypeChoices = [ConfigurationFiles],
+        });
+
+        return chosen?.TryGetLocalPath();
+    }
+
     private void Follow()
     {
         if (DataContext is not MainViewModel model)

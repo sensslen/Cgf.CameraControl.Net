@@ -1,0 +1,40 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:edit="using:Cgf.CameraControl.App.Editing"
+        xmlns:loc="using:Cgf.CameraControl.App.Localization"
+        xmlns:views="using:Cgf.CameraControl.App.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="420"
+        x:Class="Cgf.CameraControl.App.Views.AddEntryWindow"
+        x:DataType="edit:NewEntry"
+        Width="520" Height="460"
+        Icon="/Assets/appicon.ico"
+        Title="{Binding [edit.addTitle]^, Source={x:Static loc:Localizer.Current}}"
+        FlowDirection="{Binding FlowDirection^, Source={x:Static loc:Localizer.Current}}"
+        WindowStartupLocation="CenterOwner">
+
+  <DockPanel Margin="20">
+
+    <!-- The type first, because it decides which fields there are to fill. Changing it starts the
+         entry again rather than carrying values into a shape with no room for them. -->
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,16">
+      <TextBlock Width="180" Margin="0,0,12,0" VerticalAlignment="Center" Opacity="0.7" FontSize="12"
+                 Text="{Binding [edit.type]^, Source={x:Static loc:Localizer.Current}}" />
+      <ComboBox Width="220" ItemsSource="{Binding Types}" SelectedItem="{Binding SelectedType}" />
+    </StackPanel>
+
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
+                Margin="0,16,0,0" Spacing="8">
+      <Button Name="Accept" MinWidth="96" IsDefault="True" IsEnabled="{Binding CanAdd}"
+              HorizontalContentAlignment="Center"
+              Content="{Binding [edit.add]^, Source={x:Static loc:Localizer.Current}}" />
+      <Button Name="Reject" MinWidth="96" HorizontalContentAlignment="Center"
+              Content="{Binding [edit.cancel]^, Source={x:Static loc:Localizer.Current}}" />
+    </StackPanel>
+
+    <views:EntryEditorView DataContext="{Binding Entry}" />
+
+  </DockPanel>
+
+</Window>

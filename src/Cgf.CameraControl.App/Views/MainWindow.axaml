@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="using:Cgf.CameraControl.App.Views"
         xmlns:vm="using:Cgf.CameraControl.App.ViewModels"
+        xmlns:edit="using:Cgf.CameraControl.App.Editing"
         xmlns:hosting="using:Cgf.CameraControl.App.Hosting"
         xmlns:loc="using:Cgf.CameraControl.App.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -76,6 +77,20 @@
 
       </DockPanel>
     </DataTemplate>
+    <DataTemplate x:Key="EntryTile" x:DataType="edit:EntryDraft">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0">
+          <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
+          <TextBlock Classes="detail" Foreground="#E74C3C" TextWrapping="Wrap" Text="{Binding Problem}"
+                     IsVisible="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+        <Button Grid.Column="1" Content="&#x2715;" Padding="6,0" Background="Transparent"
+                VerticalAlignment="Top"
+                Command="{Binding $parent[ListBox].((vm:MainViewModel)DataContext).DeleteEntryCommand}"
+                CommandParameter="{Binding}" />
+      </Grid>
+    </DataTemplate>
+
   </Window.Resources>
 
   <Window.Styles>
@@ -148,7 +163,7 @@
   <!-- Interfaces on the left pick what fills the middle and what the keyboard drives. The mixers and
        cameras sit under it as two shut drawers with a lamp each, because a desk that is up needs no
        more than that, and the log is a strip to glance at. -->
-  <Grid Name="Root" RowDefinitions="Auto,Auto,3*,Auto,*">
+  <Grid Name="Root" RowDefinitions="Auto,Auto,Auto,3*,Auto,*">
 
     <!-- The title bar itself. The client area is extended into it and the decorations theme leaves
          it empty, so this is what the user sees up there. Marked as the drag region because the
@@ -167,9 +182,12 @@
             HorizontalAlignment="Left" VerticalAlignment="Center">
         <MenuItem Header="{Binding Strings[menu.file]^}">
           <MenuItem Header="{Binding Strings[config.import]^}" Command="{Binding ImportCommand}"
-                    IsEnabled="{Binding !IsBusy}" />
+                    IsEnabled="{Binding CanUseFileMenu}" />
           <MenuItem Header="{Binding Strings[config.reload]^}" Command="{Binding ReloadCommand}"
-                    IsEnabled="{Binding !IsBusy}" />
+                    IsEnabled="{Binding CanUseFileMenu}" />
+          <Separator />
+          <MenuItem Header="{Binding Strings[edit.mode]^}" Command="{Binding ToggleEditCommand}"
+                    ToggleType="CheckBox" IsChecked="{Binding IsEditing}" IsEnabled="{Binding !IsBusy}" />
         </MenuItem>
         <MenuItem Header="{Binding Strings[language.label]^}" ItemsSource="{Binding Languages}">
           <MenuItem.ItemContainerTheme>
@@ -190,7 +208,19 @@
       <Panel Grid.Column="3" Width="138" />
     </Grid>
 
-    <StackPanel Grid.Row="1" Margin="16,4,16,12">
+    <!-- The mode has to be impossible to miss: it stops the desk, and every click in the window
+         changes a file rather than a camera. The bar carries the way out, so leaving is where
+         entering was. -->
+    <Border Grid.Row="1" IsVisible="{Binding IsEditing}" Background="#F2B01E" Margin="0,0,0,4">
+      <Grid ColumnDefinitions="*,Auto" Margin="16,8">
+        <TextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="#211803" TextWrapping="Wrap"
+                   Text="{Binding Strings[edit.banner]^}" />
+        <Button Grid.Column="1" MinWidth="96" Margin="12,0,0,0" HorizontalContentAlignment="Center"
+                Command="{Binding ToggleEditCommand}" Content="{Binding Strings[edit.done]^}" />
+      </Grid>
+    </Border>
+
+    <StackPanel Grid.Row="2" Margin="16,4,16,12">
       <SelectableTextBlock Classes="detail" Text="{Binding ConfigPath}" TextTrimming="CharacterEllipsis" />
       <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Issues}">
         <ItemsControl.ItemTemplate>
@@ -201,11 +231,46 @@
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>
+      <!-- What stops the save, listed where the loader's own complaints are listed. -->
+      <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Draft.Issues}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Border Classes="problem">
+              <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
     </StackPanel>
 
-    <DockPanel Grid.Row="2" Margin="16,0,16,0">
+    <DockPanel Grid.Row="3" Margin="16,0,16,0">
 
-      <DockPanel DockPanel.Dock="Left" Width="220" Margin="0,0,16,0">
+      <!-- Every collection in the file, each with its own add at the foot of it. One selection between
+           the three, because one editor fills the area they all point at. -->
+      <ScrollViewer DockPanel.Dock="Left" Width="260" Margin="0,0,16,0" IsVisible="{Binding IsEditing}"
+                    HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+          <TextBlock Classes="heading" Text="{Binding Strings[panel.interfaces]^}" />
+          <ListBox ItemsSource="{Binding Draft.Interfaces}" SelectedItem="{Binding SelectedInterfaceEntry}"
+                   ItemTemplate="{StaticResource EntryTile}" Background="Transparent" BorderThickness="0" />
+          <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,4,0,16"
+                  Command="{Binding AddInterfaceCommand}" Content="{Binding Strings[edit.add]^}" />
+
+          <TextBlock Classes="heading" Text="{Binding Strings[panel.cameras]^}" />
+          <ListBox ItemsSource="{Binding Draft.Cameras}" SelectedItem="{Binding SelectedCamera}"
+                   ItemTemplate="{StaticResource EntryTile}" Background="Transparent" BorderThickness="0" />
+          <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,4,0,16"
+                  Command="{Binding AddCameraCommand}" Content="{Binding Strings[edit.add]^}" />
+
+          <TextBlock Classes="heading" Text="{Binding Strings[panel.mixers]^}" />
+          <ListBox ItemsSource="{Binding Draft.Mixers}" SelectedItem="{Binding SelectedMixer}"
+                   ItemTemplate="{StaticResource EntryTile}" Background="Transparent" BorderThickness="0" />
+          <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,4,0,16"
+                  Command="{Binding AddMixerCommand}" Content="{Binding Strings[edit.add]^}" />
+        </StackPanel>
+      </ScrollViewer>
+
+      <DockPanel DockPanel.Dock="Left" Width="220" Margin="0,0,16,0" IsVisible="{Binding !IsEditing}">
         <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding Strings[panel.interfaces]^}" />
         <TextBlock DockPanel.Dock="Bottom" Classes="detail" TextWrapping="Wrap" Margin="0,6,0,0"
                    Text="{Binding Strings[interface.clickHint]^}" />
@@ -225,17 +290,29 @@
       <!-- Focusable, because this is where a key press reaches the selected interface. The panel
            fills whatever the list leaves, which a star column would not: it hands the panel its
            desired width and lets the pads run off the side of the window. -->
-      <ContentControl Name="Stage" Focusable="True"
-                      Content="{Binding SelectedInterface}"
-                      ContentTemplate="{StaticResource InterfacePanel}" />
+      <Panel>
+        <ContentControl Name="Stage" Focusable="True" IsVisible="{Binding !IsEditing}"
+                        Content="{Binding SelectedInterface}"
+                        ContentTemplate="{StaticResource InterfacePanel}" />
+
+        <Panel IsVisible="{Binding IsEditing}">
+          <views:EntryEditorView DataContext="{Binding SelectedEntry}" />
+          <TextBlock Classes="detail" TextWrapping="Wrap" VerticalAlignment="Top"
+                     IsVisible="{Binding SelectedEntry, Converter={x:Static ObjectConverters.IsNull}}"
+                     Text="{Binding Strings[edit.nothingSelected]^}" />
+        </Panel>
+      </Panel>
 
     </DockPanel>
 
-    <GridSplitter Grid.Row="3" Height="6" HorizontalAlignment="Stretch" Background="Transparent" />
+    <GridSplitter Grid.Row="4" Height="6" HorizontalAlignment="Stretch" Background="Transparent" />
 
-    <DockPanel Grid.Row="4" Margin="16,0,16,16">
+    <DockPanel Grid.Row="5" Margin="16,0,16,16">
 
-      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,12,*" Margin="0,0,0,8">
+      <!-- Nothing is connected while the configuration is being edited, so there is nothing for the
+           two drawers to report. -->
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,12,*" Margin="0,0,0,8"
+            IsVisible="{Binding !IsEditing}">
         <Expander Grid.Column="0" HorizontalAlignment="Stretch">
           <Expander.Header>
             <StackPanel Orientation="Horizontal">

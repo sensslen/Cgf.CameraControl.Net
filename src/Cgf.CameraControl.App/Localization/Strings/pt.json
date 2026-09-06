@@ -13,6 +13,56 @@
     "openTitle": "Abrir configuração",
     "fileType": "Configuração"
   },
+  "edit": {
+    "mode": "Editar a configuração",
+    "banner": "A configuração está a ser editada. A mesa fica parada enquanto isto durar.",
+    "done": "Concluído",
+    "add": "Adicionar",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "discard": "Descartar",
+    "cancel": "Cancelar",
+    "leaveTitle": "Sair do modo de edição",
+    "leaveQuestion": "Guardar as alterações à configuração?",
+    "leaveBlocked": "Não é possível guardar enquanto isto não estiver resolvido:",
+    "deleteTitle": "Eliminar",
+    "deleteQuestion": "Eliminar {0}?",
+    "deleteReferences": "Isto ainda o nomeia e terá de apontar para outro sítio:",
+    "deleteReferencesCleared": "Isto nomeia-o e deixará de o fazer:",
+    "addTitle": "Adicionar",
+    "type": "Tipo",
+    "nothingSelected": "selecione uma entrada à esquerda, ou adicione uma",
+    "noConfiguration": "ainda sem configuração",
+    "saveAsTitle": "Guardar a configuração como",
+    "instance": "Instância",
+    "ip": "Endereço",
+    "port": "Porta",
+    "panTiltInvert": "Inverter movimento horizontal e vertical",
+    "tallyMode": "Tally",
+    "showTallyLight": "Mostrar a luz de tally",
+    "connectionUrl": "URL do controlador",
+    "connectionPort": "Porta série",
+    "mixEffectBlock": "Bloco mix effect",
+    "videoMixer": "Misturador de vídeo",
+    "cameraMap": "Câmaras por trás das entradas",
+    "input": "Entrada",
+    "camera": "Câmara",
+    "enableChangingProgram": "Pode pôr uma entrada no ar",
+    "serialNumber": "Número de série",
+    "deadzone": "Zona morta",
+    "rumble": "Vibração",
+    "required": "é obrigatório",
+    "notANumber": "não é um número",
+    "tooSmall": "tem de ser {0} ou mais",
+    "outOfRange": "tem de estar entre {0} e {1}",
+    "mapNeedsNumbers": "cada linha precisa de dois números",
+    "mapRepeatsAnInput": "uma entrada aparece duas vezes",
+    "issue.field": "{0}: {1} {2}",
+    "issue.repeatedInstance": "Duas entradas em {0} reclamam a instância {1}.",
+    "issue.noCamera": "{0} aponta para a câmara {1}, que não está configurada.",
+    "issue.noMixer": "{0} nomeia o misturador de vídeo {1}, que não está configurado.",
+    "issue.noFunction": "{0} liga «{1}», que não é uma das suas funções."
+  },
   "panel": {
     "mixers": "Misturadores de vídeo",
     "cameras": "Câmeras",
@@ -22,14 +72,16 @@
   },
   "interface": {
     "disconnected": "sem conexão",
-    "clickHint": "clique numa interface para abrir a sua janela de controlo"
+    "clickHint": "clique numa interface para abrir a sua janela de controlo",
+    "padOnly": "uma interface de comando é conduzida pelo seu comando; configure uma interface de teclado no mesmo misturador para a controlar a partir daqui"
   },
   "mixer": {
     "preview": "prévia",
     "program": "programa",
     "onAir": "a prévia está no ar",
     "cut": "Cut",
-    "auto": "Auto"
+    "auto": "Auto",
+    "nothingSelected": "ainda nada selecionado"
   },
   "log": {
     "allSources": "Todos"
@@ -49,12 +101,11 @@
   "surface": {
     "panTilt": "Movimento horizontal e vertical",
     "zoomFocus": "Zoom e foco",
-    "select": "Pré-visualização",
+    "zoom": "Zoom",
+    "focus": "Foco",
     "functions": "Funções",
     "transition": "Transição",
-    "modifiers": "Modificadores",
-    "alt": "Alt",
-    "altLower": "Alt inferior",
-    "keys": "Teclado: W A S D move na horizontal e vertical, I K faz zoom, J L foca, as setas mudam a pré-visualização, 1 a 4 executam as funções especiais, Enter corta, Espaço faz auto, e Shift ou Ctrl mantêm as atribuições alt."
+    "program": "programa",
+    "preview": "prévia"
   }
 }

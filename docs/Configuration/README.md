@@ -16,6 +16,8 @@ picks what is built and an `instance` that everything else refers to it by.
 - **[Video mixers](VideoMixers.md)** — `videoMixers`, the ATEM and the passthrough.
 - **[Interfaces](Interfaces.md)** — `interfaces`, the gamepad and the keyboard, their functions and every key name.
 
+The file can be written by hand or from the application itself, under **File → Edit configuration**.
+
 A camera that is known to work is listed in [camera compatibility](../CameraCompatibility.md).
 
 An entry that will not load is reported against that entry alone, so the rest of the desk still

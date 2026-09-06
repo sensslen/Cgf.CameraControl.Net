@@ -13,6 +13,56 @@
     "openTitle": "Abrir configuración",
     "fileType": "Configuración"
   },
+  "edit": {
+    "mode": "Editar la configuración",
+    "banner": "Se está editando la configuración. La mesa queda detenida mientras tanto.",
+    "done": "Listo",
+    "add": "Añadir",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "discard": "Descartar",
+    "cancel": "Cancelar",
+    "leaveTitle": "Salir del modo de edición",
+    "leaveQuestion": "¿Guardar los cambios en la configuración?",
+    "leaveBlocked": "No se puede guardar hasta resolver esto:",
+    "deleteTitle": "Eliminar",
+    "deleteQuestion": "¿Eliminar {0}?",
+    "deleteReferences": "Esto todavía lo nombra y tendrá que apuntar a otro sitio:",
+    "deleteReferencesCleared": "Esto lo nombra y dejará de hacerlo:",
+    "addTitle": "Añadir",
+    "type": "Tipo",
+    "nothingSelected": "seleccione una entrada a la izquierda, o añada una",
+    "noConfiguration": "todavía sin configuración",
+    "saveAsTitle": "Guardar la configuración como",
+    "instance": "Instancia",
+    "ip": "Dirección",
+    "port": "Puerto",
+    "panTiltInvert": "Invertir paneo e inclinación",
+    "tallyMode": "Tally",
+    "showTallyLight": "Mostrar la luz de tally",
+    "connectionUrl": "URL del controlador",
+    "connectionPort": "Puerto serie",
+    "mixEffectBlock": "Bloque mix effect",
+    "videoMixer": "Mezclador de vídeo",
+    "cameraMap": "Cámaras detrás de las entradas",
+    "input": "Entrada",
+    "camera": "Cámara",
+    "enableChangingProgram": "Puede poner una entrada al aire",
+    "serialNumber": "Número de serie",
+    "deadzone": "Zona muerta",
+    "rumble": "Vibración",
+    "required": "es obligatorio",
+    "notANumber": "no es un número",
+    "tooSmall": "debe ser {0} o más",
+    "outOfRange": "debe estar entre {0} y {1}",
+    "mapNeedsNumbers": "cada fila necesita dos números",
+    "mapRepeatsAnInput": "una entrada aparece dos veces",
+    "issue.field": "{0}: {1} {2}",
+    "issue.repeatedInstance": "Dos entradas en {0} reclaman la instancia {1}.",
+    "issue.noCamera": "{0} apunta a la cámara {1}, que no está configurada.",
+    "issue.noMixer": "{0} nombra el mezclador de vídeo {1}, que no está configurado.",
+    "issue.noFunction": "{0} vincula «{1}», que no es una de sus funciones."
+  },
   "panel": {
     "mixers": "Mezcladores de vídeo",
     "cameras": "Cámaras",
@@ -22,14 +72,16 @@
   },
   "interface": {
     "disconnected": "sin conexión",
-    "clickHint": "haga clic en una interfaz para abrir su ventana de control"
+    "clickHint": "haga clic en una interfaz para abrir su ventana de control",
+    "padOnly": "una interfaz de mando se controla con su mando; configure una interfaz de teclado en el mismo mezclador para manejarla desde aquí"
   },
   "mixer": {
     "preview": "previo",
     "program": "programa",
     "onAir": "el previo está al aire",
     "cut": "Cut",
-    "auto": "Auto"
+    "auto": "Auto",
+    "nothingSelected": "todavía no hay nada seleccionado"
   },
   "log": {
     "allSources": "Todos"
@@ -49,12 +101,11 @@
   "surface": {
     "panTilt": "Paneo e inclinación",
     "zoomFocus": "Zoom y enfoque",
-    "select": "Previsualización",
+    "zoom": "Zoom",
+    "focus": "Enfoque",
     "functions": "Funciones",
     "transition": "Transición",
-    "modifiers": "Modificadores",
-    "alt": "Alt",
-    "altLower": "Alt inferior",
-    "keys": "Teclado: W A S D para paneo e inclinación, I K para zoom, J L para enfoque, las flechas cambian la previsualización, del 1 al 4 ejecutan las funciones especiales, Intro corta, Espacio hace auto, y Mayús o Ctrl mantienen las asignaciones alt."
+    "program": "programa",
+    "preview": "previo"
   }
 }
