@@ -31,13 +31,16 @@ public sealed class GamepadWireframe : Control
     public static readonly StyledProperty<IReadOnlyList<string?>> DPadLabelsProperty =
         AvaloniaProperty.Register<GamepadWireframe, IReadOnlyList<string?>>(nameof(DPadLabels), []);
 
-    /// A pad is about half again as wide as it is tall once the grips are counted.
-    private const double Aspect = 1.55;
+    /// Positions come from the 8BitDo Pro 2 skin published for the gamepad viewer, whose stylesheet
+    /// places every control in a 758 by 692 box. The measurements are its; the drawing is not.
+    private const double Wide = 758;
+    private const double Tall = 692;
+    private const double Aspect = Wide / Tall;
 
-    private static readonly Point DPadCentre = new(0.255, 0.34);
-    private static readonly Point FaceCentre = new(0.745, 0.34);
-    private static readonly Point LeftStickCentre = new(0.375, 0.52);
-    private static readonly Point RightStickCentre = new(0.625, 0.52);
+    private static readonly Point DPadCentre = new(171 / Wide, 255.5 / Tall);
+    private static readonly Point FaceCentre = new(591 / Wide, 256 / Tall);
+    private static readonly Point LeftStickCentre = new(263 / Wide, 373 / Tall);
+    private static readonly Point RightStickCentre = new(495 / Wide, 373 / Tall);
 
     static GamepadWireframe() =>
         AffectsRender<GamepadWireframe>(StateProperty, IsLiveProperty, FaceLabelsProperty, DPadLabelsProperty);
@@ -120,16 +123,17 @@ public sealed class GamepadWireframe : Control
         {
             Point P(double x, double y) => At(origin, scale, x, y);
 
-            path.BeginFigure(P(0.18, 0.10), isFilled: false);
-            path.CubicBezierTo(P(0.30, 0.05), P(0.42, 0.14), P(0.50, 0.15));
-            path.CubicBezierTo(P(0.58, 0.14), P(0.70, 0.05), P(0.82, 0.10));
-            path.CubicBezierTo(P(0.94, 0.15), P(1.00, 0.30), P(0.98, 0.48));
-            path.CubicBezierTo(P(0.96, 0.74), P(0.89, 0.94), P(0.78, 0.93));
-            path.CubicBezierTo(P(0.69, 0.92), P(0.64, 0.78), P(0.61, 0.64));
-            path.CubicBezierTo(P(0.58, 0.55), P(0.42, 0.55), P(0.39, 0.64));
-            path.CubicBezierTo(P(0.36, 0.78), P(0.31, 0.92), P(0.22, 0.93));
-            path.CubicBezierTo(P(0.11, 0.94), P(0.04, 0.74), P(0.02, 0.48));
-            path.CubicBezierTo(P(0.00, 0.30), P(0.06, 0.15), P(0.18, 0.10));
+            // The body starts under the bumpers, spreads to the shoulders, and drops into two grips.
+            path.BeginFigure(P(0.14, 0.18), isFilled: false);
+            path.CubicBezierTo(P(0.26, 0.15), P(0.40, 0.24), P(0.50, 0.25));
+            path.CubicBezierTo(P(0.60, 0.24), P(0.74, 0.15), P(0.86, 0.18));
+            path.CubicBezierTo(P(0.96, 0.23), P(1.00, 0.36), P(0.99, 0.50));
+            path.CubicBezierTo(P(0.98, 0.74), P(0.90, 0.99), P(0.76, 0.97));
+            path.CubicBezierTo(P(0.66, 0.95), P(0.63, 0.80), P(0.61, 0.68));
+            path.CubicBezierTo(P(0.58, 0.60), P(0.42, 0.60), P(0.39, 0.68));
+            path.CubicBezierTo(P(0.37, 0.80), P(0.34, 0.95), P(0.24, 0.97));
+            path.CubicBezierTo(P(0.10, 0.99), P(0.02, 0.72), P(0.01, 0.50));
+            path.CubicBezierTo(P(0.00, 0.36), P(0.04, 0.23), P(0.14, 0.18));
             path.EndFigure(isClosed: true);
         }
 
@@ -140,14 +144,16 @@ public sealed class GamepadWireframe : Control
     /// which is what the labels say so that nobody has to remember it.
     private void Shoulders(DrawingContext context, Point origin, double scale, Pen pen, GamepadState state)
     {
-        Bar(0.09, 0.005, 0.29, 0.045, state.LeftTrigger, null, "alt lower");
-        Bar(0.11, 0.055, 0.31, 0.095, 0, GamepadButtons.LeftShoulder, "alt");
-        Bar(0.71, 0.005, 0.91, 0.045, state.RightTrigger, null, "Auto");
-        Bar(0.69, 0.055, 0.89, 0.095, 0, GamepadButtons.RightShoulder, "Cut");
+        Bar(101, 6, 219, 58, state.LeftTrigger, null, "alt lower");
+        Bar(539, 6, 657, 58, state.RightTrigger, null, "Auto");
+        Bar(108, 70, 232, 118, 0, GamepadButtons.LeftShoulder, "alt");
+        Bar(526, 70, 650, 118, 0, GamepadButtons.RightShoulder, "Cut");
 
         void Bar(double x1, double y1, double x2, double y2, double travel, GamepadButtons? button, string label)
         {
-            var outline = new Rect(At(origin, scale, x1, y1), At(origin, scale, x2, y2));
+            var outline = new Rect(
+                At(origin, scale, x1 / Wide, y1 / Tall),
+                At(origin, scale, x2 / Wide, y2 / Tall));
             context.DrawRectangle(
                 button is { } held ? Fill(state, held) : null,
                 pen,
@@ -166,9 +172,9 @@ public sealed class GamepadWireframe : Control
 
     private void DPad(DrawingContext context, Point origin, double scale, Pen pen, GamepadState state)
     {
-        var arm = scale * 0.030;
+        var arm = scale * (57 / Wide);
         var middle = At(origin, scale, DPadCentre.X, DPadCentre.Y);
-        context.DrawEllipse(null, pen, middle, arm * 2.5, arm * 2.5);
+        context.DrawEllipse(null, pen, middle, arm * 1.5, arm * 1.5);
 
         Arm(0, -1, GamepadButtons.DPadUp, 0, Side.Above);
         Arm(0, 1, GamepadButtons.DPadDown, 1, Side.Below);
@@ -177,20 +183,20 @@ public sealed class GamepadWireframe : Control
 
         void Arm(double dx, double dy, GamepadButtons button, int label, Side at)
         {
-            var tip = new Point(middle.X + (dx * arm), middle.Y + (dy * arm));
-            var half = new Size(dx == 0 ? arm * 0.5 : arm * 0.9, dy == 0 ? arm * 0.5 : arm * 0.9);
+            var tip = new Point(middle.X + (dx * arm * 0.62), middle.Y + (dy * arm * 0.62));
+            var half = new Size(dx == 0 ? arm * 0.30 : arm * 0.56, dx == 0 ? arm * 0.56 : arm * 0.30);
             var pad = new Rect(
                 new Point(tip.X - half.Width, tip.Y - half.Height),
                 new Point(tip.X + half.Width, tip.Y + half.Height));
-            context.DrawRectangle(Fill(state, button), pen, new RoundedRect(pad, arm * 0.2));
+            context.DrawRectangle(Fill(state, button), pen, new RoundedRect(pad, arm * 0.10));
             Label(context, DPadLabels, label, pad, at);
         }
     }
 
     private void Faces(DrawingContext context, Point origin, double scale, Pen pen, GamepadState state)
     {
-        var reach = scale * 0.058;
-        var radius = scale * 0.030;
+        var reach = scale * (50 / Wide);
+        var radius = scale * (25 / Wide);
         var middle = At(origin, scale, FaceCentre.X, FaceCentre.Y);
         context.DrawEllipse(null, pen, middle, reach + radius + (scale * 0.008), reach + radius + (scale * 0.008));
 
@@ -216,7 +222,7 @@ public sealed class GamepadWireframe : Control
     private void Stick(DrawingContext context, Point origin, double scale, Pen pen, Point centre, StickPosition at)
     {
         var middle = At(origin, scale, centre.X, centre.Y);
-        var ring = scale * 0.068;
+        var ring = scale * (42 / Wide);
         context.DrawEllipse(null, pen, middle, ring, ring);
 
         var knob = new Point(middle.X + (at.X * ring * 0.55), middle.Y - (at.Y * ring * 0.55));

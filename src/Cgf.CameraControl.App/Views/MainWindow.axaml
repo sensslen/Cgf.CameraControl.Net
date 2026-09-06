@@ -72,7 +72,7 @@
           <views:GamepadWireframe IsVisible="{Binding IsGamepad}" State="{Binding PadState}"
                                   IsLive="{Binding IsConnected}" FaceLabels="{Binding FaceLabels}"
                                   DPadLabels="{Binding DPadLabels}"
-                                  Width="620" Height="400"
+                                  Width="520" Height="475"
                                   HorizontalAlignment="Left" VerticalAlignment="Top" />
 
           <views:ControlSurfaceView IsVisible="{Binding !IsGamepad}" />
