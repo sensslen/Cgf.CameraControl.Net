@@ -1,0 +1,5 @@
+reviews:
+  path_instructions:
+    - path: "**/*.cs"
+      instructions: |
+        Do not suggest adding XML documentation comments or summary tags to public methods, classes, or properties unless specifically requested.
