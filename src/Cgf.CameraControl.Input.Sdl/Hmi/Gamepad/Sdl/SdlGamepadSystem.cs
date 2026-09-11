@@ -68,14 +68,6 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
     {
         var released = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        // Waiting on a thread that has already exited would never return, and a device disposed
-        // after the system has stopped has nothing left to detach from anyway.
-        if (_stopping.IsCancellationRequested)
-        {
-            released.SetResult();
-            return released.Task;
-        }
-
         Post(() =>
         {
             _devices.Remove(device);
@@ -85,8 +77,15 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
             }
 
             Rebind();
-            released.SetResult();
+            released.TrySetResult();
         });
+
+        // Nothing drains the queue once the thread has exited, so the work above would never run.
+        if (_stopping.IsCancellationRequested)
+        {
+            released.TrySetResult();
+        }
+
         return released.Task;
     }
 
@@ -94,37 +93,44 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
 
     private void Run()
     {
-        // A camera desk is operated with the window in the background more often than not.
-        SDL.SetHint(SDL.Hints.JoystickAllowBackgroundEvents, "1");
-        if (!SDL.Init(SDL.InitFlags.Gamepad))
-        {
-            _logger.Error("SDL", $"gamepad support is unavailable - {SDL.GetError()}");
-            return;
-        }
-
         try
         {
-            var connected = SDL.GetGamepads(out var count) ?? [];
-            foreach (var instanceId in connected.Take(count))
+            // A camera desk is operated with the window in the background more often than not.
+            SDL.SetHint(SDL.Hints.JoystickAllowBackgroundEvents, "1");
+            if (!SDL.Init(SDL.InitFlags.Gamepad))
             {
-                Open(instanceId);
+                // SDL_Init leaves up whatever came up before it failed.
+                _logger.Error("SDL", $"gamepad support is unavailable - {SDL.GetError()}");
+                SDL.Quit();
+                return;
             }
 
-            Pump();
+            try
+            {
+                var connected = SDL.GetGamepads(out var count) ?? [];
+                foreach (var instanceId in connected.Take(count))
+                {
+                    Open(instanceId);
+                }
 
-            // A release posted while the application was shutting down still has to complete, or
-            // whoever awaits it waits on a thread that is already gone.
-            Drain();
+                Pump();
+            }
+            finally
+            {
+                foreach (var pad in _pads.Values)
+                {
+                    SDL.CloseGamepad(pad.Handle);
+                }
+
+                _pads.Clear();
+                SDL.Quit();
+            }
         }
         finally
         {
-            foreach (var pad in _pads.Values)
-            {
-                SDL.CloseGamepad(pad.Handle);
-            }
-
-            _pads.Clear();
-            SDL.Quit();
+            // Cancelling first is what lets a release queued after the last drain complete itself.
+            _stopping.Cancel();
+            Drain();
         }
     }
 
