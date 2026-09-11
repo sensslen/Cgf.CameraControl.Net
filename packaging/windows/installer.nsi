@@ -2,7 +2,8 @@
 ;
 ; Driven entirely from the command line so the workflow stays the single source of truth for
 ; versions and paths:
-;   makensis /DVERSION=1.2.3 /DARCH=x64 /DSOURCE=<publish dir> /DOUTFILE=<setup exe> installer.nsi
+;   makensis /DVERSION=1.2.3 /DARCH=x64 /DSOURCE=<publish dir> /DVCREDIST=<vc_redist exe> \
+;            /DOUTFILE=<setup exe> installer.nsi
 ;
 ; The installer itself stays a 32 bit executable, which is the default and what runs everywhere
 ; including Windows on ARM under emulation. Only the payload is architecture specific, so the
@@ -19,6 +20,9 @@
 !endif
 !ifndef SOURCE
   !error "SOURCE is required"
+!endif
+!ifndef VCREDIST
+  !error "VCREDIST is required"
 !endif
 !ifndef OUTFILE
   !error "OUTFILE is required"
@@ -82,6 +86,27 @@ FunctionEnd
 
 Section "Install"
   SetRegView 64
+
+  ; SDL3.dll imports VCRUNTIME140.dll, which is not part of Windows. The payload is native and a 32
+  ; bit installer sees SysWOW64 as System32, so the test runs with redirection off.
+  InitPluginsDir
+  ${DisableX64FSRedirection}
+  ${IfNot} ${FileExists} "$WINDIR\System32\vcruntime140.dll"
+    DetailPrint "Installing the Visual C++ runtime"
+    SetOutPath "$PLUGINSDIR"
+    File "/oname=vc_redist.exe" "${VCREDIST}"
+    ExecWait '"$PLUGINSDIR\vc_redist.exe" /install /quiet /norestart' $0
+
+    ; 1638 is a newer one already there, 3010 wants a restart that can wait.
+    ${If} $0 != 0
+    ${AndIf} $0 != 1638
+    ${AndIf} $0 != 3010
+      MessageBox MB_ICONSTOP "The Visual C++ runtime could not be installed (code $0). ${APPNAME} needs it to read a gamepad."
+      Abort
+    ${EndIf}
+  ${EndIf}
+  ${EnableX64FSRedirection}
+
   SetOutPath "$INSTDIR"
 
   ; The published output carries the native libraries the application loads at run time: SDL, Skia
