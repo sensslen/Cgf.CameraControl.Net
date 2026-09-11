@@ -108,6 +108,14 @@ jobs:
         if: ${{ !matrix.native }}
         run: echo "::warning::aot-probe skipped for ${{ matrix.rid }}, this runner cannot execute it"
 
+      # Embedded in the installer, which runs it when SDL3's runtime is missing.
+      - name: Fetch the Visual C++ redistributable (Windows)
+        if: startsWith(matrix.rid, 'win-')
+        shell: pwsh
+        run: |
+          $arch = '${{ matrix.rid }}' -replace '^win-', ''
+          Invoke-WebRequest "https://aka.ms/vs/17/release/vc_redist.$arch.exe" -OutFile vc_redist.exe
+
       - name: Package (Windows)
         if: startsWith(matrix.rid, 'win-')
         shell: pwsh
@@ -127,6 +135,7 @@ jobs:
             "/DFILEVERSION=${{ needs.version.outputs.file }}"
             "/DARCH=$arch"
             "/DSOURCE=$source"
+            "/DVCREDIST=$([System.IO.Path]::GetFullPath('vc_redist.exe'))"
             "/DOUTFILE=$out"
           )
           & $nsis @switches packaging/windows/installer.nsi
