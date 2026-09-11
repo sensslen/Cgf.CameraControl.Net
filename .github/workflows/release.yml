@@ -20,7 +20,7 @@ jobs:
       file: ${{ steps.version.outputs.major_without_prefix }}.${{ steps.version.outputs.minor }}.${{ steps.version.outputs.patch }}.0
       prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
-      - uses: nowsprinting/check-version-format-action@cb3beb7706ccf9e542ff67c752b61b21cfff5068 # v5.0.5
+      - uses: nowsprinting/check-version-format-action@af8787bf5058bea78ecc228899471187575e48c3 # v5.0.6
         id: version
         with:
           prefix: 'v'
