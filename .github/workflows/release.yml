@@ -34,7 +34,7 @@ jobs:
           exit 1
 
   build:
-    needs: version
+    needs: [version]
     strategy:
       fail-fast: false
       matrix:
@@ -70,6 +70,20 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
+
+      # The images disagree on whether python is called python or python3.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      # The licence report is generated rather than committed, and a source generator compiles it
+      # into the binary, so it has to exist before the publish below. Generated on the runner that
+      # publishes, under the runtime identifier it publishes for: a report is then the packages that
+      # binary resolved something from, rather than every package every platform between them needs.
+      - name: Licence report
+        run: |
+          dotnet tool restore
+          python packaging/licenses/fetch-texts.py --report-only --runtime ${{ matrix.rid }}
 
       - name: Publish
         run: >

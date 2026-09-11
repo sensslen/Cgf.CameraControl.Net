@@ -7,3 +7,7 @@ obj/
 *.suo
 TestResults/
 .local/
+
+# The licence report names the exact package versions restored, so it is generated before every
+# build rather than committed. See packaging/licenses/fetch-texts.py.
+/src/Cgf.CameraControl.App/Licenses/third-party-licenses.json

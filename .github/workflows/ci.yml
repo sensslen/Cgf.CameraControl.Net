@@ -16,21 +16,24 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      # Before the build, because a source generator compiles the report into the binary. It names
+      # the exact versions restored, so generating it here is what keeps the notices from crediting
+      # what an earlier commit happened to resolve, and nuget-license refuses a licence the project
+      # has not accepted. The same script a developer runs, so the ignored packages and the accepted
+      # licences are written down once.
+      #
+      # No runtime identifier, unlike the release builds: the whole package graph is what has to be
+      # under an accepted licence, including the natives of the platforms this run is not building.
+      - name: Licence report
+        run: |
+          dotnet tool restore
+          python3 packaging/licenses/fetch-texts.py --report-only --markdown third-party-licenses.md
+
       - name: Build
         run: dotnet build -c Release
 
       - name: Format
         run: dotnet format --verify-no-changes
-
-      # The same script a developer runs, so which packages are ignored and which licences are
-      # accepted are written down once. The report and the licence texts are committed because a
-      # source generator compiles them into the binary, so a stale one is a build that credits the
-      # wrong packages.
-      - name: Licenses
-        run: |
-          dotnet tool restore
-          python3 packaging/licenses/fetch-texts.py --markdown third-party-licenses.md
-          git diff --exit-code -- src/Cgf.CameraControl.App/Licenses
 
       - name: Publish the licence report
         uses: actions/upload-artifact@v7
