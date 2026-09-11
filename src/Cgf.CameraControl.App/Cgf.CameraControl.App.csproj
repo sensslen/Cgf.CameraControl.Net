@@ -51,7 +51,7 @@
        artwork report is a licence report too. -->
   <Target Name="RequireLicenceReport" BeforeTargets="BeforeCompile">
     <Error Condition="!Exists('$(MSBuildProjectDirectory)/Licenses/third-party-licenses.json')"
-           Text="The third party licence report is missing. Run: dotnet tool restore &amp;&amp; python packaging/licenses/fetch-texts.py" />
+           Text="The third party licence report is missing. Run: dotnet tool restore &amp;&amp; python packaging/licenses/fetch-texts.py --report-only" />
   </Target>
 
   <ItemGroup>
