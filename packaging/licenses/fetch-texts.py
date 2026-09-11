@@ -78,6 +78,10 @@ arguments.add_argument(
 )
 options = arguments.parse_args()
 
+# nuget-license reads the restored package graph rather than the project file, and a checkout that
+# has not been built yet has none.
+subprocess.run(["dotnet", "restore", PROJECT], cwd=ROOT, check=True)
+
 nuget_license("-o", "JsonPretty", "-fo", str(REPORT))
 if options.markdown:
     nuget_license("-o", "Markdown", "-fo", options.markdown)
