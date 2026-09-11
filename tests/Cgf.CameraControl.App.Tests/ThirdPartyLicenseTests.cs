@@ -2,9 +2,9 @@ using Cgf.CameraControl.App.Licenses;
 
 namespace Cgf.CameraControl.App.Tests;
 
-/// The list is written by a source generator reading the committed nuget-license report. A build
-/// that stopped generating it still compiles, because an empty list is a valid list, and the window
-/// would then credit nobody.
+/// The list is written by a source generator reading the nuget-license report the build generates. A
+/// build that stopped generating it still compiles, because an empty list is a valid list, and the
+/// window would then credit nobody.
 public class ThirdPartyLicenseTests
 {
     [Fact]

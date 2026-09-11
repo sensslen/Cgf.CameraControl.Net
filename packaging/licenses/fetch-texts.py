@@ -8,8 +8,14 @@ what each package's licence URL serves, which is the package's own licence text 
 reference page for the rest; only the former is kept. Every licence the report names also gets the
 text of its SPDX identifier, which is what a package with no text of its own is shown under.
 
-Both are committed and compiled into the binary by the licence source generator, so a licence with no
-text at all fails the build rather than showing an empty page.
+The texts are committed. The report is not: it names the exact versions restored, which every
+dependency bump changes, so a build generates it first and the licence source generator compiles it
+along with the texts beside it. A licence with no text at all fails the build rather than showing an
+empty page.
+
+    python packaging/licenses/fetch-texts.py --report-only
+
+is what a build runs, leaving the committed texts alone.
 """
 
 import argparse
@@ -67,6 +73,9 @@ def prune(directory: pathlib.Path, keep: set[pathlib.Path]) -> None:
 
 arguments = argparse.ArgumentParser(description=__doc__)
 arguments.add_argument("--markdown", help="also write the report as markdown, for a build to keep")
+arguments.add_argument(
+    "--report-only", action="store_true", help="write the report and stop, leaving the committed texts alone"
+)
 options = arguments.parse_args()
 
 nuget_license("-o", "JsonPretty", "-fo", str(REPORT))
@@ -76,6 +85,11 @@ if options.markdown:
 report = json.loads(REPORT.read_text(encoding="utf-8"))
 packages = {entry["PackageId"] for entry in report}
 print(f"{len(packages)} packages")
+
+# A build compiles in the texts as committed. Fetching them there would ship whatever the run
+# happened to download, which nobody reviewed.
+if options.report_only:
+    raise SystemExit(0)
 
 with tempfile.TemporaryDirectory() as downloads:
     nuget_license("-o", "Table", "-d", downloads)

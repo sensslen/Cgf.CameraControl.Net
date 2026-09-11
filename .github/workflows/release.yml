@@ -33,8 +33,33 @@ jobs:
           echo "::error::${{ github.ref_name }} is not a valid version tag"
           exit 1
 
+  # The licence report is generated rather than committed, and a source generator compiles it into
+  # the binary, so every build below needs it. Generated once here rather than on each runner: it
+  # depends only on the package graph, every published binary should credit the same versions, and
+  # the Windows images carry no python3.
+  licences:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Licence report
+        run: |
+          dotnet tool restore
+          python3 packaging/licenses/fetch-texts.py --report-only
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: licence-report
+          path: src/Cgf.CameraControl.App/Licenses/third-party-licenses.json
+          if-no-files-found: error
+
   build:
-    needs: version
+    needs: [version, licences]
     strategy:
       fail-fast: false
       matrix:
@@ -70,6 +95,12 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
+
+      - name: Take the licence report
+        uses: actions/download-artifact@v8
+        with:
+          name: licence-report
+          path: src/Cgf.CameraControl.App/Licenses
 
       - name: Publish
         run: >

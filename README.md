@@ -221,23 +221,27 @@ uploaded.
 
 **Help → Third-party licences** lists every package the application ships. Opening a row shows what
 it is under and the full text of that licence: what the package published for itself where it
-published anything, and the text of the SPDX identifier it declared otherwise. Report and texts are
-committed and compiled into the binary by `Cgf.CameraControl.Licenses.Generator`, so showing them
-costs nothing at run time and they cannot drift from what is actually shipped. The artwork the window
-draws is listed the same way, from a hand-written report beside the package one. A licence with no text
-fails the build rather than leaving an empty page. Regenerate all of it after changing a package
-reference:
+published anything, and the text of the SPDX identifier it declared otherwise. Both are compiled into
+the binary by `Cgf.CameraControl.Licenses.Generator`, so showing them costs nothing at run time and
+they cannot drift from what is actually shipped. The artwork the window draws is listed the same way,
+from a hand-written report beside the package one. A licence with no text fails the build rather than
+leaving an empty page.
+
+The licence texts are committed. The package report is not: it names the exact versions restored, so
+every build generates it first, and a build without one fails rather than crediting nobody. Write it,
+and refresh the texts after changing a package reference:
 
 ```bash
 dotnet tool restore
 python packaging/licenses/fetch-texts.py
 ```
 
-That script also refuses a licence the project has not accepted, and ignores what builds the binary
-rather than travelling in it: the diagnostics support package ships in Debug alone, and the NativeAOT
-compiler and the trimmer carry the host's runtime identifier in their package id, so a report naming
-them would differ between a developer machine and CI. CI runs the same script and fails when what is
-committed is out of date.
+`--report-only` writes just the report, which is what the workflows run, leaving the committed texts
+alone. Which licences the project accepts is the check that guards a dependency bump: nuget-license
+refuses one that is not on the list, so a new package under something unexpected fails CI. The script
+also ignores what builds the binary rather than travelling in it: the diagnostics support package
+ships in Debug alone, and the NativeAOT compiler and the trimmer carry the host's runtime identifier
+in their package id, so a report naming them would differ between a developer machine and CI.
 
 ### The icon
 
