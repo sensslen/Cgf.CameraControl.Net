@@ -39,7 +39,8 @@
     <!-- Compiled into the assembly by the licence source generator along with the text of every
          licence they name, so the notices shown cannot drift from what the application ships and
          showing them costs nothing at run time. The package report is generated before the build
-         rather than committed, because it names the versions actually restored. -->
+         rather than committed, because it names the versions actually restored, and only the
+         packages the runtime identifier being published for resolves anything from. -->
     <AdditionalFiles Include="Licenses\*.json" />
     <AdditionalFiles Include="Licenses\texts\**\*.txt" />
     <ProjectReference Include="..\Cgf.CameraControl.Licenses.Generator\Cgf.CameraControl.Licenses.Generator.csproj"

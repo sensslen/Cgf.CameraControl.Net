@@ -13,9 +13,12 @@ dependency bump changes, so a build generates it first and the licence source ge
 along with the texts beside it. A licence with no text at all fails the build rather than showing an
 empty page.
 
-    python packaging/licenses/fetch-texts.py --report-only
+    python packaging/licenses/fetch-texts.py --report-only --runtime win-x64
 
-is what a build runs, leaving the committed texts alone.
+is what a build runs, leaving the committed texts alone. The runtime identifier narrows the report to
+what that platform resolves anything from, so a Windows binary does not credit the Linux and macOS
+natives it never loads. Without one the whole package graph is reported, which is what validates a
+dependency bump.
 """
 
 import argparse
@@ -28,6 +31,7 @@ import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 LICENSES = ROOT / "src/Cgf.CameraControl.App/Licenses"
+ASSETS = ROOT / "src/Cgf.CameraControl.App/obj/project.assets.json"
 REPORT = LICENSES / "third-party-licenses.json"
 PACKAGE_TEXTS = LICENSES / "texts/packages"
 SPDX_TEXTS = LICENSES / "texts/spdx"
@@ -37,23 +41,39 @@ PROJECT = "src/Cgf.CameraControl.App/Cgf.CameraControl.App.csproj"
 # What builds the binary rather than travelling in it. The diagnostics support package ships in Debug
 # alone, and the compiler and the trimmer carry the host's runtime identifier in their package id, so
 # a report naming them would differ between a developer machine and CI.
-IGNORED = ";".join(
-    [
-        "AvaloniaUI.DiagnosticsSupport",
-        "Microsoft.DotNet.ILCompiler",
-        "runtime.*.Microsoft.DotNet.ILCompiler",
-        "Microsoft.NET.ILLink.Tasks",
-    ]
-)
+IGNORED = [
+    "AvaloniaUI.DiagnosticsSupport",
+    "Microsoft.DotNet.ILCompiler",
+    "runtime.*.Microsoft.DotNet.ILCompiler",
+    "Microsoft.NET.ILLink.Tasks",
+]
 ALLOWED = "MIT;Zlib;BSD-3-Clause"
+
+# The asset groups a package has to fill for one byte of it to reach the binary.
+SHIPPING = ("compile", "runtime", "native", "resource", "runtimeTargets")
 
 
 def nuget_license(*arguments: str) -> None:
     subprocess.run(
-        ["dotnet", "nuget-license", "-i", PROJECT, "-t", "-ignore", IGNORED, "-a", ALLOWED, *arguments],
+        ["dotnet", "nuget-license", "-i", PROJECT, "-t", "-ignore", ";".join(ignored), "-a", ALLOWED, *arguments],
         cwd=ROOT,
         check=True,
     )
+
+
+# Which packages a runtime identifier leaves nothing of in the application: the natives of the other
+# operating systems, and whatever takes part in the build without travelling in it. Read off the
+# restore rather than kept as a list per platform, because NuGet has already decided it. "_._" is the
+# empty file it resolves for a package that claims the framework and ships nothing under it, which is
+# what a native asset package for another platform comes to.
+def unresolved(runtime: str) -> list[str]:
+    targets = json.loads(ASSETS.read_text(encoding="utf-8"))["targets"]
+    resolved = targets[next(target for target in targets if target.endswith(f"/{runtime}"))]
+    return [
+        identity.split("/")[0]
+        for identity, package in resolved.items()
+        if all(path.endswith("_._") for group in SHIPPING for path in package.get(group, {}))
+    ]
 
 
 def written(directory: pathlib.Path, name: str, text: str) -> pathlib.Path:
@@ -73,14 +93,21 @@ def prune(directory: pathlib.Path, keep: set[pathlib.Path]) -> None:
 
 arguments = argparse.ArgumentParser(description=__doc__)
 arguments.add_argument("--markdown", help="also write the report as markdown, for a build to keep")
+arguments.add_argument("--runtime", help="the runtime identifier to report, naming only what it resolves anything from")
 arguments.add_argument(
     "--report-only", action="store_true", help="write the report and stop, leaving the committed texts alone"
 )
 options = arguments.parse_args()
 
 # nuget-license reads the restored package graph rather than the project file, and a checkout that
-# has not been built yet has none.
-subprocess.run(["dotnet", "restore", PROJECT], cwd=ROOT, check=True)
+# has not been built yet has none. Restored under the runtime identifier the report is for, so the
+# graph carries the target the platform's assets were resolved against.
+restore = ["dotnet", "restore", PROJECT]
+if options.runtime:
+    restore.append(f"-p:RuntimeIdentifier={options.runtime}")
+subprocess.run(restore, cwd=ROOT, check=True)
+
+ignored = IGNORED + (unresolved(options.runtime) if options.runtime else [])
 
 nuget_license("-o", "JsonPretty", "-fo", str(REPORT))
 if options.markdown:

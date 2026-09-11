@@ -237,11 +237,19 @@ python packaging/licenses/fetch-texts.py
 ```
 
 `--report-only` writes just the report, which is what the workflows run, leaving the committed texts
-alone. Which licences the project accepts is the check that guards a dependency bump: nuget-license
-refuses one that is not on the list, so a new package under something unexpected fails CI. The script
-also ignores what builds the binary rather than travelling in it: the diagnostics support package
-ships in Debug alone, and the NativeAOT compiler and the trimmer carry the host's runtime identifier
-in their package id, so a report naming them would differ between a developer machine and CI.
+alone. `--runtime win-x64` narrows it to the packages that runtime identifier resolves something
+from, so a published binary credits what it ships rather than the union of four platforms. The
+natives of the other three resolve an empty placeholder, and reading that off the restore is what
+replaces a list of package names per platform. Each release build passes its own identifier. The
+texts stay committed whole, because a build compiles in only the ones its own report names.
+
+CI reports the whole graph instead, so every package is checked against the licences the project
+accepts. That check is what guards a dependency bump: nuget-license refuses a licence not on the
+list, so a new package under something unexpected fails CI even where this run does not build. The
+script also ignores what builds the binary rather than travelling in it: the diagnostics support
+package ships in Debug alone, and the NativeAOT compiler and the trimmer carry the host's runtime
+identifier in their package id, so a report naming them would differ between a developer machine
+and CI.
 
 ### The icon
 

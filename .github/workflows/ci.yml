@@ -21,6 +21,9 @@ jobs:
       # what an earlier commit happened to resolve, and nuget-license refuses a licence the project
       # has not accepted. The same script a developer runs, so the ignored packages and the accepted
       # licences are written down once.
+      #
+      # No runtime identifier, unlike the release builds: the whole package graph is what has to be
+      # under an accepted licence, including the natives of the platforms this run is not building.
       - name: Licence report
         run: |
           dotnet tool restore
