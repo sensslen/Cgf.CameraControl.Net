@@ -73,10 +73,6 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     public bool AllCamerasConnected => Cameras.Count > 0 && Cameras.All(camera => camera.IsConnected);
 
-    /// Reported per entry rather than as one failed load, so a typo in one camera does not hide the
-    /// nine that are fine.
-    public ObservableCollection<string> Issues { get; } = [];
-
     [ObservableProperty]
     public partial string ConfigPath { get; set; } = string.Empty;
 
@@ -121,7 +117,6 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             var configuration = _host.Configuration;
             await _host.UnloadAsync(CancellationToken.None).ConfigureAwait(true);
             Clear();
-            Issues.Clear();
             Draft = ConfigDraft.From(configuration, ConnectedPads());
             OnPropertyChanged(nameof(IsEditing));
             OnPropertyChanged(nameof(CanUseFileMenu));
@@ -145,18 +140,6 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         {
             var result = await _host.LoadAsync(path, CancellationToken.None).ConfigureAwait(true);
             ConfigPath = result.Path;
-
-            Issues.Clear();
-            foreach (var issue in result.FileIssues)
-            {
-                Issues.Add(issue);
-            }
-
-            foreach (var issue in result.EntryIssues)
-            {
-                Issues.Add(issue.ToString());
-            }
-
             Rebuild();
         }
         finally
