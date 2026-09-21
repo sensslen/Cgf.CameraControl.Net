@@ -41,7 +41,7 @@
     <!-- Fixed rather than stretched. A pad big enough to aim in is about this big, and one that
          grows with the window buys nothing while pushing everything else off the bottom. -->
     <Style Selector="views|StickPad">
-      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="6" />
@@ -52,7 +52,6 @@
     <!-- Zoom and focus are two things, not one, so they are two sliders rather than one pad whose
          diagonal would mean both at once. Each springs back to the middle like the pad does. -->
     <Style Selector="views|StickPad.slider">
-      <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Height" Value="32" />
     </Style>
@@ -60,6 +59,7 @@
     <!-- A vision mixer fills the live button rather than outlining it, which is what makes the row
          readable from across a room and out of the corner of an eye. -->
     <Style Selector="Button.source">
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
       <Setter Property="Width" Value="58" />
       <Setter Property="Height" Value="46" />
       <Setter Property="Margin" Value="0,0,6,0" />
@@ -74,6 +74,11 @@
     <Style Selector="Button.source.preview /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="#2ECC71" />
     </Style>
+    <Style Selector="Button.source:pointerover /template/ ContentPresenter#PART_ContentPresenter,
+                     Button.key:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="#4A9EE0" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
     <Style Selector="Button.source.program TextBlock, Button.source.preview TextBlock">
       <Setter Property="Foreground" Value="#101010" />
     </Style>
@@ -87,6 +92,7 @@
     </Style>
 
     <Style Selector="Button.key">
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
       <Setter Property="MinWidth" Value="70" />
       <Setter Property="Height" Value="46" />
       <Setter Property="Margin" Value="0,0,6,6" />

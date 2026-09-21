@@ -30,6 +30,8 @@ public static class SystemMenu
         var file = new NativeMenuItem(Localizer.Current.Text("menu.file")) { Menu = [] };
         file.Menu.Add(Command(Localizer.Current.Text("config.import"), model.ImportCommand));
         file.Menu.Add(Command(Localizer.Current.Text("config.reload"), model.ReloadCommand));
+        file.Menu.Add(new NativeMenuItemSeparator());
+        file.Menu.Add(Command(Localizer.Current.Text("edit.mode"), model.ToggleEditCommand));
 
         var languages = new NativeMenuItem(Localizer.Current.Text("language.label")) { Menu = [] };
         foreach (var language in model.Languages)

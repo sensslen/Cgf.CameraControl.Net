@@ -82,6 +82,10 @@ public sealed class AppHost : IAsyncDisposable
         _cameras.Clear();
         _surfaces.Clear();
         var entryIssues = await Core.ReconfigureAsync(config, cancellationToken).ConfigureAwait(false);
+        foreach (var issue in entryIssues)
+        {
+            Logger.Error("Configuration", issue.ToString());
+        }
 
         Configuration = config;
         ConfigPath = path;
