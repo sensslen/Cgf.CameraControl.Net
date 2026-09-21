@@ -23,6 +23,13 @@ public static class SystemMenu
 
         Build(window, model);
         Localizer.Current.LanguageChanged += (_, _) => Build(window, model);
+        model.PropertyChanged += (_, changed) =>
+        {
+            if (changed.PropertyName == nameof(MainViewModel.IsEditing))
+            {
+                Build(window, model);
+            }
+        };
     }
 
     private static void Build(Window window, MainViewModel model)
@@ -31,7 +38,12 @@ public static class SystemMenu
         file.Menu.Add(Command(Localizer.Current.Text("config.import"), model.ImportCommand));
         file.Menu.Add(Command(Localizer.Current.Text("config.reload"), model.ReloadCommand));
         file.Menu.Add(new NativeMenuItemSeparator());
-        file.Menu.Add(Command(Localizer.Current.Text("edit.mode"), model.ToggleEditCommand));
+        file.Menu.Add(new NativeMenuItem(Localizer.Current.Text("edit.mode"))
+        {
+            Command = model.ToggleEditCommand,
+            ToggleType = MenuItemToggleType.CheckBox,
+            IsChecked = model.IsEditing,
+        });
 
         var languages = new NativeMenuItem(Localizer.Current.Text("language.label")) { Menu = [] };
         foreach (var language in model.Languages)

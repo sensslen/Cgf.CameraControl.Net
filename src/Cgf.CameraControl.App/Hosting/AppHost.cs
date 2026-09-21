@@ -84,7 +84,7 @@ public sealed class AppHost : IAsyncDisposable
         var entryIssues = await Core.ReconfigureAsync(config, cancellationToken).ConfigureAwait(false);
         foreach (var issue in entryIssues)
         {
-            Logger.Error("Configuration", issue.ToString());
+            Logger.Error("Configuration", $"{nameof(AppHost)}.{nameof(LoadAsync)} ({path}): {issue}");
         }
 
         Configuration = config;
