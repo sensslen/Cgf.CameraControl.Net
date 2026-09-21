@@ -18,6 +18,53 @@
         TransparencyLevelHint="Mica, AcrylicBlur, Blur"
         WindowDecorationsTheme="{StaticResource CameraControlWindowDecorations}">
 
+  <NativeMenu.Menu>
+    <NativeMenu>
+      <NativeMenuItem Header="{Binding Strings[menu.file]^}">
+        <NativeMenu>
+          <NativeMenuItem Header="{Binding Strings[config.import]^}" Command="{Binding ImportCommand}"
+                          IsEnabled="{Binding CanUseFileMenu}" />
+          <NativeMenuItem Header="{Binding Strings[config.reload]^}" Command="{Binding ReloadCommand}"
+                          IsEnabled="{Binding CanUseFileMenu}" />
+          <NativeMenuItemSeparator />
+          <NativeMenuItem Header="{Binding Strings[edit.mode]^}" Command="{Binding ToggleEditCommand}"
+                          ToggleType="CheckBox" IsChecked="{Binding IsEditing}" IsEnabled="{Binding !IsBusy}" />
+        </NativeMenu>
+      </NativeMenuItem>
+      <NativeMenuItem Header="{Binding Strings[language.label]^}">
+        <NativeMenu>
+          <NativeMenuItem Header="{Binding Languages[0].Display}" Command="{Binding Languages[0].SelectCommand}"
+                          ToggleType="Radio" IsChecked="{Binding Languages[0].IsActive}" />
+          <NativeMenuItem Header="{Binding Languages[1].Display}" Command="{Binding Languages[1].SelectCommand}"
+                          ToggleType="Radio" IsChecked="{Binding Languages[1].IsActive}" />
+          <NativeMenuItem Header="{Binding Languages[2].Display}" Command="{Binding Languages[2].SelectCommand}"
+                          ToggleType="Radio" IsChecked="{Binding Languages[2].IsActive}" />
+          <NativeMenuItem Header="{Binding Languages[3].Display}" Command="{Binding Languages[3].SelectCommand}"
+                          ToggleType="Radio" IsChecked="{Binding Languages[3].IsActive}" />
+          <NativeMenuItem Header="{Binding Languages[4].Display}" Command="{Binding Languages[4].SelectCommand}"
+                          ToggleType="Radio" IsChecked="{Binding Languages[4].IsActive}" />
+          <NativeMenuItem Header="{Binding Languages[5].Display}" Command="{Binding Languages[5].SelectCommand}"
+                          ToggleType="Radio" IsChecked="{Binding Languages[5].IsActive}" />
+          <NativeMenuItem Header="{Binding Languages[6].Display}" Command="{Binding Languages[6].SelectCommand}"
+                          ToggleType="Radio" IsChecked="{Binding Languages[6].IsActive}" />
+          <NativeMenuItem Header="{Binding Languages[7].Display}" Command="{Binding Languages[7].SelectCommand}"
+                          ToggleType="Radio" IsChecked="{Binding Languages[7].IsActive}" />
+          <NativeMenuItem Header="{Binding Languages[8].Display}" Command="{Binding Languages[8].SelectCommand}"
+                          ToggleType="Radio" IsChecked="{Binding Languages[8].IsActive}" />
+          <NativeMenuItem Header="{Binding Languages[9].Display}" Command="{Binding Languages[9].SelectCommand}"
+                          ToggleType="Radio" IsChecked="{Binding Languages[9].IsActive}" />
+          <NativeMenuItem Header="{Binding Languages[10].Display}" Command="{Binding Languages[10].SelectCommand}"
+                          ToggleType="Radio" IsChecked="{Binding Languages[10].IsActive}" />
+        </NativeMenu>
+      </NativeMenuItem>
+      <NativeMenuItem Header="{Binding Strings[menu.help]^}">
+        <NativeMenu>
+          <NativeMenuItem Header="{Binding Strings[licenses.label]^}" Command="{Binding ShowLicensesCommand}" />
+        </NativeMenu>
+      </NativeMenuItem>
+    </NativeMenu>
+  </NativeMenu.Menu>
+
   <Window.Resources>
     <DataTemplate x:Key="MixerTile" x:DataType="vm:MixerViewModel">
       <Border Classes="card">

@@ -42,7 +42,6 @@ public partial class App : Application
             _model.AskToSave = (canSave, issues) => AskWindow.LeavingAsync(window, canSave, issues);
             _model.AskToDelete = (entry, references) => AskWindow.DeletingAsync(window, entry, references);
             _model.AskToAdd = entry => AddEntryWindow.AskAsync(window, entry);
-            SystemMenu.Attach(window, _model);
             desktop.MainWindow = window;
             desktop.ShutdownRequested += OnShutdownRequested;
 
