@@ -1,5 +1,9 @@
+using System.ComponentModel;
+using System.Reactive.Linq;
 using System.Windows.Input;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 
@@ -23,13 +27,6 @@ public static class SystemMenu
 
         Build(window, model);
         Localizer.Current.LanguageChanged += (_, _) => Build(window, model);
-        model.PropertyChanged += (_, changed) =>
-        {
-            if (changed.PropertyName == nameof(MainViewModel.IsEditing))
-            {
-                Build(window, model);
-            }
-        };
     }
 
     private static void Build(Window window, MainViewModel model)
@@ -38,12 +35,21 @@ public static class SystemMenu
         file.Menu.Add(Command(Localizer.Current.Text("config.import"), model.ImportCommand));
         file.Menu.Add(Command(Localizer.Current.Text("config.reload"), model.ReloadCommand));
         file.Menu.Add(new NativeMenuItemSeparator());
-        file.Menu.Add(new NativeMenuItem(Localizer.Current.Text("edit.mode"))
+        var edit = new NativeMenuItem(Localizer.Current.Text("edit.mode"))
         {
             Command = model.ToggleEditCommand,
             ToggleType = MenuItemToggleType.CheckBox,
-            IsChecked = model.IsEditing,
-        });
+        };
+        edit.Bind(
+            NativeMenuItem.IsCheckedProperty,
+            Observable.FromEventPattern<PropertyChangedEventHandler, PropertyChangedEventArgs>(
+                    handler => model.PropertyChanged += handler,
+                    handler => model.PropertyChanged -= handler)
+                .Where(change => change.EventArgs.PropertyName == nameof(MainViewModel.IsEditing))
+                .Select(_ => model.IsEditing)
+                .StartWith(model.IsEditing)
+                .ToBinding());
+        file.Menu.Add(edit);
 
         var languages = new NativeMenuItem(Localizer.Current.Text("language.label")) { Menu = [] };
         foreach (var language in model.Languages)
