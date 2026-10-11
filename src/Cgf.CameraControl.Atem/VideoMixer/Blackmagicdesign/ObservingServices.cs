@@ -60,7 +60,6 @@ internal sealed class ObservingServices : IServices, IAsyncDisposable
     private readonly Action _reconnecting;
     private readonly CancellationToken _stopping;
     private readonly ServiceProvider _provider;
-    private readonly List<StoppingAtemProtocol> _protocols = [];
 
     public ObservingServices(
         IServices inner,
@@ -80,12 +79,8 @@ internal sealed class ObservingServices : IServices, IAsyncDisposable
     public IAtemClient CreateAtemClient() =>
         new ObservingAtemClient(_provider.GetRequiredService<IAtemClient>(), _tap);
 
-    public IAtemProtocol CreateAtemProtocol()
-    {
-        var protocol = new StoppingAtemProtocol(_provider.GetRequiredService<IAtemProtocol>(), _stopping);
-        _protocols.Add(protocol);
-        return protocol;
-    }
+    public IAtemProtocol CreateAtemProtocol() =>
+        new StoppingAtemProtocol(_provider.GetRequiredService<IAtemProtocol>(), _stopping);
 
     public ICommandParser CreateCommandParser() => _inner.CreateCommandParser();
 
@@ -96,15 +91,8 @@ internal sealed class ObservingServices : IServices, IAsyncDisposable
     public IActionLoop StartActionLoop(Func<CancellationToken, Task> loopedAction, string name) =>
         _inner.StartActionLoop(loopedAction, name);
 
-    public async ValueTask DisposeAsync()
-    {
-        foreach (var protocol in _protocols)
-        {
-            await protocol.DisposeAsync().ConfigureAwait(false);
-        }
-
-        await _provider.DisposeAsync().ConfigureAwait(false);
-    }
+    // The provider owns the protocol even when the client's pending handshake cannot disconnect it.
+    public ValueTask DisposeAsync() => _provider.DisposeAsync();
 }
 
 internal sealed class StoppingAtemProtocol(IAtemProtocol inner, CancellationToken stopping) : IAtemProtocol
@@ -147,8 +135,16 @@ internal sealed class ObservingUdpClient(IUdpClient inner, Action reconnecting) 
         return inner.SendAsync(data, cancellationToken);
     }
 
-    public ValueTask<System.Net.Sockets.UdpReceiveResult> ReceiveAsync(CancellationToken cancellationToken = default) =>
-        inner.ReceiveAsync(cancellationToken);
+    public async ValueTask<System.Net.Sockets.UdpReceiveResult> ReceiveAsync(CancellationToken cancellationToken = default)
+    {
+        var received = await inner.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+        if (AtemPacket.FromBytes(received.Buffer).HasFlag(PacketFlag.NewSessionId))
+        {
+            reconnecting();
+        }
+
+        return received;
+    }
 
     public void Dispose() => inner.Dispose();
 }

@@ -47,10 +47,12 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
     private readonly IServices _services;
     private readonly Type? _initCompleteType;
     private readonly CancellationTokenSource _stopping = new();
+    private readonly Lock _stateLock = new();
     private readonly BehaviorSubject<bool> _connected = new(false);
     private readonly Subject<Unit> _stateChanged = new();
     private IAtemSwitcher? _switcher;
     private Task? _startup;
+    private bool _initialized;
 
     public AtemConnection(string ip, ILogger logger, IServices services)
     {
@@ -76,7 +78,10 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
     public Task StartupAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _startup ??= Task.Run(() => ConnectAsync(_stopping.Token));
+        lock (_stateLock)
+        {
+            _startup ??= Task.Run(() => ConnectAsync(_stopping.Token));
+        }
         return Task.CompletedTask;
     }
 
@@ -121,7 +126,11 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
             {
                 Log($"connecting to UDP port {AtemPort}");
                 await switcher.ConnectAsync(cancellationToken).ConfigureAwait(false);
-                Report(true);
+                reportedFailure = false;
+                lock (_stateLock)
+                {
+                    Report(_initialized);
+                }
                 await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -156,33 +165,52 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
     // The switcher replays its whole state on connect, so this also seeds State.
     private void Apply(IDeserializedCommand command)
     {
-        try
+        lock (_stateLock)
         {
-            command.ApplyToState(State);
-            _stateChanged.OnNext(Unit.Default);
-            if (command.GetType() == _initCompleteType && _switcher?.ConnectionState == ConnectionState.Connected)
+            if (_stopping.IsCancellationRequested)
             {
-                Report(true);
+                return;
             }
-        }
-        catch (Exception ex)
-        {
-            Error($"applying {command.GetType().Name} failed - {ex.Message}");
+
+            try
+            {
+                command.ApplyToState(State);
+                _stateChanged.OnNext(Unit.Default);
+                if (command.GetType() == _initCompleteType)
+                {
+                    _initialized = true;
+                    if (_switcher?.ConnectionState == ConnectionState.Connected)
+                    {
+                        Report(true);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Error($"applying {command.GetType().Name} failed - {ex.Message}");
+            }
         }
     }
 
     private void Reconnecting()
     {
-        Report(false);
-        State = new AtemState();
+        lock (_stateLock)
+        {
+            Report(false);
+            _initialized = false;
+            State = new AtemState();
+        }
     }
 
     private void Report(bool connected)
     {
-        if (_connected.Value != connected)
+        lock (_stateLock)
         {
-            _connected.OnNext(connected);
-            Log(connected ? "connected" : "disconnected");
+            if (_connected.Value != connected)
+            {
+                _connected.OnNext(connected);
+                Log(connected ? "connected" : "disconnected");
+            }
         }
     }
 

@@ -92,7 +92,8 @@ public class AtemConnectionTests
         await failure.Task.WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
 
         Assert.False(connection.Connected);
-        Assert.Same(connection, factory.Get("10.0.0.1"));
+        var second = factory.Get("10.0.0.1");
+        Assert.Same(connection, second);
         await factory.ReleaseAsync("10.0.0.1");
         await factory.ReleaseAsync("10.0.0.1").WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
         Assert.True(socket.Disposed);
@@ -113,7 +114,7 @@ public class AtemConnectionTests
         await second.StartupAsync(TestContext.Current.CancellationToken);
         await socket.Started.Task.WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
 
-        socket.Initialize();
+        await socket.InitializeAsync().WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
         await connected.WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
         Assert.True(await second.WhenConnectedChanged.FirstAsync().ToTask());
 
@@ -123,8 +124,26 @@ public class AtemConnectionTests
         Assert.False(await second.WhenConnectedChanged.FirstAsync().ToTask());
 
         var reconnected = first.WhenConnectedChanged.Where(value => value).FirstAsync().ToTask();
-        socket.Initialize();
+        await socket.InitializeAsync().WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
         await reconnected.WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task HandshakeWithoutInitializationStaysDisconnectedAndCanBeUnloaded()
+    {
+        var socket = new TestUdpClient();
+        await using var provider = Services(socket);
+        var factory = new AtemFactory(Substitute.For<ILogger>(), provider.GetRequiredService<IServices>());
+        var connection = factory.Get("10.0.0.1");
+        await connection.StartupAsync(TestContext.Current.CancellationToken);
+        await socket.Started.Task.WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
+
+        socket.BeginSession();
+        await socket.SessionAcknowledged.Task.WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
+
+        Assert.False(connection.Connected);
+        await factory.ReleaseAsync("10.0.0.1").WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
+        Assert.True(socket.Disposed);
     }
 
     [Fact]
@@ -152,9 +171,13 @@ public class AtemConnectionTests
     private sealed class TestUdpClient : IUdpClient
     {
         private readonly Channel<UdpReceiveResult> _received = Channel.CreateUnbounded<UdpReceiveResult>();
+        private readonly Channel<bool> _hellos = Channel.CreateUnbounded<bool>();
+        private readonly Channel<bool> _sessionAcks = Channel.CreateUnbounded<bool>();
         private readonly IPEndPoint _endpoint = new(IPAddress.Parse("10.0.0.1"), 9910);
 
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource SessionAcknowledged { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public int Hellos { get; private set; }
 
@@ -173,10 +196,21 @@ public class AtemConnectionTests
                 throw failure;
             }
 
-            if (AtemPacket.FromBytes(data).HasFlag(PacketFlag.NewSessionId))
+            var packet = AtemPacket.FromBytes(data);
+            if (packet.HasFlag(PacketFlag.NewSessionId))
             {
                 Hellos++;
+                _hellos.Writer.TryWrite(true);
                 Started.TrySetResult();
+            }
+            else if (packet.HasFlag(PacketFlag.AckReply))
+            {
+                if (packet.AckPacketId == 1)
+                {
+                    _sessionAcks.Writer.TryWrite(true);
+                }
+
+                SessionAcknowledged.TrySetResult();
             }
 
             return ValueTask.FromResult(data.Length);
@@ -185,15 +219,26 @@ public class AtemConnectionTests
         public ValueTask<UdpReceiveResult> ReceiveAsync(CancellationToken cancellationToken = default) =>
             _received.Reader.ReadAsync(cancellationToken);
 
-        public void Initialize()
+        public void BeginSession()
         {
             _received.Writer.TryWrite(new UdpReceiveResult(new AtemPacket([])
             {
-                Flags = PacketFlag.NewSessionId, SessionId = 1, PacketId = 1,
+                Flags = PacketFlag.NewSessionId,
+                SessionId = 1,
+                PacketId = 1,
             }.ToBytes(), _endpoint));
+        }
+
+        public async Task InitializeAsync()
+        {
+            await _hellos.Reader.ReadAsync(TestContext.Current.CancellationToken);
+            BeginSession();
+            await _sessionAcks.Reader.ReadAsync(TestContext.Current.CancellationToken);
             _received.Writer.TryWrite(new UdpReceiveResult(new AtemPacket([0, 8, 0, 0, 73, 110, 67, 109])
             {
-                Flags = PacketFlag.AckRequest, SessionId = 1, PacketId = 2,
+                Flags = PacketFlag.AckRequest,
+                SessionId = 1,
+                PacketId = 2,
             }.ToBytes(), _endpoint));
         }
 
