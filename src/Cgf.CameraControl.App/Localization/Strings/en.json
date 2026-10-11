@@ -50,6 +50,7 @@
     "camera": "Camera",
     "enableChangingProgram": "May put an input on air",
     "serialNumber": "Serial number",
+    "gamepadBackend": "Gamepad backend",
     "anyPad": "the first free pad",
     "deadzone": "Deadzone",
     "rumble": "Rumble",

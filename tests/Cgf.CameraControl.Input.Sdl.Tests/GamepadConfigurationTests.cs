@@ -45,6 +45,36 @@ public class GamepadConfigurationTests
     }
 
     [Fact]
+    public void BackendDefaultsToSdlAndHidIsOptIn()
+    {
+        Assert.Equal(GamepadBackend.Sdl, Read(Shipped).Backend);
+        Assert.Equal(GamepadBackend.Hid,
+            Read(Shipped.Replace("\"serialNumber\":", "\"backend\": \"hid\", \"serialNumber\":")).Backend);
+    }
+
+    [Fact]
+    public void UnknownBackendIsRejected()
+    {
+        Assert.Throws<ConfigValidationException>(() =>
+            Read(Shipped.Replace("\"serialNumber\":", "\"backend\": \"guessed\", \"serialNumber\":")));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("----")]
+    public void HidBackendRequiresAnIdentifyingSerial(string? serial)
+    {
+        var config = ConfigLoader.Load($$"""{ "interfaces": [ {{Shipped}} ] }""", out _);
+        var entry = Assert.Single(config.Interfaces);
+        var pad = entry.Deserialize(InterfaceConfigurationContext.Default.GamepadConfiguration);
+        pad.Backend = GamepadBackend.Hid;
+        pad.SerialNumber = serial;
+        var error = Assert.Throws<ConfigValidationException>(() => InterfaceValidation.Bindings(entry, pad));
+        Assert.EndsWith(".serialNumber", error.Path, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReadsADirectConnectionChangeIncludingItsModifierSet()
     {
         var change = Assert.IsType<DirectConnectionChangeConfiguration>(Read(Shipped).ConnectionChange);

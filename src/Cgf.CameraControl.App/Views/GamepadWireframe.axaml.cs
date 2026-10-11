@@ -90,8 +90,8 @@ public partial class GamepadWireframe : UserControl
         Pull(LeftTrigger, state.LeftTrigger, state.IsPressed(GamepadButtons.LeftTrigger));
         Pull(RightTrigger, state.RightTrigger, state.IsPressed(GamepadButtons.RightTrigger));
 
-        Place(LeftKnob, LeftStickX, state.LeftStick);
-        Place(RightKnob, RightStickX, state.RightStick);
+        Place(LeftKnob, LeftStickX, StickOffset(state.LeftStick, isLeftStick: true));
+        Place(RightKnob, RightStickX, StickOffset(state.RightStick, isLeftStick: false));
 
         Say(DPadUpPlate, DPadUpLabel, model.DPadLabels, 0);
         Say(DPadDownPlate, DPadDownLabel, model.DPadLabels, 1);
@@ -146,11 +146,16 @@ public partial class GamepadWireframe : UserControl
                 };
     }
 
-    private static void Place(Ellipse knob, double restingX, StickPosition at)
+    /// Camera-space pan/focus increase leftward, tilt increases downward, and zoom
+    /// increases upward. Screen coordinates increase rightward and downward.
+    public static Point StickOffset(StickPosition at, bool isLeftStick) =>
+        new(-at.X * Travel, (isLeftStick ? at.Y : -at.Y) * Travel);
+
+    private static void Place(Ellipse knob, double restingX, Point offset)
     {
-        knob.Fill = Math.Abs(at.X) > 0.001 || Math.Abs(at.Y) > 0.001 ? Lit : Knob;
-        Canvas.SetLeft(knob, restingX + (at.X * Travel) - (knob.Width / 2));
-        Canvas.SetTop(knob, StickY - (at.Y * Travel) - (knob.Height / 2));
+        knob.Fill = Math.Abs(offset.X) > 0.001 * Travel || Math.Abs(offset.Y) > 0.001 * Travel ? Lit : Knob;
+        Canvas.SetLeft(knob, restingX + offset.X - (knob.Width / 2));
+        Canvas.SetTop(knob, StickY + offset.Y - (knob.Height / 2));
     }
 
     /// An unbound control carries no label, which is what makes the drawing say the same thing the

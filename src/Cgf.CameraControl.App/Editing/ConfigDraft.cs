@@ -29,7 +29,7 @@ public sealed partial class ConfigDraft : ViewModelBase
     [ObservableProperty]
     public partial bool IsDirty { get; set; }
 
-    /// The pads SDL reports right now, offered where a configuration names one. Nothing consumes them
+    /// The pads the backends report right now, offered where a configuration names one. Nothing consumes them
     /// while the mode is on, which is what makes them available to offer.
     public IReadOnlyList<string> Pads { get; private set; } = [];
 

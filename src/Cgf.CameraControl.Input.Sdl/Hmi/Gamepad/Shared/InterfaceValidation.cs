@@ -9,6 +9,22 @@ public static class InterfaceValidation
 {
     public static void Bindings(ConfigEntry entry, GamepadConfiguration config)
     {
+        if (!Enum.IsDefined(config.Backend))
+        {
+            throw new ConfigValidationException($"{entry}.backend", $"Unknown gamepad backend {config.Backend}.");
+        }
+        if (config.Backend == GamepadBackend.Hid)
+        {
+            if (string.IsNullOrWhiteSpace(config.SerialNumber) || !config.SerialNumber.Any(char.IsLetterOrDigit))
+            {
+                throw new ConfigValidationException($"{entry}.serialNumber", "HID backend requires a serial number.");
+            }
+            if (entry.Type.Equals("logitech/F710", StringComparison.OrdinalIgnoreCase) ||
+                entry.Type.Equals("logitech/Rumblepad2", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ConfigValidationException($"{entry}.backend", "HID backend currently supports F310 pads only.");
+            }
+        }
         Names(entry, config, "pad.default", config.Pad.Default.Values);
         Names(entry, config, "pad.alt", config.Pad.Alt?.Values);
         Names(entry, config, "pad.altLower", config.Pad.AltLower?.Values);

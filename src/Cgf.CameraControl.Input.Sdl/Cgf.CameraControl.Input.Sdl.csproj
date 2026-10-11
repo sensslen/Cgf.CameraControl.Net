@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="HidSharp" />
     <PackageReference Include="SDL3-CS" />
     <PackageReference Include="SDL3-CS.Linux" />
     <PackageReference Include="SDL3-CS.MacOS" />

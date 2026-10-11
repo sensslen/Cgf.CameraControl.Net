@@ -7,6 +7,7 @@ using Cgf.CameraControl.Core;
 using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.GenericFactory;
 using Cgf.CameraControl.Core.VideoMixer.Passthrough;
+using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Hid;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Sdl;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,6 +32,7 @@ public sealed class AppHost : IAsyncDisposable
     public AppHost()
     {
         Gamepads = new SdlGamepadSystem(Logger);
+        HidGamepads = new HidGamepadSystem(Logger);
         Core = new CameraControlCore(Logger);
 
         var atemServices = new ServiceCollection().AddAtemSharp().BuildServiceProvider().GetRequiredService<IServices>();
@@ -40,13 +42,15 @@ public sealed class AppHost : IAsyncDisposable
         Core.CameraFactory.AddBuilder(new ObservingCameraBuilder(new ViscaOverIpCameraBuilder(Logger), _cameras));
         Core.MixerFactory.AddBuilder(new AtemBuilder(Logger, atemServices));
         Core.MixerFactory.AddBuilder(new PassthroughBuilder(Logger));
-        Core.HmiFactory.AddBuilder(new GamepadBuilder(Gamepads, Core.MixerFactory, Core.CameraFactory, Logger));
+        Core.HmiFactory.AddBuilder(new GamepadBuilder(Gamepads, Core.MixerFactory, Core.CameraFactory, Logger, HidGamepads));
         Core.HmiFactory.AddBuilder(new KeyboardBuilder(Core.MixerFactory, Core.CameraFactory, _surfaces, Logger));
     }
 
     public UiLogger Logger { get; } = new();
 
     public SdlGamepadSystem Gamepads { get; }
+
+    public HidGamepadSystem HidGamepads { get; }
 
     public CameraControlCore Core { get; }
 
@@ -128,6 +132,7 @@ public sealed class AppHost : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await Core.DisposeAsync().ConfigureAwait(false);
+        await HidGamepads.DisposeAsync().ConfigureAwait(false);
         await Gamepads.DisposeAsync().ConfigureAwait(false);
     }
 }
