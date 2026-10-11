@@ -19,6 +19,7 @@ public sealed class Atem : IVideoMixer
     private readonly BehaviorSubject<PreviewChange> _preview = new(new PreviewChange(-1, false));
     private readonly BehaviorSubject<int> _program = new(-1);
     private readonly IDisposable _subscription;
+    private readonly IDisposable _connectionSubscription;
 
     public Atem(AtemConfiguration config, IAtemConnectionFactory factory)
     {
@@ -26,6 +27,15 @@ public sealed class Atem : IVideoMixer
         _factory = factory;
         _connection = factory.Get(config.Ip);
         _subscription = _connection.WhenStateChanged.Subscribe(_ => UpdateActiveInputs());
+        _connectionSubscription = _connection.WhenConnectionChanged.Subscribe(connected =>
+        {
+            if (!connected)
+            {
+                _preview.OnNext(new PreviewChange(-1, false));
+                _program.OnNext(-1);
+            }
+        });
+        UpdateActiveInputs();
     }
 
     public string ConnectionString => $"{_config.Ip}:{_config.MixEffectBlock}";
@@ -76,6 +86,7 @@ public sealed class Atem : IVideoMixer
     public async ValueTask DisposeAsync()
     {
         _subscription.Dispose();
+        _connectionSubscription.Dispose();
         _preview.Dispose();
         _program.Dispose();
         await _factory.ReleaseAsync(_config.Ip).ConfigureAwait(false);

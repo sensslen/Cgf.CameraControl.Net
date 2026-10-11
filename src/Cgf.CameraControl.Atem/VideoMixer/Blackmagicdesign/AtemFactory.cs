@@ -1,12 +1,8 @@
 using System.Reactive;
 using System.Reactive.Subjects;
-using System.Threading.Tasks.Dataflow;
 using AtemSharp;
 using AtemSharp.Commands;
-using AtemSharp.Communication;
 using AtemSharp.DependencyInjection;
-using AtemSharp.FrameworkAbstraction;
-using AtemSharp.Lib;
 using AtemSharp.State;
 using AtemSharp.State.Macro;
 using Cgf.CameraControl.Core.Logger;
@@ -41,80 +37,31 @@ public interface IAtemConnection
     Task SendAsync(SerializedCommand command);
 }
 
-/// Taps the received command stream on its way to the switcher. AtemSharp offers no state change
-/// notification of any kind, and no way to reach the client an AtemSwitcher built for itself, so the
-/// stream is intercepted by decorating IServices before the switcher is created.
-internal sealed class ObservingAtemClient : IAtemClient
-{
-    private readonly IAtemClient _inner;
-    private readonly BufferBlock<IDeserializedCommand> _forwarded = new();
-    private readonly IDisposable _link;
-
-    public ObservingAtemClient(IAtemClient inner, Action<IDeserializedCommand> tap)
-    {
-        _inner = inner;
-        _link = inner.ReceivedCommands.LinkTo(new ActionBlock<IDeserializedCommand>(command =>
-        {
-            tap(command);
-            _forwarded.Post(command);
-        }));
-    }
-
-    public IReceivableSourceBlock<IDeserializedCommand> ReceivedCommands => _forwarded;
-
-    public Task ConnectAsync(string address, int port) => _inner.ConnectAsync(address, port);
-
-    public Task DisconnectAsync() => _inner.DisconnectAsync();
-
-    public Task SendCommandAsync(SerializedCommand command) => _inner.SendCommandAsync(command);
-
-    public Task SendCommandsAsync(IEnumerable<SerializedCommand> commands) => _inner.SendCommandsAsync(commands);
-
-    public async ValueTask DisposeAsync()
-    {
-        _link.Dispose();
-        _forwarded.Complete();
-        await _inner.DisposeAsync().ConfigureAwait(false);
-    }
-}
-
-internal sealed class ObservingServices(IServices inner, Action<IDeserializedCommand> tap) : IServices
-{
-    public ITimeProvider TimeProvider => inner.TimeProvider;
-
-    public IAtemClient CreateAtemClient() => new ObservingAtemClient(inner.CreateAtemClient(), tap);
-
-    public IAtemProtocol CreateAtemProtocol() => inner.CreateAtemProtocol();
-
-    public ICommandParser CreateCommandParser() => inner.CreateCommandParser();
-
-    public IPacketBuilder CreatePacketBuilder() => inner.CreatePacketBuilder();
-
-    public IUdpClient CreateUdpClient() => inner.CreateUdpClient();
-
-    public IActionLoop StartActionLoop(Func<CancellationToken, Task> loopedAction, string name) =>
-        inner.StartActionLoop(loopedAction, name);
-}
-
 internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
 {
     private const int AtemPort = 9910;
+    private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(1);
 
     private readonly string _ip;
     private readonly ILogger _logger;
-    private readonly IAtemSwitcher _switcher;
+    private readonly IServices _services;
+    private readonly Type? _initCompleteType;
+    private readonly CancellationTokenSource _stopping = new();
     private readonly BehaviorSubject<bool> _connected = new(false);
     private readonly Subject<Unit> _stateChanged = new();
+    private IAtemSwitcher? _switcher;
     private Task? _startup;
 
     public AtemConnection(string ip, ILogger logger, IServices services)
     {
         _ip = ip;
         _logger = logger;
-        _switcher = new Library(new ObservingServices(services, Apply)).CreateAtemSwitcher(ip, AtemPort);
+        _services = services;
+        // InitCompleteCommand is internal to AtemSharp, but the parser exposes its protocol identity.
+        _initCompleteType = services.CreateCommandParser().ParseCommand("InCm", [])?.GetType();
     }
 
-    public AtemState State { get; } = new();
+    public AtemState State { get; private set; } = new();
 
     public bool Connected => _connected.Value;
 
@@ -124,15 +71,23 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
 
     /// Running a macro needs a Macro instance carrying the right id, and Macro.Id has an internal
     /// setter, so the switcher's own macro system is the only way to reach one.
-    public IEnumerable<Macro> Macros => _switcher.Macros;
+    public IEnumerable<Macro> Macros => _switcher is { } switcher ? switcher.Macros : [];
 
-    public Task StartupAsync(CancellationToken cancellationToken) => _startup ??= ConnectAsync(cancellationToken);
+    public Task StartupAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _startup ??= Task.Run(() => ConnectAsync(_stopping.Token));
+        return Task.CompletedTask;
+    }
 
     public async Task SendAsync(SerializedCommand command)
     {
         try
         {
-            await _switcher.SendCommandAsync(command).ConfigureAwait(false);
+            if (Connected && _switcher is { } switcher)
+            {
+                await switcher.SendCommandAsync(command).ConfigureAwait(false);
+            }
         }
         catch (Exception ex)
         {
@@ -142,26 +97,60 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        try
+        await _stopping.CancelAsync().ConfigureAwait(false);
+        if (_startup is not null)
         {
-            await _switcher.DisconnectAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Error($"disconnect failed - {ex.Message}");
+            await _startup.ConfigureAwait(false);
         }
 
-        await _switcher.DisposeAsync().ConfigureAwait(false);
-        _connected.OnNext(false);
+        Report(false);
+        _stopping.Dispose();
         _connected.Dispose();
         _stateChanged.Dispose();
     }
 
     private async Task ConnectAsync(CancellationToken cancellationToken)
     {
-        await _switcher.ConnectAsync(cancellationToken).ConfigureAwait(false);
-        Log("connected");
-        _connected.OnNext(true);
+        var reportedFailure = false;
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            await using var services = new ObservingServices(_services, Apply, Reconnecting, cancellationToken);
+            await using var switcher = new Library(services).CreateAtemSwitcher(_ip, AtemPort);
+            _switcher = switcher;
+            try
+            {
+                Log($"connecting to UDP port {AtemPort}");
+                await switcher.ConnectAsync(cancellationToken).ConfigureAwait(false);
+                Report(true);
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                if (!reportedFailure)
+                {
+                    Error($"connection failed - {ex.Message}");
+                    reportedFailure = true;
+                }
+            }
+            finally
+            {
+                Report(false);
+                _switcher = null;
+            }
+
+            try
+            {
+                await Task.Delay(RetryDelay, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+        }
     }
 
     // The switcher replays its whole state on connect, so this also seeds State.
@@ -171,10 +160,29 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
         {
             command.ApplyToState(State);
             _stateChanged.OnNext(Unit.Default);
+            if (command.GetType() == _initCompleteType && _switcher?.ConnectionState == ConnectionState.Connected)
+            {
+                Report(true);
+            }
         }
         catch (Exception ex)
         {
             Error($"applying {command.GetType().Name} failed - {ex.Message}");
+        }
+    }
+
+    private void Reconnecting()
+    {
+        Report(false);
+        State = new AtemState();
+    }
+
+    private void Report(bool connected)
+    {
+        if (_connected.Value != connected)
+        {
+            _connected.OnNext(connected);
+            Log(connected ? "connected" : "disconnected");
         }
     }
 

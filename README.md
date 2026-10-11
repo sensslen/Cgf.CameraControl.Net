@@ -77,6 +77,12 @@ a laptop.
 A problem with one entry is reported against that entry and the rest still load, so a typo in one
 camera does not take the desk down with it.
 
+ATEM mixers and their interfaces appear even while the switcher is offline. Open the **Mixers**
+drawer to see each configured mix-effect block: yellow means disconnected or still initializing,
+and green means connected. Blocks using the same address share one connection. Connection attempts
+run in the background, reconnect automatically, and stop when the configuration is unloaded.
+The **Atem** log reports connection attempts, failures, and changes in connection status.
+
 Every key of every entry is described in [docs/Configuration](docs/Configuration/README.md).
 [samples/two-operators.json](samples/two-operators.json) puts a pad and two keyboards on one mixer.
 
