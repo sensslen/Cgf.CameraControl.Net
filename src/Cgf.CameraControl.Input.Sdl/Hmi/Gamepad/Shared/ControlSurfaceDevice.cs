@@ -26,6 +26,10 @@ public sealed class ControlSurfaceDevice(int instance) : IGamepadDevice
     // A window is not something that gets unplugged.
     private readonly BehaviorSubject<bool> _connected = new(true);
 
+    // The window outlives every configuration it loads, so a key can still arrive for a surface that
+    // a reload or the editor has already taken down. There is nothing left to drive, so it is dropped.
+    private bool _disposed;
+
     public int Instance { get; } = instance;
 
     public string Description => $"keyboard and mouse[{Instance}]";
@@ -61,6 +65,11 @@ public sealed class ControlSurfaceDevice(int instance) : IGamepadDevice
     /// Pan on X, tilt on Y, both in [-1 .. 1].
     public void Move(double pan, double tilt)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         var position = new StickPosition(pan, tilt);
         _state.OnNext(_state.Value with { LeftStick = position });
         _left.OnNext(position);
@@ -69,21 +78,31 @@ public sealed class ControlSurfaceDevice(int instance) : IGamepadDevice
     /// Focus on X, zoom on Y, both in [-1 .. 1].
     public void Lens(double focus, double zoom)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         var position = new StickPosition(focus, zoom);
         _state.OnNext(_state.Value with { RightStick = position });
         _right.OnNext(position);
     }
 
-    public void Select(ButtonDirection direction) => _connectionChange.OnNext(direction);
+    public void Select(ButtonDirection direction) => Send(_connectionChange, direction);
 
-    public void SelectInput(int input) => _input.OnNext(input);
+    public void SelectInput(int input) => Send(_input, input);
 
-    public void Run(string function) => _function.OnNext(function);
+    public void Run(string function) => Send(_function, function);
 
-    public void Transition(MixerTransition kind) => _transition.OnNext(kind);
+    public void Transition(MixerTransition kind) => Send(_transition, kind);
 
     public void SetModifiers(bool alt, bool altLower)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         var wanted = new AltKeyConfiguration(alt, altLower);
         if (!_modifiers.Value.Equals(wanted))
         {
@@ -98,6 +117,12 @@ public sealed class ControlSurfaceDevice(int instance) : IGamepadDevice
 
     public ValueTask DisposeAsync()
     {
+        if (_disposed)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        _disposed = true;
         _left.Dispose();
         _right.Dispose();
         _connectionChange.Dispose();
@@ -108,5 +133,13 @@ public sealed class ControlSurfaceDevice(int instance) : IGamepadDevice
         _state.Dispose();
         _connected.Dispose();
         return ValueTask.CompletedTask;
+    }
+
+    private void Send<T>(Subject<T> subject, T value)
+    {
+        if (!_disposed)
+        {
+            subject.OnNext(value);
+        }
     }
 }

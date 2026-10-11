@@ -120,8 +120,8 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         try
         {
             var configuration = _host.Configuration;
-            await _host.UnloadAsync(CancellationToken.None).ConfigureAwait(true);
             Clear();
+            await _host.UnloadAsync(CancellationToken.None).ConfigureAwait(true);
             Draft = ConfigDraft.From(configuration, ConnectedPads());
             OnPropertyChanged(nameof(IsEditing));
             OnPropertyChanged(nameof(CanUseFileMenu));
@@ -143,6 +143,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         IsBusy = true;
         try
         {
+            Clear();
             var result = await _host.LoadAsync(path, CancellationToken.None).ConfigureAwait(true);
             ConfigPath = result.Path;
             Rebuild();
@@ -442,6 +443,10 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     private void Clear()
     {
+        // The editor and a reload both take the interfaces down; a selection left on one of them
+        // would keep routing keys to a surface that no longer exists.
+        SelectedInterface = null;
+
         foreach (var mixer in Mixers)
         {
             mixer.PropertyChanged -= OnChildChanged;
