@@ -44,8 +44,8 @@ public readonly record struct GamepadState(
 }
 
 /// A pad reduced to what the control surface actually uses. The TypeScript build had one class per
-/// controller model because node-gamepad reported raw HID; SDL normalises the layout, so the button
-/// mapping lives in one place and everything above this interface is model independent.
+/// controller model because node-gamepad reported raw HID. Both the SDL and HID backends normalise
+/// their input before it reaches this interface, keeping the control surface model independent.
 public interface IGamepadDevice : IAsyncDisposable
 {
     string Description { get; }

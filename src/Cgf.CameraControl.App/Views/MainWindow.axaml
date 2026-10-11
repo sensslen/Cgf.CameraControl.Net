@@ -67,32 +67,30 @@
 
   <Window.Resources>
     <DataTemplate x:Key="MixerTile" x:DataType="vm:MixerViewModel">
-      <Border Classes="card">
-        <StackPanel>
-          <StackPanel Orientation="Horizontal">
-            <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
-            <TextBlock Text="{Binding ConnectionString}" />
-          </StackPanel>
-          <TextBlock Classes="detail" Margin="16,2,0,0">
-            <Run Text="{Binding [mixer.preview]^, Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Preview}" />
-            <Run Text="   " /><Run Text="{Binding [mixer.program]^, Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Program}" />
-          </TextBlock>
-          <TextBlock Classes="detail" Margin="16,0,0,0" Text="{Binding [mixer.onAir]^, Source={x:Static loc:Localizer.Current}}"
-                     IsVisible="{Binding IsPreviewOnAir}" />
-        </StackPanel>
-      </Border>
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,2" ToolTip.Tip="{Binding ConnectionString}">
+        <Border Grid.Column="0" Classes="lamp" Classes.connected="{Binding IsConnected}" />
+        <TextBlock Grid.Column="1" Text="{Binding ConnectionString}" TextTrimming="CharacterEllipsis"
+                   VerticalAlignment="Center" />
+        <TextBlock Grid.Column="2" Classes="detail" Margin="8,0,0,0" VerticalAlignment="Center">
+          <Run Text="{Binding [mixer.preview]^, Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Preview}" />
+          <Run Text="  " /><Run Text="{Binding [mixer.program]^, Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Program}" />
+        </TextBlock>
+        <TextBlock Grid.Column="3" Classes="detail" Margin="8,0,0,0" VerticalAlignment="Center"
+                   Text="{Binding [mixer.onAir]^, Source={x:Static loc:Localizer.Current}}"
+                   IsVisible="{Binding IsPreviewOnAir}" />
+      </Grid>
     </DataTemplate>
 
+    <!-- One line per camera, so a full rig fits in a glance; the full address stays in the tooltip
+         when the line has to cut it short. -->
     <DataTemplate x:Key="CameraTile" x:DataType="vm:CameraViewModel">
-      <Border Classes="card">
-        <StackPanel>
-          <StackPanel Orientation="Horizontal">
-            <Border Classes="lamp" Classes.connected="{Binding IsConnected}" />
-            <TextBlock Text="{Binding ConnectionString}" TextTrimming="CharacterEllipsis" />
-          </StackPanel>
-          <TextBlock Classes="detail" Margin="16,2,0,0" Text="{Binding MovementText}" />
-        </StackPanel>
-      </Border>
+      <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2" ToolTip.Tip="{Binding ConnectionString}">
+        <Border Grid.Column="0" Classes="lamp" Classes.connected="{Binding IsConnected}" />
+        <TextBlock Grid.Column="1" Text="{Binding ConnectionString}" TextTrimming="CharacterEllipsis"
+                   VerticalAlignment="Center" />
+        <TextBlock Grid.Column="2" Classes="detail" Margin="8,0,0,0" VerticalAlignment="Center"
+                   Text="{Binding MovementText}" />
+      </Grid>
     </DataTemplate>
 
     <!-- One interface, drawn. A pad is watched and a keyboard is worked, which is the whole
@@ -283,6 +281,41 @@
 
     <DockPanel Grid.Row="3" Margin="16,0,16,0">
 
+      <!-- Nothing is connected while the configuration is being edited, so there is nothing for the
+           two drawers to report. They open into the interface area rather than the log's, so the
+           log stays in sight while they are out. -->
+      <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,12,*" Margin="0,8,0,0"
+            IsVisible="{Binding !IsEditing}">
+        <Expander Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                  IsExpanded="{Binding AreDevicesExpanded, Mode=TwoWay}">
+          <Expander.Header>
+            <StackPanel Orientation="Horizontal">
+              <Border Classes="lamp" Classes.connected="{Binding AllMixersConnected}" />
+              <TextBlock Text="{Binding Strings[panel.mixers]^}" />
+            </StackPanel>
+          </Expander.Header>
+          <ScrollViewer MaxHeight="180" HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
+            <ItemsControl Padding="0,0,8,0" ItemsSource="{Binding Mixers}"
+                          ItemTemplate="{StaticResource MixerTile}" />
+          </ScrollViewer>
+        </Expander>
+        <Expander Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                  IsExpanded="{Binding AreDevicesExpanded, Mode=TwoWay}">
+          <Expander.Header>
+            <StackPanel Orientation="Horizontal">
+              <Border Classes="lamp" Classes.connected="{Binding AllCamerasConnected}" />
+              <TextBlock Text="{Binding Strings[panel.cameras]^}" />
+            </StackPanel>
+          </Expander.Header>
+          <ScrollViewer MaxHeight="180" HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
+            <ItemsControl Padding="0,0,8,0" ItemsSource="{Binding Cameras}"
+                          ItemTemplate="{StaticResource CameraTile}" />
+          </ScrollViewer>
+        </Expander>
+      </Grid>
+
       <!-- Every collection in the file, each with its own add at the foot of it. One selection between
            the three, because one editor fills the area they all point at. -->
       <Border DockPanel.Dock="Left" Width="260" IsVisible="{Binding IsEditing}"
@@ -354,30 +387,6 @@
     <GridSplitter Grid.Row="4" Height="6" HorizontalAlignment="Stretch" />
 
     <DockPanel Grid.Row="5" Margin="16,0,16,16">
-
-      <!-- Nothing is connected while the configuration is being edited, so there is nothing for the
-           two drawers to report. -->
-      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,12,*" Margin="0,0,0,8"
-            IsVisible="{Binding !IsEditing}">
-        <Expander Grid.Column="0" HorizontalAlignment="Stretch">
-          <Expander.Header>
-            <StackPanel Orientation="Horizontal">
-              <Border Classes="lamp" Classes.connected="{Binding AllMixersConnected}" />
-              <TextBlock Text="{Binding Strings[panel.mixers]^}" />
-            </StackPanel>
-          </Expander.Header>
-          <ItemsControl ItemsSource="{Binding Mixers}" ItemTemplate="{StaticResource MixerTile}" />
-        </Expander>
-        <Expander Grid.Column="2" HorizontalAlignment="Stretch">
-          <Expander.Header>
-            <StackPanel Orientation="Horizontal">
-              <Border Classes="lamp" Classes.connected="{Binding AllCamerasConnected}" />
-              <TextBlock Text="{Binding Strings[panel.cameras]^}" />
-            </StackPanel>
-          </Expander.Header>
-          <ItemsControl ItemsSource="{Binding Cameras}" ItemTemplate="{StaticResource CameraTile}" />
-        </Expander>
-      </Grid>
 
       <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" DataContext="{Binding Log}"
             x:DataType="vm:LogViewModel">

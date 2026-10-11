@@ -39,10 +39,43 @@ panel. It is the switch for a desk that frames shots while somebody else cuts.
 
 | Key | Default | Means |
 | --- | --- | --- |
+| `backend` | `sdl` | `sdl` for SDL's controller mappings; `hid` for direct, serial-addressed F310 input |
 | `serialNumber` | absent | claim only the pad reporting this serial; absent takes the first free pad |
 | `deadzone` | `0.05` | stick travel ignored around centre, so the cameras do not drift |
 | `rumble` | `true` | whether the pad is allowed to buzz |
 | `pad` | `{}` | which named function each face button runs |
+
+### Choosing a gamepad backend
+
+Existing configurations continue to use SDL. Set `"backend": "hid"` on a gamepad
+entry to use HidSharp instead. The HID backend currently supports Logitech F310
+pads in **D mode only**, requires a non-empty `serialNumber`, and has no rumble.
+It opens the exact HID device reporting that serial, so enumeration order, USB
+port changes and restarts do not change which pad drives which interface.
+Duplicate serial claims are rejected; absent devices remain disconnected and are
+retried until the matching pad appears. Unsupported report layouts are logged
+and never decoded as an F310.
+
+The F310 byte layout follows
+[`sensslen/node-gamepad`'s F310 definition](https://github.com/sensslen/node-gamepad/blob/master/src/controllers/logitech/gamepadf310.json).
+The two centre values, 127 and 128, remain neutral as in the original TypeScript
+camera controller.
+
+On macOS, SDL's IOKit backend currently omits both serial numbers and device paths,
+even when macOS exposes them. The HID backend works around that limitation without
+guessing which SDL device belongs to which operator. The application also disables
+SDL's Apple GameController backend on macOS so IOKit can detect generic D-mode HID
+pads. SDL suppresses an IOKit device when Apple's `supportsHIDDevice` says it is
+supported, to avoid duplicate controllers. On the tested Mac, that call returns
+true for both F310s while `GCController.controllers` is empty, leaving neither
+backend exposing them.
+On an F310, change the X/D switch **before plugging it in**; changing it while
+connected does not change the USB mode until the pad is replugged.
+
+HidSharp supports Windows, macOS and Linux without a separately installed HIDAPI
+library. Linux may require a udev rule granting the user access to the pad's
+`hidraw` node. Only macOS F310 hardware has been exercised here. Do not configure
+the same physical pad through both backends at once.
 
 The left stick pans and tilts, the right stick zooms and focuses, the direction pad moves the
 preview selection through `connectionChange`, the right shoulder cuts and the right trigger autos.

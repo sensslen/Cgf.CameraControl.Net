@@ -4,9 +4,8 @@ using SDL3;
 
 namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Sdl;
 
-/// Translates SDL's normalised axes and buttons into the control surface. This is the only place
-/// that knows a pad exists: the TypeScript build needed a class per controller model because
-/// node-gamepad reported raw HID, and SDL's mapping database removes that entirely.
+/// Translates normalised axes and buttons into the control surface. SDL supplies these directly;
+/// the HID backend decodes its controller's reports into the same axes and button identifiers.
 ///
 /// The bindings match the F310 and Rumblepad 2 they replace. Every face button is bound even though
 /// the F310 class left the north button unused, because the Rumblepad 2 class bound all four and

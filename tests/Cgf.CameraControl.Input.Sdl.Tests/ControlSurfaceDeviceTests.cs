@@ -9,6 +9,22 @@ public class ControlSurfaceDeviceTests
     {
         private readonly ControlSurfaceDevice _device = new(1);
 
+        // A key can still reach a surface that a reload or the editor has taken down.
+        [Fact]
+        public async Task InputAfterDisposeIsIgnored()
+        {
+            await _device.DisposeAsync();
+
+            _device.Move(1, 1);
+            _device.Lens(1, 1);
+            _device.Select(ButtonDirection.Up);
+            _device.SelectInput(1);
+            _device.Run("lower");
+            _device.Transition(MixerTransition.Cut);
+            _device.SetModifiers(true, false);
+            await _device.DisposeAsync();
+        }
+
         [Fact]
         public void MovementIsPanOnXAndTiltOnY()
         {

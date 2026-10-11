@@ -16,7 +16,15 @@ public sealed class AtemBuilder(ILogger logger, IServices services) : IBuilder<I
     {
         var config = entry.Deserialize(AtemConfigurationContext.Default.AtemConfiguration);
         var atem = new Atem(config, _atemFactory);
-        await atem.StartupAsync(cancellationToken).ConfigureAwait(false);
-        return atem;
+        try
+        {
+            await atem.StartupAsync(cancellationToken).ConfigureAwait(false);
+            return atem;
+        }
+        catch
+        {
+            await atem.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
     }
 }

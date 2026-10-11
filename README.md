@@ -77,6 +77,12 @@ a laptop.
 A problem with one entry is reported against that entry and the rest still load, so a typo in one
 camera does not take the desk down with it.
 
+ATEM mixers and their interfaces appear even while the switcher is offline. Open the **Mixers**
+drawer to see each configured mix-effect block: yellow means disconnected or still initializing,
+and green means connected. Blocks using the same address share one connection. Connection attempts
+run in the background, reconnect automatically, and stop when the configuration is unloaded.
+The **Atem** log reports connection attempts, failures, and changes in connection status.
+
 Every key of every entry is described in [docs/Configuration](docs/Configuration/README.md).
 [samples/two-operators.json](samples/two-operators.json) puts a pad and two keyboards on one mixer.
 
@@ -145,6 +151,12 @@ against and what a VISCA camera has to accept to work at all.
 SDL normalises every controller to this one layout, so `gamepad` is the only interface type that
 matters. The old `logitech/F310`, `logitech/F710` and `logitech/Rumblepad2` strings still load, but
 they are labels now rather than behaviour.
+
+SDL remains the default backend. For serial-addressed Logitech F310 pads on macOS,
+set `"backend": "hid"` on the gamepad entry; this reads the exact device through
+HidSharp rather than relying on SDL's enumeration order. It requires `serialNumber`
+and D mode (replug after changing the switch), and does not support rumble.
+See [choosing a gamepad backend](docs/Configuration/Interfaces.md#choosing-a-gamepad-backend).
 
 ### The keyboard panel
 

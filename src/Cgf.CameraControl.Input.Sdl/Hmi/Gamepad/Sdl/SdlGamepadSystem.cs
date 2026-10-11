@@ -97,6 +97,11 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
         {
             // A camera desk is operated with the window in the background more often than not.
             SDL.SetHint(SDL.Hints.JoystickAllowBackgroundEvents, "1");
+            if (OperatingSystem.IsMacOS())
+            {
+                // Apple's GameController backend suppresses IOKit devices such as the F310.
+                SDL.SetHint(SDL.Hints.JoystickMFI, "0");
+            }
             if (!SDL.Init(SDL.InitFlags.Gamepad))
             {
                 // SDL_Init leaves up whatever came up before it failed.

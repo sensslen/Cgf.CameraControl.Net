@@ -73,6 +73,11 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     public bool AllCamerasConnected => Cameras.Count > 0 && Cameras.All(camera => camera.IsConnected);
 
+    /// The mixer and camera drawers open and shut together: they sit side by side, and one open
+    /// next to one shut only leaves a hole.
+    [ObservableProperty]
+    public partial bool AreDevicesExpanded { get; set; }
+
     [ObservableProperty]
     public partial string ConfigPath { get; set; } = string.Empty;
 
@@ -115,8 +120,8 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         try
         {
             var configuration = _host.Configuration;
-            await _host.UnloadAsync(CancellationToken.None).ConfigureAwait(true);
             Clear();
+            await _host.UnloadAsync(CancellationToken.None).ConfigureAwait(true);
             Draft = ConfigDraft.From(configuration, ConnectedPads());
             OnPropertyChanged(nameof(IsEditing));
             OnPropertyChanged(nameof(CanUseFileMenu));
@@ -138,6 +143,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         IsBusy = true;
         try
         {
+            Clear();
             var result = await _host.LoadAsync(path, CancellationToken.None).ConfigureAwait(true);
             ConfigPath = result.Path;
             Rebuild();
@@ -302,7 +308,8 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     /// Only pads that report a serial: one that does not cannot be named in a configuration, so
     /// offering it would be offering something the file cannot hold.
     private IReadOnlyList<string> ConnectedPads() =>
-        [.. _host.Gamepads.Present.Select(pad => pad.Info.Serial).OfType<string>().Distinct(StringComparer.Ordinal)];
+        [.. _host.Gamepads.Present.Select(pad => pad.Info.Serial).OfType<string>()
+            .Concat(_host.HidGamepads.SerialNumbers).Distinct(StringComparer.Ordinal)];
 
     private void Select(EntryDraft entry)
     {
@@ -436,6 +443,10 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     private void Clear()
     {
+        // The editor and a reload both take the interfaces down; a selection left on one of them
+        // would keep routing keys to a surface that no longer exists.
+        SelectedInterface = null;
+
         foreach (var mixer in Mixers)
         {
             mixer.PropertyChanged -= OnChildChanged;

@@ -19,6 +19,36 @@ public class AtemTests
     public class Selection : AtemTests
     {
         [Fact]
+        public void ABlockCreatedAfterInitializationReadsTheExistingSelection()
+        {
+            _connection.Push(d => d.ProgramInput(1, 4));
+            _connection.Push(d => d.PreviewInput(1, 3));
+            var atem = Build(mixEffectBlock: 1);
+            var preview = new List<PreviewChange>();
+            var program = new List<int>();
+            using var previewSubscription = atem.WhenPreviewChanged.Subscribe(preview.Add);
+            using var programSubscription = atem.WhenProgramChanged.Subscribe(program.Add);
+
+            Assert.Equal(new PreviewChange(3, false), Assert.Single(preview));
+            Assert.Equal(4, Assert.Single(program));
+        }
+
+        [Fact]
+        public void DisconnectClearsThePreviousSelection()
+        {
+            var (atem, seen) = Observe();
+            var program = new List<int>();
+            using var subscription = atem.WhenProgramChanged.Subscribe(program.Add);
+            _connection.Push(d => d.ProgramInput(0, 4));
+            _connection.Push(d => d.PreviewInput(0, 3));
+
+            _connection.Connected = false;
+
+            Assert.Equal(new PreviewChange(-1, false), seen[^1]);
+            Assert.Equal(-1, program[^1]);
+        }
+
+        [Fact]
         public void PreviewChangeReportsTheNewInput()
         {
             var (atem, seen) = Observe();

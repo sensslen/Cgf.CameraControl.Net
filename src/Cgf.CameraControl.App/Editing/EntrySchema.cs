@@ -50,6 +50,7 @@ internal static class EntrySchema
             ],
             "gamepad" =>
             [
+                new ChoiceField(entry, "backend", "edit.gamepadBackend", ["sdl", "hid"], "sdl"),
                 new NumberField(entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
                 new MapField(entry, "cameraMap", "edit.cameraMap", "edit.input", "edit.camera"),
                 new SwitchField(entry, "enableChangingProgram", "edit.enableChangingProgram", fallback: true),

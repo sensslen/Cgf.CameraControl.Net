@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Cgf.CameraControl.Core\Cgf.CameraControl.Core.csproj" />
+    <InternalsVisibleTo Include="Cgf.CameraControl.Atem.Tests" />
   </ItemGroup>
 
 </Project>

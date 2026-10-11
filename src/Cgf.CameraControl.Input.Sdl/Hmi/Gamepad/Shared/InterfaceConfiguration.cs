@@ -45,6 +45,8 @@ public abstract record InterfaceConfiguration
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record GamepadConfiguration : InterfaceConfiguration
 {
+    public GamepadBackend Backend { get; set; } = GamepadBackend.Sdl;
+
     /// When set, only the pad reporting this serial is claimed, and no other pad is ever substituted.
     /// When absent, the first pad not already claimed by another interface is used.
     public string? SerialNumber { get; set; }
@@ -57,6 +59,14 @@ public sealed record GamepadConfiguration : InterfaceConfiguration
     public bool Rumble { get; set; } = true;
 
     public PadBindings Pad { get; set; } = new();
+}
+
+public enum GamepadBackend
+{
+    [JsonStringEnumMemberName("sdl")]
+    Sdl,
+    [JsonStringEnumMemberName("hid")]
+    Hid,
 }
 
 /// Which named function each face button runs, per modifier.

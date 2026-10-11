@@ -47,7 +47,8 @@ IGNORED = [
     "runtime.*.Microsoft.DotNet.ILCompiler",
     "Microsoft.NET.ILLink.Tasks",
 ]
-ALLOWED = "MIT;Zlib;BSD-3-Clause"
+ALLOWED = "MIT;Zlib;BSD-3-Clause;Apache-2.0"
+OVERRIDES = ROOT / "packaging/licenses/package-overrides.json"
 
 # The asset groups a package has to fill for one byte of it to reach the binary.
 SHIPPING = ("compile", "runtime", "native", "resource", "runtimeTargets")
@@ -55,7 +56,8 @@ SHIPPING = ("compile", "runtime", "native", "resource", "runtimeTargets")
 
 def nuget_license(*arguments: str) -> None:
     subprocess.run(
-        ["dotnet", "nuget-license", "-i", PROJECT, "-t", "-ignore", ";".join(ignored), "-a", ALLOWED, *arguments],
+        ["dotnet", "nuget-license", "-i", PROJECT, "-t", "-ignore", ";".join(ignored),
+         "-a", ALLOWED, "-override", str(OVERRIDES), *arguments],
         cwd=ROOT,
         check=True,
     )
