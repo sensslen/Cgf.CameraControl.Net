@@ -50,7 +50,7 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
     private readonly Lock _stateLock = new();
     private readonly BehaviorSubject<bool> _connected = new(false);
     private readonly Subject<Unit> _stateChanged = new();
-    private IAtemSwitcher? _switcher;
+    private volatile IAtemSwitcher? _switcher;
     private Task? _startup;
     private bool _initialized;
 
@@ -131,6 +131,8 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
                 {
                     Report(_initialized);
                 }
+                // AtemSharp's protocol owns reconnects; the switcher exposes neither a disconnect
+                // event nor state transitions for them, so do not start a competing retry loop.
                 await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -199,6 +201,7 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
             Report(false);
             _initialized = false;
             State = new AtemState();
+            _stateChanged.OnNext(Unit.Default);
         }
     }
 

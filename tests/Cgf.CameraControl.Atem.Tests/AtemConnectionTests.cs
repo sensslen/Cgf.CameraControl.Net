@@ -174,12 +174,13 @@ public class AtemConnectionTests
         private readonly Channel<bool> _hellos = Channel.CreateUnbounded<bool>();
         private readonly Channel<bool> _sessionAcks = Channel.CreateUnbounded<bool>();
         private readonly IPEndPoint _endpoint = new(IPAddress.Parse("10.0.0.1"), 9910);
+        private int _hellosCount;
 
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public TaskCompletionSource SessionAcknowledged { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public int Hellos { get; private set; }
+        public int Hellos => Volatile.Read(ref _hellosCount);
 
         public bool Disposed { get; private set; }
 
@@ -199,7 +200,7 @@ public class AtemConnectionTests
             var packet = AtemPacket.FromBytes(data);
             if (packet.HasFlag(PacketFlag.NewSessionId))
             {
-                Hellos++;
+                Interlocked.Increment(ref _hellosCount);
                 _hellos.Writer.TryWrite(true);
                 Started.TrySetResult();
             }
