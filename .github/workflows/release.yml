@@ -287,6 +287,23 @@ jobs:
     env:
       WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
     steps:
+      # wingetcreate submits from the token owner's fork of winget-pkgs and gives up when that fork
+      # has fallen too far behind upstream to sync, which a fork touched once per release always
+      # does. A fork that does not exist yet is left for wingetcreate to create.
+      - name: Sync the winget-pkgs fork
+        if: ${{ env.WINGET_TOKEN != '' }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ env.WINGET_TOKEN }}
+        run: |
+          $owner = gh api user --jq .login
+          gh api "repos/$owner/winget-pkgs" --silent 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            echo "no winget-pkgs fork under $owner yet"
+            exit 0
+          }
+          gh api -X POST "repos/$owner/winget-pkgs/merge-upstream" -f branch=master --jq .message
+
       - name: Submit to winget
         if: ${{ env.WINGET_TOKEN != '' }}
         shell: pwsh
