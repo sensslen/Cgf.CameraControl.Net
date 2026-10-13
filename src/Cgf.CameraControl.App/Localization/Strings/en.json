@@ -110,5 +110,10 @@
     "transition": "Transition",
     "program": "Program",
     "preview": "Preview"
+  },
+  "pad": {
+    "input": "Input {0}",
+    "alt": "Hold for alt",
+    "altLower": "Hold for alt lower"
   }
 }

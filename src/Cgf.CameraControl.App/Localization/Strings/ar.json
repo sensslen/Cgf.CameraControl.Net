@@ -23,7 +23,7 @@
     "discard": "تجاهل",
     "cancel": "إلغاء",
     "leaveTitle": "الخروج من وضع التحرير",
-    "leaveQuestion": "هل تحفظ التغييرات على الإعدادات؟",
+    "leaveQuestion": "هل تريد حفظ التغييرات على الإعدادات؟",
     "leaveBlocked": "لا يمكن الحفظ قبل معالجة ما يلي:",
     "deleteTitle": "حذف",
     "deleteQuestion": "حذف {0}؟",
@@ -43,13 +43,14 @@
     "showTallyLight": "إظهار ضوء مؤشر البث",
     "connectionUrl": "عنوان وحدة التحكم",
     "connectionPort": "المنفذ التسلسلي",
-    "mixEffectBlock": "كتلة mix effect",
+    "mixEffectBlock": "كتلة M/E",
     "videoMixer": "خلاط الفيديو",
     "cameraMap": "الكاميرات خلف المداخل",
     "input": "المدخل",
     "camera": "الكاميرا",
     "enableChangingProgram": "يمكنه وضع مدخل على الهواء",
     "serialNumber": "الرقم التسلسلي",
+    "gamepadBackend": "مكتبة ذراع التحكم",
     "anyPad": "أول ذراع تحكم متاحة",
     "deadzone": "المنطقة الميتة",
     "rumble": "الاهتزاز",
@@ -62,7 +63,7 @@
     "issue.field": "{0}: {1} {2}",
     "issue.repeatedInstance": "إدخالان ضمن {0} يطالبان بالمثيل {1}.",
     "issue.noCamera": "{0} يشير إلى الكاميرا {1} وهي غير مُعدَّة.",
-    "issue.noMixer": "{0} يسمي خلاط الفيديو {1} وهو غير مُعدّ.",
+    "issue.noMixer": "{0} يشير إلى خلاط الفيديو {1} وهو غير مُعدّ.",
     "issue.noFunction": "{0} يربط \"{1}\" وهي ليست من وظائفه."
   },
   "panel": {
@@ -70,11 +71,11 @@
     "cameras": "الكاميرات",
     "interfaces": "الواجهات",
     "log": "السجل",
-    "unassigned": "لا تقوده أي واجهة"
+    "unassigned": "لا تتحكم به أي واجهة"
   },
   "interface": {
     "disconnected": "غير متصل",
-    "clickHint": "انقر على واجهة لفتح نافذة التحكم الخاصة بها",
+    "clickHint": "اختر واجهة للتحكم بها",
     "padOnly": "واجهة ذراع التحكم تُدار بذراعها؛ لإدارتها من هنا أعدّ واجهة لوحة مفاتيح على الخلاط نفسه"
   },
   "mixer": {
@@ -101,7 +102,7 @@
     "project": "المشروع:"
   },
   "surface": {
-    "panTilt": "التحريك الأفقي والرأسي",
+    "panTilt": "التحريك والإمالة",
     "zoomFocus": "التقريب والتركيز",
     "zoom": "التقريب",
     "focus": "التركيز",
@@ -109,5 +110,10 @@
     "transition": "الانتقال",
     "program": "البث",
     "preview": "المعاينة"
+  },
+  "pad": {
+    "input": "المدخل {0}",
+    "alt": "اضغط مطولاً لـ alt",
+    "altLower": "اضغط مطولاً لـ alt lower"
   }
 }

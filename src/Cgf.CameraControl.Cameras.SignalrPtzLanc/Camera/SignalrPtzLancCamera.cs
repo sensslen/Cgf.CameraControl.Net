@@ -5,9 +5,14 @@ namespace Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
 
 public sealed class SignalrPtzLancCamera : ICameraConnection
 {
+    /// A controller that keeps refusing would otherwise be asked again as fast as it can answer,
+    /// and every failure logged on the way.
+    public static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(250);
+
     private readonly SignalrPtzLancCameraConfiguration _config;
     private readonly ISignalrStateTransport _transport;
     private readonly ILogger _logger;
+    private readonly TimeProvider _time;
     private readonly Lock _gate = new();
     private readonly CancellationTokenSource _stopping = new();
     private readonly IDisposable _connection;
@@ -20,11 +25,13 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
     public SignalrPtzLancCamera(
         SignalrPtzLancCameraConfiguration config,
         ISignalrStateTransport transport,
-        ILogger logger)
+        ILogger logger,
+        TimeProvider? time = null)
     {
         _config = config;
         _transport = transport;
         _logger = logger;
+        _time = time ?? TimeProvider.System;
         _connection = transport.WhenConnectedChanged.Subscribe(OnConnectionChanged);
         transport.Start();
     }
@@ -120,6 +127,20 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
 
             // The controller rejects an update it could not apply, so the state is offered again
             // rather than left behind on a camera that is still moving.
+            try
+            {
+                await Task.Delay(RetryDelay, _time, _stopping.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                lock (_gate)
+                {
+                    _transmitting = false;
+                }
+
+                return;
+            }
+
             lock (_gate)
             {
                 _pending = true;

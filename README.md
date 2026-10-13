@@ -21,8 +21,8 @@ which is TypeScript and headless. It reads the same configuration files.
 - **Runs the switcher.** Cut, auto, keyer toggles, macros, and a macro toggle that picks one of two
   macros from the live state of a keyer or an auxiliary output.
 - **Lights the tally.** Cameras that carry a tally light follow the preview and program buses.
-- **Shows what is happening.** Select an interface and the window draws it: a pad as a wireframe
-  whose buttons light as they are pressed, labelled with what each one does right now. Mixers and
+- **Shows what is happening.** Select an interface and the window draws it: a pad with the symbols
+  printed on it, lit as they are pressed, and a legend of what each one does right now. Mixers and
   cameras sit underneath with one lamp each, and a log you can filter by component.
 - **Runs without a controller.** A keyboard interface is a small mixer panel: a program and a preview
   row of the inputs, cut and auto, every configured function, a mouse pad for pan and tilt and two

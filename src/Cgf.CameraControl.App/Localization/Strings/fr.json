@@ -20,9 +20,9 @@
     "add": "Ajouter",
     "delete": "Supprimer",
     "save": "Enregistrer",
-    "discard": "Abandonner",
+    "discard": "Ne pas enregistrer",
     "cancel": "Annuler",
-    "leaveTitle": "Quitter le mode modification",
+    "leaveTitle": "Quitter le mode édition",
     "leaveQuestion": "Enregistrer les modifications de la configuration ?",
     "leaveBlocked": "Impossible d'enregistrer tant que ceci n'est pas réglé :",
     "deleteTitle": "Supprimer",
@@ -43,27 +43,28 @@
     "showTallyLight": "Afficher le voyant tally",
     "connectionUrl": "URL du contrôleur",
     "connectionPort": "Port série",
-    "mixEffectBlock": "Bloc mix effect",
+    "mixEffectBlock": "Bloc M/E",
     "videoMixer": "Mélangeur vidéo",
     "cameraMap": "Caméras derrière les entrées",
     "input": "Entrée",
     "camera": "Caméra",
     "enableChangingProgram": "Peut mettre une entrée à l'antenne",
     "serialNumber": "Numéro de série",
+    "gamepadBackend": "Backend de manette",
     "anyPad": "la première manette libre",
     "deadzone": "Zone morte",
     "rumble": "Vibration",
     "required": "est obligatoire",
     "notANumber": "n'est pas un nombre",
     "tooSmall": "doit valoir au moins {0}",
-    "outOfRange": "doit être compris entre {0} et {1}",
+    "outOfRange": "doit être entre {0} et {1}",
     "mapNeedsNumbers": "chaque ligne demande deux nombres",
     "mapRepeatsAnInput": "une entrée est listée deux fois",
     "issue.field": "{0} : {1} {2}",
     "issue.repeatedInstance": "Deux entrées sous {0} revendiquent l'instance {1}.",
     "issue.noCamera": "{0} pointe vers la caméra {1}, qui n'est pas configurée.",
-    "issue.noMixer": "{0} nomme le mélangeur vidéo {1}, qui n'est pas configuré.",
-    "issue.noFunction": "{0} lie « {1} », qui n'est pas une de ses fonctions."
+    "issue.noMixer": "{0} fait référence au mélangeur vidéo {1}, qui n'est pas configuré.",
+    "issue.noFunction": "{0} associe « {1} », qui ne fait pas partie de ses fonctions."
   },
   "panel": {
     "mixers": "Mélangeurs vidéo",
@@ -74,13 +75,13 @@
   },
   "interface": {
     "disconnected": "non connectée",
-    "clickHint": "cliquez sur une interface pour ouvrir sa fenêtre de commande",
+    "clickHint": "sélectionnez une interface pour la piloter",
     "padOnly": "une interface manette est pilotée par sa manette ; configurez une interface clavier sur le même mélangeur pour la piloter d'ici"
   },
   "mixer": {
-    "preview": "prévisualisation",
+    "preview": "aperçu",
     "program": "programme",
-    "onAir": "la prévisualisation est à l'antenne",
+    "onAir": "l'aperçu est à l'antenne",
     "cut": "Cut",
     "auto": "Auto",
     "nothingSelected": "rien de sélectionné pour le moment"
@@ -93,7 +94,7 @@
   },
   "licenses": {
     "label": "Licences tierces",
-    "app": "Camera Control est distribué sous licence MIT.",
+    "app": "Contrôle des caméras est lui-même distribué sous licence MIT.",
     "intro": "Il embarque les paquets ci-dessous, chacun sous la licence indiquée.",
     "license": "Licence :",
     "copyright": "Copyright :",
@@ -107,7 +108,12 @@
     "focus": "Mise au point",
     "functions": "Fonctions",
     "transition": "Transition",
-    "program": "programme",
-    "preview": "prévisualisation"
+    "program": "Programme",
+    "preview": "Aperçu"
+  },
+  "pad": {
+    "input": "Entrée {0}",
+    "alt": "Maintenir pour alt",
+    "altLower": "Maintenir pour alt lower"
   }
 }

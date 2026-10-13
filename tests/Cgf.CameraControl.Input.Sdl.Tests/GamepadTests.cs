@@ -75,6 +75,22 @@ public class GamepadTests
             first.Received(1).Zoom(0);
             first.Received(1).Focus(0);
         }
+
+        [Fact]
+        public async Task TearingDownStopsTheCameraBeingSteered()
+        {
+            var camera = Camera(1);
+            var pad = Build();
+            _preview.OnNext(new PreviewChange(1, false));
+            _device.MoveLeftStick(1, 1);
+
+            await pad.DisposeAsync();
+
+            camera.Received(1).Pan(0);
+            camera.Received(1).Tilt(0);
+            camera.Received(1).Zoom(0);
+            camera.Received(1).Focus(0);
+        }
     }
 
     public class Tally : GamepadTests
