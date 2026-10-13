@@ -1,20 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
     <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="rgb(18, 39, 62)"/>
-      <stop offset="1" stop-color="rgb(28, 86, 122)"/>
+      <stop offset="0" stop-color="rgb(22, 44, 70)"/>
+      <stop offset="1" stop-color="rgb(16, 92, 128)"/>
     </linearGradient>
     <clipPath id="rounded">
-      <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224"/>
+      <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228"/>
     </clipPath>
+    <filter id="glow" x="-1" y="-1" width="3" height="3">
+      <feGaussianBlur stdDeviation="35"/>
+    </filter>
   </defs>
   <g clip-path="url(#rounded)">
     <rect x="0" y="0" width="1024" height="1024" fill="url(#body)"/>
-    <circle cx="472" cy="552" r="273.0" fill="none"
-            stroke="rgb(232, 238, 245)" stroke-width="54"/>
-    <circle cx="472" cy="552" r="150" fill="rgb(8, 22, 33)"/>
-    <circle cx="378" cy="452" r="46" fill="#ffffff" opacity="0.23"/>
-    <circle cx="760" cy="268" r="97" fill="rgb(226, 59, 46)"
-            stroke="rgb(255, 156, 146)" stroke-width="14"/>
+    <circle cx="812" cy="212" r="117"
+            fill="rgb(232, 58, 44)" opacity="0.59" filter="url(#glow)"/>
   </g>
+  <g fill="none" stroke="rgb(234, 240, 247)" stroke-opacity="0.67"
+     stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="576,272 512,208 448,272"/>
+    <polyline points="780,604 844,540 780,476"/>
+    <polyline points="448,808 512,872 576,808"/>
+    <polyline points="244,476 180,540 244,604"/>
+  </g>
+  <circle cx="512" cy="540" r="214" fill="none"
+          stroke="rgb(234, 240, 247)" stroke-width="44"/>
+  <circle cx="512" cy="540" r="171" fill="rgb(20, 34, 48)"
+          stroke="rgb(64, 96, 124)" stroke-width="10"/>
+  <circle cx="512" cy="540" r="112" fill="rgb(6, 14, 22)"/>
+  <circle cx="466" cy="492" r="34" fill="#ffffff"
+          opacity="0.35"/>
+  <circle cx="812" cy="212" r="76" fill="rgb(232, 58, 44)"
+          stroke="rgb(255, 150, 138)" stroke-width="12"/>
 </svg>
