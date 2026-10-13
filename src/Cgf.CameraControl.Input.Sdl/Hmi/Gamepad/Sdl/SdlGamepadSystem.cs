@@ -147,10 +147,10 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
 
             if (SDL.WaitEventTimeout(out var first, PollTimeoutMs))
             {
-                Handle(first);
+                Guard(() => Handle(first));
                 while (SDL.PollEvent(out var next))
                 {
-                    Handle(next);
+                    Guard(() => Handle(next));
                 }
             }
         }
@@ -160,7 +160,21 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
     {
         while (_work.TryDequeue(out var work))
         {
+            Guard(work);
+        }
+    }
+
+    /// This thread is the application's own, so an exception escaping it ends the process. A
+    /// subscriber that throws, such as a camera torn down by a reload mid-move, costs one event.
+    private void Guard(Action work)
+    {
+        try
+        {
             work();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("SDL", $"gamepad event failed - {ex.Message}");
         }
     }
 

@@ -20,15 +20,15 @@
     "add": "Hinzufügen",
     "delete": "Löschen",
     "save": "Speichern",
-    "discard": "Verwerfen",
+    "discard": "Nicht speichern",
     "cancel": "Abbrechen",
     "leaveTitle": "Bearbeitung beenden",
     "leaveQuestion": "Die Änderungen an der Konfiguration speichern?",
-    "leaveBlocked": "Das lässt sich erst speichern, wenn das hier geklärt ist:",
+    "leaveBlocked": "Speichern ist erst möglich, wenn Folgendes geklärt ist:",
     "deleteTitle": "Löschen",
     "deleteQuestion": "{0} löschen?",
-    "deleteReferences": "Das hier verweist weiterhin darauf und muss anderswohin zeigen:",
-    "deleteReferencesCleared": "Das hier verweist darauf und wird den Verweis verlieren:",
+    "deleteReferences": "Folgendes verweist noch darauf und muss auf etwas anderes umgestellt werden:",
+    "deleteReferencesCleared": "Folgendes verweist darauf und verliert den Verweis:",
     "addTitle": "Hinzufügen",
     "type": "Typ",
     "nothingSelected": "links einen Eintrag auswählen oder einen hinzufügen",
@@ -43,7 +43,7 @@
     "showTallyLight": "Tally-Licht anzeigen",
     "connectionUrl": "Controller-URL",
     "connectionPort": "Serieller Port",
-    "mixEffectBlock": "Mix-Effect-Block",
+    "mixEffectBlock": "M/E-Block",
     "videoMixer": "Videomischer",
     "cameraMap": "Kameras hinter den Eingängen",
     "input": "Eingang",
@@ -63,8 +63,8 @@
     "issue.field": "{0}: {1} {2}",
     "issue.repeatedInstance": "Zwei Einträge unter {0} beanspruchen Instanz {1}.",
     "issue.noCamera": "{0} verweist auf Kamera {1}, die nicht konfiguriert ist.",
-    "issue.noMixer": "{0} nennt Videomischer {1}, der nicht konfiguriert ist.",
-    "issue.noFunction": "{0} bindet \"{1}\", was keine seiner Funktionen ist."
+    "issue.noMixer": "{0} verweist auf Videomischer {1}, der nicht konfiguriert ist.",
+    "issue.noFunction": "{0} bindet „{1}“, das keine seiner Funktionen ist."
   },
   "panel": {
     "mixers": "Videomischer",
@@ -75,7 +75,7 @@
   },
   "interface": {
     "disconnected": "nicht verbunden",
-    "clickHint": "Schnittstelle anklicken, um ihr Steuerfenster zu öffnen",
+    "clickHint": "Schnittstelle auswählen, um sie zu steuern",
     "padOnly": "eine Gamepad-Schnittstelle wird von ihrem Pad gesteuert; für die Steuerung von hier aus eine Tastatur-Schnittstelle am selben Mischer einrichten"
   },
   "mixer": {
@@ -110,5 +110,10 @@
     "transition": "Übergang",
     "program": "Programm",
     "preview": "Vorschau"
+  },
+  "pad": {
+    "input": "Eingang {0}",
+    "alt": "Halten für alt",
+    "altLower": "Halten für alt lower"
   }
 }

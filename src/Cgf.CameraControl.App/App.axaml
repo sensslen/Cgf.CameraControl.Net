@@ -29,11 +29,11 @@
         <Style Selector="Menu">
             <Setter Property="Background" Value="Transparent" />
         </Style>
-        <Style Selector="MenuItem">
-            <Setter Property="Background" Value="{DynamicResource SystemRegionColor}" />
-        </Style>
-        <Style Selector="Menu > MenuItem">
-            <Setter Property="Background" Value="Transparent" />
+        <!-- A popup is its own window and never gets the backdrop, so the drop down carries the
+             opaque surface and its items stay transparent on it. Painting the items instead leaves
+             the presenter's padding and every separator showing through in a different colour. -->
+        <Style Selector="MenuFlyoutPresenter">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
         </Style>
         <Style Selector="Expander">
             <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />

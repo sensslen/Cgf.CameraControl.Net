@@ -1,6 +1,7 @@
 using Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
 using Cgf.CameraControl.Core.CameraConnection;
 using Cgf.CameraControl.Core.Logger;
+using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 
 namespace Cgf.CameraControl.Cameras.SignalrPtzLanc.Tests;
@@ -9,6 +10,7 @@ public class SignalrPtzLancCameraTests
 {
     private readonly FakeSignalrStateTransport _transport = new();
     private readonly ILogger _logger = Substitute.For<ILogger>();
+    private readonly FakeTimeProvider _time = new();
 
     public class Movement : SignalrPtzLancCameraTests
     {
@@ -171,9 +173,21 @@ public class SignalrPtzLancCameraTests
             camera.Pan(1);
 
             _transport.Reject();
+            _time.Advance(SignalrPtzLancCamera.RetryDelay);
 
             Assert.Equal(2, _transport.Sent.Count);
             Assert.Equal(255, _transport.Sent[^1].Pan);
+        }
+
+        [Fact]
+        public void ARejectedUpdateWaitsBeforeItIsOfferedAgain()
+        {
+            var camera = Connected();
+            camera.Pan(1);
+
+            _transport.Reject();
+
+            Assert.Single(_transport.Sent);
         }
 
         [Fact]
@@ -183,6 +197,7 @@ public class SignalrPtzLancCameraTests
             camera.Pan(1);
 
             _transport.Fail("the hub went away");
+            _time.Advance(SignalrPtzLancCamera.RetryDelay);
 
             _logger.Received().Log(Arg.Any<string>(), Arg.Is<string>(message => message.Contains("the hub went away")));
             Assert.Equal(2, _transport.Sent.Count);
@@ -209,6 +224,7 @@ public class SignalrPtzLancCameraTests
             _transport.Reject();
 
             _transport.Connect();
+            _time.Advance(SignalrPtzLancCamera.RetryDelay);
 
             Assert.Equal(2, _transport.Sent.Count);
             Assert.Equal(255, _transport.Sent[^1].Pan);
@@ -241,7 +257,8 @@ public class SignalrPtzLancCameraTests
                 PanTiltInvert = panTiltInvert,
             },
             _transport,
-            _logger);
+            _logger,
+            _time);
 
     private SignalrPtzLancCamera Connected(bool panTiltInvert = false)
     {

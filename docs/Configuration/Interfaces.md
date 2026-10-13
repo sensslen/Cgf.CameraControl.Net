@@ -91,14 +91,18 @@ A pad has four face buttons and no more. The way past four is the modifier sets:
 }
 ```
 
-A modifier only overrides the default where it has something bound for that button. The window
-labels each face with the function it would run right now, so the drawing follows the held modifier.
+A modifier only overrides the default where it has something bound for that button. The window's
+legend names each face button by the function it would run right now, so it follows the held
+modifier.
 
-A pad interface is not driven from the window. The wireframe shows what the pad is doing; it is not
-a control to click. Each button carries the name of what pressing it would do right now, and a
-direction whose input is on preview or program is tinted in that bus's colour.
+A pad interface is not driven from the window. The drawing shows what the pad is doing; it is not a
+control to click. Each control carries the symbol printed on a pad (the four face symbols, the
+d-pad arrows, L1/L2/R1/R2), and the legend beside it lists the bound ones under the same symbol
+with what pressing them does right now. A direction whose input is on preview or program is tinted
+in that bus's colour, a trigger fills as it is pulled, and controls nothing is bound to are drawn
+in fainter lines.
 
-![A gamepad interface, with the right shoulder and two buttons held](../images/interface-gamepad.png)
+![A gamepad interface, with R1, R2, triangle and right held and L2 half pulled](../images/interface-gamepad.png)
 
 ## `keyboard`
 

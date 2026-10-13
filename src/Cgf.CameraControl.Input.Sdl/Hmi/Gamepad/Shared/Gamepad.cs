@@ -140,6 +140,9 @@ public sealed class Gamepad : IHmi
 
     public async ValueTask DisposeAsync()
     {
+        // Interfaces are torn down before the cameras, so a stick held through a reload or into
+        // edit mode can still stop the camera it was steering.
+        Stop(_selectedPreviewCamera);
         await _stopping.CancelAsync().ConfigureAwait(false);
         _subscriptions.Dispose();
         _stopping.Dispose();
@@ -159,6 +162,14 @@ public sealed class Gamepad : IHmi
         {
             target[direction] = name;
         }
+    }
+
+    private static void Stop(ICameraConnection? camera)
+    {
+        camera?.Pan(0);
+        camera?.Tilt(0);
+        camera?.Zoom(0);
+        camera?.Focus(0);
     }
 
     private void OnLeftStick(StickPosition position)
@@ -258,10 +269,7 @@ public sealed class Gamepad : IHmi
 
             // Whatever the sticks were last asking for belonged to the previous camera, so it is
             // stopped rather than left running on a camera nobody is steering any more.
-            _selectedPreviewCamera?.Pan(0);
-            _selectedPreviewCamera?.Tilt(0);
-            _selectedPreviewCamera?.Zoom(0);
-            _selectedPreviewCamera?.Focus(0);
+            Stop(_selectedPreviewCamera);
         }
 
         _selectedPreviewCamera = selected;

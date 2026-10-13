@@ -20,7 +20,7 @@
     "add": "添加",
     "delete": "删除",
     "save": "保存",
-    "discard": "放弃",
+    "discard": "不保存",
     "cancel": "取消",
     "leaveTitle": "退出编辑模式",
     "leaveQuestion": "保存对配置的更改吗？",
@@ -40,19 +40,20 @@
     "portDefault": "52381",
     "panTiltInvert": "反转平移和俯仰",
     "tallyMode": "Tally",
-    "showTallyLight": "显示 tally 指示灯",
+    "showTallyLight": "显示 Tally 指示灯",
     "connectionUrl": "控制器 URL",
     "connectionPort": "串行端口",
-    "mixEffectBlock": "Mix effect 块",
+    "mixEffectBlock": "M/E 级",
     "videoMixer": "视频切换台",
     "cameraMap": "各输入对应的摄像机",
     "input": "输入",
     "camera": "摄像机",
-    "enableChangingProgram": "可以将输入切到播出",
+    "enableChangingProgram": "可将输入切到节目",
     "serialNumber": "序列号",
+    "gamepadBackend": "手柄后端",
     "anyPad": "第一个空闲手柄",
     "deadzone": "死区",
-    "rumble": "震动",
+    "rumble": "振动",
     "required": "为必填项",
     "notANumber": "不是数字",
     "tooSmall": "必须不小于 {0}",
@@ -70,16 +71,16 @@
     "cameras": "摄像机",
     "interfaces": "接口",
     "log": "日志",
-    "unassigned": "未被任何接口驱动"
+    "unassigned": "未由任何接口控制"
   },
   "interface": {
     "disconnected": "未连接",
-    "clickHint": "点击接口即可打开其控制窗口",
+    "clickHint": "选择一个接口以进行控制",
     "padOnly": "手柄接口由其手柄操作；若要在此操作，请在同一切换台上配置一个键盘接口"
   },
   "mixer": {
     "preview": "预监",
-    "program": "播出",
+    "program": "节目",
     "onAir": "预监正在播出",
     "cut": "Cut",
     "auto": "Auto",
@@ -93,7 +94,7 @@
   },
   "licenses": {
     "label": "第三方许可",
-    "app": "Camera Control 本身采用 MIT 许可。",
+    "app": "摄像机控制本身采用 MIT 许可。",
     "intro": "它随附以下软件包，每个软件包均按其标注的许可使用。",
     "license": "许可：",
     "copyright": "版权：",
@@ -101,13 +102,18 @@
     "project": "项目："
   },
   "surface": {
-    "panTilt": "云台摇移与俯仰",
+    "panTilt": "平移与俯仰",
     "zoomFocus": "变焦与对焦",
     "zoom": "变焦",
     "focus": "对焦",
     "functions": "功能",
     "transition": "转场",
-    "program": "播出",
+    "program": "节目",
     "preview": "预监"
+  },
+  "pad": {
+    "input": "输入 {0}",
+    "alt": "按住以使用 alt",
+    "altLower": "按住以使用 alt lower"
   }
 }

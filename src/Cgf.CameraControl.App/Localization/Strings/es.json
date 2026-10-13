@@ -20,15 +20,15 @@
     "add": "Añadir",
     "delete": "Eliminar",
     "save": "Guardar",
-    "discard": "Descartar",
+    "discard": "No guardar",
     "cancel": "Cancelar",
     "leaveTitle": "Salir del modo de edición",
     "leaveQuestion": "¿Guardar los cambios en la configuración?",
     "leaveBlocked": "No se puede guardar hasta resolver esto:",
     "deleteTitle": "Eliminar",
     "deleteQuestion": "¿Eliminar {0}?",
-    "deleteReferences": "Esto todavía lo nombra y tendrá que apuntar a otro sitio:",
-    "deleteReferencesCleared": "Esto lo nombra y dejará de hacerlo:",
+    "deleteReferences": "Esto todavía hace referencia a él y tendrá que apuntar a otro sitio:",
+    "deleteReferencesCleared": "Esto hace referencia a él y dejará de hacerlo:",
     "addTitle": "Añadir",
     "type": "Tipo",
     "nothingSelected": "seleccione una entrada a la izquierda, o añada una",
@@ -43,17 +43,18 @@
     "showTallyLight": "Mostrar la luz de tally",
     "connectionUrl": "URL del controlador",
     "connectionPort": "Puerto serie",
-    "mixEffectBlock": "Bloque mix effect",
+    "mixEffectBlock": "Bloque M/E",
     "videoMixer": "Mezclador de vídeo",
     "cameraMap": "Cámaras detrás de las entradas",
     "input": "Entrada",
     "camera": "Cámara",
     "enableChangingProgram": "Puede poner una entrada al aire",
     "serialNumber": "Número de serie",
+    "gamepadBackend": "Backend del mando",
     "anyPad": "el primer mando libre",
     "deadzone": "Zona muerta",
     "rumble": "Vibración",
-    "required": "es obligatorio",
+    "required": "es un campo obligatorio",
     "notANumber": "no es un número",
     "tooSmall": "debe ser {0} o más",
     "outOfRange": "debe estar entre {0} y {1}",
@@ -62,7 +63,7 @@
     "issue.field": "{0}: {1} {2}",
     "issue.repeatedInstance": "Dos entradas en {0} reclaman la instancia {1}.",
     "issue.noCamera": "{0} apunta a la cámara {1}, que no está configurada.",
-    "issue.noMixer": "{0} nombra el mezclador de vídeo {1}, que no está configurado.",
+    "issue.noMixer": "{0} hace referencia al mezclador de vídeo {1}, que no está configurado.",
     "issue.noFunction": "{0} vincula «{1}», que no es una de sus funciones."
   },
   "panel": {
@@ -74,7 +75,7 @@
   },
   "interface": {
     "disconnected": "sin conexión",
-    "clickHint": "haga clic en una interfaz para abrir su ventana de control",
+    "clickHint": "seleccione una interfaz para controlarla",
     "padOnly": "una interfaz de mando se controla con su mando; configure una interfaz de teclado en el mismo mezclador para manejarla desde aquí"
   },
   "mixer": {
@@ -93,7 +94,7 @@
   },
   "licenses": {
     "label": "Licencias de terceros",
-    "app": "Camera Control se distribuye con licencia MIT.",
+    "app": "Control de cámaras se distribuye con licencia MIT.",
     "intro": "Incluye los paquetes siguientes, cada uno bajo la licencia indicada.",
     "license": "Licencia:",
     "copyright": "Copyright:",
@@ -107,7 +108,12 @@
     "focus": "Enfoque",
     "functions": "Funciones",
     "transition": "Transición",
-    "program": "programa",
-    "preview": "previo"
+    "program": "Programa",
+    "preview": "Previo"
+  },
+  "pad": {
+    "input": "Entrada {0}",
+    "alt": "Mantener pulsado para alt",
+    "altLower": "Mantener pulsado para alt lower"
   }
 }
