@@ -1,13 +1,9 @@
-<img src="packaging/icon/icon-128.png" alt="" width="96" align="left" />
-
-# Camera Control
+# <img src="packaging/icon/icon-128.png" alt="" width="48" align="center" /> Camera Control
 
 Drive Blackmagic ATEM switchers and PTZ cameras from a game controller.
 
 One operator steers whichever camera is on preview, changes the preview selection, cuts, toggles
 keyers and runs macros, without taking their eyes off the stage.
-
-<br clear="left" />
 
 ![The main window](docs/images/window.png)
 
