@@ -80,3 +80,8 @@ express. [Camera compatibility](../CameraCompatibility.md) records what has been
 | `connectionUrl` | required | the service's address |
 | `connectionPort` | required | its port, as a string |
 | `panTiltInvert` | `false` | flip pan and tilt |
+
+On shutdown or configuration reload, the SignalR camera sends a zero movement state and waits for
+acknowledgement before closing its connection. It retries a rejected stop within a one-second
+shutdown deadline. If the controller is offline or does not acknowledge the stop, the application
+logs an error and closes the connection; it cannot guarantee that an unreachable camera stopped.

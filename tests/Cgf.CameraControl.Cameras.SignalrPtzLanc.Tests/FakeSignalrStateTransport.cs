@@ -12,6 +12,7 @@ public sealed class FakeSignalrStateTransport : ISignalrStateTransport
     private TaskCompletionSource<bool>? _inFlight;
 
     public bool Started { get; private set; }
+    public bool Disposed { get; private set; }
 
     public List<SignalrPtzLancCameraState> Sent { get; } = [];
 
@@ -23,7 +24,7 @@ public sealed class FakeSignalrStateTransport : ISignalrStateTransport
     {
         Sent.Add(state);
         _inFlight = new TaskCompletionSource<bool>();
-        return _inFlight.Task;
+        return _inFlight.Task.WaitAsync(cancellationToken);
     }
 
     public void Connect() => _connected.OnNext(true);
@@ -40,6 +41,7 @@ public sealed class FakeSignalrStateTransport : ISignalrStateTransport
 
     public ValueTask DisposeAsync()
     {
+        Disposed = true;
         _connected.Dispose();
         return ValueTask.CompletedTask;
     }

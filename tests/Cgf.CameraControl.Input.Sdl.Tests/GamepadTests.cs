@@ -91,6 +91,53 @@ public class GamepadTests
             camera.Received(1).Zoom(0);
             camera.Received(1).Focus(0);
         }
+
+        [Fact]
+        public async Task StickEventsDuringShutdownCannotOverwriteTheStop()
+        {
+            var camera = Camera(1);
+            var pad = Build();
+            _preview.OnNext(new PreviewChange(1, false));
+            _device.MoveLeftStick(1, 1);
+            camera.When(c => c.Zoom(0)).Do(_ => _device.MoveLeftStick(0.75, 0.5));
+            camera.When(c => c.Focus(0)).Do(_ => _device.MoveRightStick(0.75, 0.5));
+
+            await pad.DisposeAsync();
+
+            camera.DidNotReceive().Pan(0.75);
+            camera.DidNotReceive().Tilt(0.5);
+            camera.DidNotReceive().Zoom(0.5);
+            camera.DidNotReceive().Focus(0.75);
+        }
+
+        [Fact]
+        public async Task ShutdownWaitsForInFlightSteeringBeforeSendingTheFinalStop()
+        {
+            var camera = Camera(1);
+            var pad = Build();
+            _preview.OnNext(new PreviewChange(1, false));
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var resume = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var commands = new List<double>();
+            var tiltCommands = new List<double>();
+            camera.When(c => c.Pan(Arg.Any<double>())).Do(call => commands.Add(call.Arg<double>()));
+            camera.When(c => c.Tilt(Arg.Any<double>())).Do(call => tiltCommands.Add(call.Arg<double>()));
+            camera.When(c => c.Pan(0.5)).Do(_ =>
+            {
+                entered.SetResult();
+                resume.Task.WaitAsync(TestContext.Current.CancellationToken).GetAwaiter().GetResult();
+            });
+            var steering = Task.Run(() => _device.MoveLeftStick(0.5, 0.5), TestContext.Current.CancellationToken);
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            var shutdown = Task.Run(async () => await pad.DisposeAsync(), TestContext.Current.CancellationToken);
+            resume.SetResult();
+
+            await Task.WhenAll(steering, shutdown)
+                .WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+            Assert.Equal(new[] { 0.5, 0.0 }, commands);
+            Assert.Equal(new[] { 0.5, 0.0 }, tiltCommands);
+        }
     }
 
     public class Tally : GamepadTests

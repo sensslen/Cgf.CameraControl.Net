@@ -231,6 +231,94 @@ public class SignalrPtzLancCameraTests
         }
     }
 
+    public class Shutdown : SignalrPtzLancCameraTests
+    {
+        [Fact]
+        public async Task RepeatedDisposalSharesTheOriginalShutdownDeadline()
+        {
+            var camera = Connected();
+            var first = camera.DisposeAsync().AsTask();
+            _time.Advance(SignalrPtzLancCamera.ShutdownTimeout / 2);
+
+            var second = camera.DisposeAsync().AsTask();
+
+            Assert.Same(first, second);
+            _time.Advance(SignalrPtzLancCamera.ShutdownTimeout / 2);
+            await first.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            await camera.DisposeAsync();
+            Assert.True(_transport.Disposed);
+        }
+
+        [Fact]
+        public async Task QueuedStopIsAcknowledgedBeforeDisposingTheTransport()
+        {
+            var camera = Connected();
+            camera.Pan(1);
+            camera.Tilt(1);
+            camera.Zoom(1);
+            camera.Focus(1);
+
+            var shutdown = camera.DisposeAsync().AsTask();
+            Assert.False(_transport.Disposed);
+            Assert.Single(_transport.Sent);
+            _transport.Accept();
+
+            Assert.Equal(default, _transport.Sent[^1]);
+            Assert.False(shutdown.IsCompleted);
+            camera.Pan(1);
+            _transport.Accept();
+            await shutdown;
+
+            Assert.Equal(2, _transport.Sent.Count);
+            Assert.True(_transport.Disposed);
+            _logger.DidNotReceive().Error(Arg.Any<string>(), Arg.Any<string>());
+        }
+
+        [Fact]
+        public async Task RejectedStopIsRetriedWithinTheShutdownDeadline()
+        {
+            var camera = Connected();
+            var shutdown = camera.DisposeAsync().AsTask();
+
+            _transport.Reject();
+            _time.Advance(SignalrPtzLancCamera.RetryDelay);
+            Assert.Equal(2, _transport.Sent.Count);
+            Assert.Equal(default, _transport.Sent[^1]);
+            _transport.Accept();
+            await shutdown;
+
+            Assert.True(_transport.Disposed);
+        }
+
+        [Fact]
+        public async Task UnresponsiveControllerCannotBlockShutdown()
+        {
+            var camera = Connected();
+            camera.Pan(1);
+            var shutdown = camera.DisposeAsync().AsTask();
+
+            _time.Advance(SignalrPtzLancCamera.ShutdownTimeout);
+            await shutdown.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+            Assert.True(_transport.Disposed);
+            _logger.Received().Error("CgfPtzCamera",
+                Arg.Is<string>(message => message.Contains("shutdown stop was not acknowledged")));
+        }
+
+        [Fact]
+        public async Task DisconnectedControllerReportsThatItsStopCouldNotBeConfirmed()
+        {
+            var camera = Build();
+
+            await camera.DisposeAsync();
+
+            Assert.Empty(_transport.Sent);
+            Assert.True(_transport.Disposed);
+            _logger.Received().Error("CgfPtzCamera",
+                Arg.Is<string>(message => message.Contains("shutdown stop was not acknowledged")));
+        }
+    }
+
     public class Identity : SignalrPtzLancCameraTests
     {
         [Fact]
