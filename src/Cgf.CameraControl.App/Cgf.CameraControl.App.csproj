@@ -2,6 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\appicon.ico</ApplicationIcon>
     <AssemblyName>CgfCameraControl</AssemblyName>
     <RootNamespace>Cgf.CameraControl.App</RootNamespace>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
