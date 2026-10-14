@@ -8,19 +8,23 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
     /// A controller that keeps refusing would otherwise be asked again as fast as it can answer,
     /// and every failure logged on the way.
     public static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(250);
+    public static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(1);
 
     private readonly SignalrPtzLancCameraConfiguration _config;
     private readonly ISignalrStateTransport _transport;
     private readonly ILogger _logger;
     private readonly TimeProvider _time;
     private readonly Lock _gate = new();
-    private readonly CancellationTokenSource _stopping = new();
+    private readonly CancellationTokenSource _stopping;
     private readonly IDisposable _connection;
 
     private SignalrPtzLancCameraState _requested;
     private bool _connected;
     private bool _transmitting;
     private bool _pending;
+    private bool _disposed;
+    private bool _shutdownStopAccepted;
+    private Task _transmission = Task.CompletedTask;
 
     public SignalrPtzLancCamera(
         SignalrPtzLancCameraConfiguration config,
@@ -32,6 +36,7 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
         _transport = transport;
         _logger = logger;
         _time = time ?? TimeProvider.System;
+        _stopping = new CancellationTokenSource(Timeout.InfiniteTimeSpan, _time);
         _connection = transport.WhenConnectedChanged.Subscribe(OnConnectionChanged);
         transport.Start();
     }
@@ -58,16 +63,46 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
 
     public async ValueTask DisposeAsync()
     {
-        await _stopping.CancelAsync().ConfigureAwait(false);
-        _connection.Dispose();
-        await _transport.DisposeAsync().ConfigureAwait(false);
-        _stopping.Dispose();
+        Task transmission;
+        lock (_gate)
+        {
+            _disposed = true;
+            _requested = default;
+            _pending = true;
+            _stopping.CancelAfter(ShutdownTimeout);
+            if (_connected && !_transmitting)
+            {
+                _transmitting = true;
+                _transmission = TransmitAsync();
+            }
+            transmission = _transmission;
+        }
+
+        try
+        {
+            await transmission.ConfigureAwait(false);
+            if (!_shutdownStopAccepted)
+            {
+                _logger.Error("CgfPtzCamera", $"({_config.ConnectionUrl}) shutdown stop was not acknowledged");
+            }
+        }
+        finally
+        {
+            await _stopping.CancelAsync().ConfigureAwait(false);
+            _connection.Dispose();
+            await _transport.DisposeAsync().ConfigureAwait(false);
+            _stopping.Dispose();
+        }
     }
 
     private void Change(Func<SignalrPtzLancCameraState, SignalrPtzLancCameraState> change)
     {
         lock (_gate)
         {
+            if (_disposed)
+            {
+                return;
+            }
             _requested = change(_requested);
             _pending = true;
             if (_transmitting || !_connected)
@@ -76,9 +111,8 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
             }
 
             _transmitting = true;
+            _transmission = TransmitAsync();
         }
-
-        _ = TransmitAsync();
     }
 
     /// One call is in flight at a time and the latest state wins, so a stick that is moved faster
@@ -103,7 +137,8 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
             bool accepted;
             try
             {
-                accepted = await _transport.SetStateAsync(state, _stopping.Token).ConfigureAwait(false);
+                accepted = await _transport.SetStateAsync(state, _stopping.Token)
+                    .WaitAsync(_stopping.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -122,6 +157,13 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
 
             if (accepted)
             {
+                lock (_gate)
+                {
+                    if (_disposed && state == default)
+                    {
+                        _shutdownStopAccepted = true;
+                    }
+                }
                 continue;
             }
 
@@ -153,15 +195,14 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
         lock (_gate)
         {
             _connected = connected;
-            if (!connected || _transmitting || !_pending)
+            if (_disposed || !connected || _transmitting || !_pending)
             {
                 return;
             }
 
             _transmitting = true;
+            _transmission = TransmitAsync();
         }
-
-        _ = TransmitAsync();
     }
 
     private void Log(string message) => _logger.Log("CgfPtzCamera", $"({_config.ConnectionUrl}) {message}");

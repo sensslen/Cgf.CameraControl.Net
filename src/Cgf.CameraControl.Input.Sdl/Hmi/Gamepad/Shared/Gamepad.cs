@@ -29,8 +29,10 @@ public sealed class Gamepad : IHmi
     private readonly Dictionary<ButtonDirection, string> _altLower = [];
     private readonly CompositeDisposable _subscriptions = [];
     private readonly CancellationTokenSource _stopping = new();
+    private readonly object _steeringGate = new();
     private readonly PadBindings? _pad;
 
+    private bool _disposed;
     private AltKeyConfiguration _modifiers;
     private ICameraConnection? _selectedPreviewCamera;
     private ICameraConnection? _selectedOnAirCamera;
@@ -75,8 +77,8 @@ public sealed class Gamepad : IHmi
         Bind(_altLower, pad?.AltLower);
 
         _subscriptions.Add(device.Modifiers.Subscribe(modifiers => _modifiers = modifiers));
-        _subscriptions.Add(device.LeftStick.Subscribe(OnLeftStick));
-        _subscriptions.Add(device.RightStick.Subscribe(OnRightStick));
+        _subscriptions.Add(device.LeftStick.Synchronize(_steeringGate).Subscribe(OnLeftStick));
+        _subscriptions.Add(device.RightStick.Synchronize(_steeringGate).Subscribe(OnRightStick));
         _subscriptions.Add(device.ConnectionChangeRequested.Subscribe(ChangeConnection));
         _subscriptions.Add(device.SpecialFunctionRequested.Subscribe(OnFaceButton));
         if (functions is not null)
@@ -90,7 +92,7 @@ public sealed class Gamepad : IHmi
         }
 
         _subscriptions.Add(device.TransitionRequested.Subscribe(RunTransition));
-        _subscriptions.Add(mixer.WhenPreviewChanged.Subscribe(OnMixerPreviewChanged));
+        _subscriptions.Add(mixer.WhenPreviewChanged.Synchronize(_steeringGate).Subscribe(OnMixerPreviewChanged));
         _subscriptions.Add(mixer.WhenProgramChanged.Subscribe(OnMixerProgramChanged));
         _subscriptions.Add(mixer.WhenConnectedChanged.DistinctUntilChanged().Subscribe(OnMixerConnectionChanged));
 
@@ -140,11 +142,13 @@ public sealed class Gamepad : IHmi
 
     public async ValueTask DisposeAsync()
     {
-        // Interfaces are torn down before the cameras, so a stick held through a reload or into
-        // edit mode can still stop the camera it was steering.
-        Stop(_selectedPreviewCamera);
+        lock (_steeringGate)
+        {
+            _disposed = true;
+            _subscriptions.Dispose();
+            Stop(_selectedPreviewCamera);
+        }
         await _stopping.CancelAsync().ConfigureAwait(false);
-        _subscriptions.Dispose();
         _stopping.Dispose();
         await _device.DisposeAsync().ConfigureAwait(false);
     }
@@ -174,12 +178,20 @@ public sealed class Gamepad : IHmi
 
     private void OnLeftStick(StickPosition position)
     {
+        if (_disposed)
+        {
+            return;
+        }
         _selectedPreviewCamera?.Pan(position.X);
         _selectedPreviewCamera?.Tilt(position.Y);
     }
 
     private void OnRightStick(StickPosition position)
     {
+        if (_disposed)
+        {
+            return;
+        }
         _selectedPreviewCamera?.Zoom(position.Y);
         _selectedPreviewCamera?.Focus(position.X);
     }
@@ -257,6 +269,10 @@ public sealed class Gamepad : IHmi
 
     private void OnMixerPreviewChanged(PreviewChange change)
     {
+        if (_disposed)
+        {
+            return;
+        }
         _selectedInput = change.Preview;
         var selected = _cameras.GetValueOrDefault(change.Preview);
 
