@@ -234,6 +234,22 @@ public class SignalrPtzLancCameraTests
     public class Shutdown : SignalrPtzLancCameraTests
     {
         [Fact]
+        public async Task RepeatedDisposalSharesTheOriginalShutdownDeadline()
+        {
+            var camera = Connected();
+            var first = camera.DisposeAsync().AsTask();
+            _time.Advance(SignalrPtzLancCamera.ShutdownTimeout / 2);
+
+            var second = camera.DisposeAsync().AsTask();
+
+            Assert.Same(first, second);
+            _time.Advance(SignalrPtzLancCamera.ShutdownTimeout / 2);
+            await first.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            await camera.DisposeAsync();
+            Assert.True(_transport.Disposed);
+        }
+
+        [Fact]
         public async Task QueuedStopIsAcknowledgedBeforeDisposingTheTransport()
         {
             var camera = Connected();

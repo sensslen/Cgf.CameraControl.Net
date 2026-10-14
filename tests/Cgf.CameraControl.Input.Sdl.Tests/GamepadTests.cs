@@ -119,7 +119,9 @@ public class GamepadTests
             var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var resume = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var commands = new List<double>();
+            var tiltCommands = new List<double>();
             camera.When(c => c.Pan(Arg.Any<double>())).Do(call => commands.Add(call.Arg<double>()));
+            camera.When(c => c.Tilt(Arg.Any<double>())).Do(call => tiltCommands.Add(call.Arg<double>()));
             camera.When(c => c.Pan(0.5)).Do(_ =>
             {
                 entered.SetResult();
@@ -134,6 +136,7 @@ public class GamepadTests
                 .WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
             Assert.Equal(new[] { 0.5, 0.0 }, commands);
+            Assert.Equal(new[] { 0.5, 0.0 }, tiltCommands);
         }
     }
 

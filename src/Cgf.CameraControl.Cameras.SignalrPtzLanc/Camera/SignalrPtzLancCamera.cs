@@ -25,6 +25,7 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
     private bool _disposed;
     private bool _shutdownStopAccepted;
     private Task _transmission = Task.CompletedTask;
+    private Task? _shutdown;
 
     public SignalrPtzLancCamera(
         SignalrPtzLancCameraConfiguration config,
@@ -61,7 +62,15 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
     {
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
+    {
+        lock (_gate)
+        {
+            return new ValueTask(_shutdown ??= ShutdownAsync());
+        }
+    }
+
+    private async Task ShutdownAsync()
     {
         Task transmission;
         lock (_gate)
