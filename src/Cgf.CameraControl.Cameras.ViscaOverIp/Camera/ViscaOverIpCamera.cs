@@ -48,13 +48,13 @@ public sealed class ViscaOverIpCamera : ICameraConnection
 
     public void Pan(double value)
     {
-        _pan = Scale(value, ViscaPacket.MaximumPanSpeed);
+        _pan = Scale(value, PanTiltMaximum(ViscaPacket.MaximumPanSpeed));
         EnqueuePanTilt();
     }
 
     public void Tilt(double value)
     {
-        _tilt = Scale(value, ViscaPacket.MaximumTiltSpeed);
+        _tilt = Scale(value, PanTiltMaximum(ViscaPacket.MaximumTiltSpeed));
         EnqueuePanTilt();
     }
 
@@ -268,6 +268,9 @@ public sealed class ViscaOverIpCamera : ICameraConnection
 
     private int Invert(int value) => _config.PanTiltInvert ? -value : value;
 
-    private static int Scale(double value, int maximum) =>
+    // VISCA cannot move below speed 1, even when the percentage asks for less.
+    private double PanTiltMaximum(int maximum) => Math.Max(1, maximum * _config.PanTiltSpeedPercent / 100.0);
+
+    private static int Scale(double value, double maximum) =>
         (int)Math.Round(Math.Clamp(value, -1, 1) * maximum);
 }

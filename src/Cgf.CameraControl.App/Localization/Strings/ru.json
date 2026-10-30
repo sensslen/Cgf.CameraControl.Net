@@ -39,6 +39,7 @@
     "port": "Порт",
     "portDefault": "52381",
     "panTiltInvert": "Инвертировать поворот и наклон",
+    "panTiltSpeedPercent": "Скорость поворота и наклона",
     "tallyMode": "Tally",
     "showTallyLight": "Показывать индикатор Tally",
     "connectionUrl": "URL контроллера",

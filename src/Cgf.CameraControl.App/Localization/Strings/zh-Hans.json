@@ -39,6 +39,7 @@
     "port": "端口",
     "portDefault": "52381",
     "panTiltInvert": "反转平移和俯仰",
+    "panTiltSpeedPercent": "平移和俯仰速度",
     "tallyMode": "Tally",
     "showTallyLight": "显示 Tally 指示灯",
     "connectionUrl": "控制器 URL",

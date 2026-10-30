@@ -39,6 +39,7 @@
     "port": "Port",
     "portDefault": "52381",
     "panTiltInvert": "Invert pan and tilt",
+    "panTiltSpeedPercent": "Pan and tilt speed",
     "tallyMode": "Tally",
     "showTallyLight": "Show the tally light",
     "connectionUrl": "Controller URL",

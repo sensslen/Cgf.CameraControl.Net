@@ -39,6 +39,7 @@
     "port": "पोर्ट",
     "portDefault": "52381",
     "panTiltInvert": "पैन और टिल्ट उलटें",
+    "panTiltSpeedPercent": "पैन और टिल्ट गति",
     "tallyMode": "टैली",
     "showTallyLight": "टैली लाइट दिखाएँ",
     "connectionUrl": "कंट्रोलर URL",

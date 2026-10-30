@@ -39,6 +39,7 @@
     "port": "Port",
     "portDefault": "52381",
     "panTiltInvert": "Inverser le panoramique et l'inclinaison",
+    "panTiltSpeedPercent": "Vitesse de panoramique et d'inclinaison",
     "tallyMode": "Tally",
     "showTallyLight": "Afficher le voyant tally",
     "connectionUrl": "URL du contrôleur",

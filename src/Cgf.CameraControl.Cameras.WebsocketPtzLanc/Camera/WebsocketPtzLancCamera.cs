@@ -27,12 +27,12 @@ public sealed class WebsocketPtzLancCamera : ICameraConnection
 
     public void Pan(double value) => SetState(state => state with
     {
-        Pan = InvertIfNecessary(MultiplyRoundAndCrop(Interpolate(value) * 255, 255)),
+        Pan = InvertIfNecessary(ScalePanTilt(value)),
     });
 
     public void Tilt(double value) => SetState(state => state with
     {
-        Tilt = InvertIfNecessary(MultiplyRoundAndCrop(Interpolate(value) * 255, 255)),
+        Tilt = InvertIfNecessary(ScalePanTilt(value)),
     });
 
     // The response curve is deliberately applied to pan and tilt only.
@@ -118,6 +118,9 @@ public sealed class WebsocketPtzLancCamera : ICameraConnection
         _transport.Send(JsonSerializer.Serialize(state, WebsocketPtzLancCameraStateContext.Default.WebsocketPtzLancCameraSpeedState));
 
     private int InvertIfNecessary(int value) => _config.PanTiltInvert ? -value : value;
+
+    private int ScalePanTilt(double value) =>
+        MultiplyRoundAndCrop(Interpolate(Math.Clamp(value, -1, 1)) * 255 * (_config.PanTiltSpeedPercent / 100.0), 255);
 
     /// Squares the stick position while keeping its sign, so small movements are fine grained.
     private static double Interpolate(double value) => value > 0 ? value * value : -(value * value);

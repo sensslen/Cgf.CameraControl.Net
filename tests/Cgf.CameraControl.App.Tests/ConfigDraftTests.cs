@@ -65,6 +65,70 @@ public class ConfigDraftTests
         }
     }
 
+    public class PanTiltSpeed : ConfigDraftTests
+    {
+        [Theory]
+        [InlineData("viscaoverip")]
+        [InlineData("Websocket.PtzLanc")]
+        [InlineData("Signalr.PtzLanc")]
+        public void EveryCameraOffersTheSettingWithoutChangingAnAbsentValue(string type)
+        {
+            var draft = Draft(Desk);
+            var camera = draft.Add(EntryKind.Camera, type);
+            var field = Assert.Single(camera.Fields.OfType<PercentField>());
+
+            Assert.Equal("100", field.Value);
+            Assert.Equal(100, field.SliderValue);
+            Assert.False(camera.ToEntry().Raw.TryGetProperty("panTiltSpeedPercent", out _));
+            Assert.DoesNotContain(draft.Interfaces[0].Fields, entry => entry is PercentField);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(50)]
+        [InlineData(100)]
+        public void SliderAndTextStayLinkedAndSurviveSaving(int percent)
+        {
+            var draft = Draft(Desk);
+            var field = Assert.Single(draft.Cameras[0].Fields.OfType<PercentField>());
+            field.SliderValue = 75;
+            field.SliderValue = percent;
+
+            Assert.Equal(percent.ToString(), field.Value);
+            Assert.True(draft.IsDirty);
+            Assert.True(draft.CanSave);
+            var reopened = Draft(ConfigWriter.Write(draft.ToConfig()));
+            var read = Assert.Single(reopened.Cameras[0].Fields.OfType<PercentField>());
+            Assert.Equal(percent, read.SliderValue);
+            Assert.False(reopened.IsDirty);
+
+            read.Value = "25";
+            Assert.Equal(25, read.SliderValue);
+            Assert.True(reopened.CanSave);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("no")]
+        [InlineData("0")]
+        [InlineData("-1")]
+        [InlineData("101")]
+        [InlineData("50.5")]
+        public void InvalidTextBlocksSavingAndCanBeCorrectedWithTheSlider(string value)
+        {
+            var draft = Draft(Desk);
+            var field = Assert.Single(draft.Cameras[0].Fields.OfType<PercentField>());
+            field.Value = value;
+
+            Assert.NotNull(field.Error);
+            Assert.False(draft.CanSave);
+            field.SliderValue = 50;
+            Assert.Null(field.Error);
+            Assert.Equal("50", field.Value);
+            Assert.True(draft.CanSave);
+        }
+    }
+
     public class WhatStopsASave : ConfigDraftTests
     {
         [Fact]

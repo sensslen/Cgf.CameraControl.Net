@@ -15,6 +15,37 @@ public class ViscaOverIpCameraTests
     public class Movement : ViscaOverIpCameraTests
     {
         [Theory]
+        [InlineData(1, 1, 1, 1)]
+        [InlineData(50, 1, 12, 10)]
+        [InlineData(100, 1, 24, 20)]
+        [InlineData(50, 4, 12, 10)]
+        [InlineData(50, 0.5, 6, 5)]
+        public void SpeedPercentReducesBothAxesButNotTheLens(int percent, double input, int pan, int tilt)
+        {
+            var camera = Connected(panTiltSpeedPercent: percent);
+            camera.Pan(input);
+            _transport.Acknowledge();
+            camera.Tilt(-input);
+
+            Assert.Equal(pan, _transport.Sent[^1][4]);
+            Assert.Equal(tilt, _transport.Sent[^1][5]);
+            Assert.Equal(0x02, _transport.Sent[^1][6]);
+            Assert.Equal(0x02, _transport.Sent[^1][7]);
+            _transport.Acknowledge();
+            camera.Zoom(1);
+            Assert.Equal(0x27, _transport.Sent[^1][4]);
+            _transport.Acknowledge();
+            camera.Focus(1);
+            Assert.Equal(0x27, _transport.Sent[^1][4]);
+            _transport.Acknowledge();
+            camera.Pan(0);
+            _transport.Acknowledge();
+            camera.Tilt(0);
+            Assert.Equal(0x03, _transport.Sent[^1][6]);
+            Assert.Equal(0x03, _transport.Sent[^1][7]);
+        }
+
+        [Theory]
         [InlineData(1.0, 0x18, 0x02)]
         [InlineData(-1.0, 0x18, 0x01)]
         [InlineData(0.5, 0x0C, 0x02)]
@@ -409,21 +440,22 @@ public class ViscaOverIpCameraTests
         }
     }
 
-    private ViscaOverIpCamera Build(bool panTiltInvert = false, ViscaTallyMode tally = ViscaTallyMode.None) =>
+    private ViscaOverIpCamera Build(bool panTiltInvert = false, ViscaTallyMode tally = ViscaTallyMode.None, int panTiltSpeedPercent = 100) =>
         new(
             new ViscaOverIpCameraConfiguration
             {
                 Ip = "10.0.0.1",
                 PanTiltInvert = panTiltInvert,
+                PanTiltSpeedPercent = panTiltSpeedPercent,
                 TallyMode = tally,
             },
             _transport,
             _logger,
             _time);
 
-    private ViscaOverIpCamera Connected(bool panTiltInvert = false, ViscaTallyMode tally = ViscaTallyMode.None)
+    private ViscaOverIpCamera Connected(bool panTiltInvert = false, ViscaTallyMode tally = ViscaTallyMode.None, int panTiltSpeedPercent = 100)
     {
-        var camera = Build(panTiltInvert, tally);
+        var camera = Build(panTiltInvert, tally, panTiltSpeedPercent);
         _transport.Connect();
         return camera;
     }

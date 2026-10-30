@@ -6,6 +6,28 @@ namespace Cgf.CameraControl.Cameras.SignalrPtzLanc.Tests;
 public class SignalrPtzLancCameraConfigurationTests
 {
     [Fact]
+    public void PanTiltSpeedDefaultsToFullSpeed() =>
+        Assert.Equal(100, Read(Minimal).PanTiltSpeedPercent);
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(50)]
+    [InlineData(100)]
+    public void ReadsPanTiltSpeedPercent(int percent) =>
+        Assert.Equal(percent, Read(Minimal.Replace("}", $$""", "panTiltSpeedPercent": {{percent}} }""")).PanTiltSpeedPercent);
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("101")]
+    [InlineData("50.5")]
+    [InlineData("null")]
+    [InlineData("\"50\"")]
+    public void RejectsInvalidPanTiltSpeed(string value) =>
+        Assert.Throws<ConfigValidationException>(() =>
+            Read(Minimal.Replace("}", $$""", "panTiltSpeedPercent": {{value}} }""")));
+
+    [Fact]
     public void ReadsTheShippedShape()
     {
         var config = Read(

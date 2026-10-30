@@ -33,3 +33,5 @@ public sealed class PositiveIntConverter() : IntRangeConverter(1, int.MaxValue);
 
 /// z.int().positive() constrained to a usable TCP or UDP port
 public sealed class PortConverter() : IntRangeConverter(1, 65535);
+
+public sealed class PercentConverter() : IntRangeConverter(1, 100);

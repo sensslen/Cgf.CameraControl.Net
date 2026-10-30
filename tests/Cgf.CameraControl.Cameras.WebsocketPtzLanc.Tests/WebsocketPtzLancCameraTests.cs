@@ -10,6 +10,32 @@ public class WebsocketPtzLancCameraTests
     public class Movement : WebsocketPtzLancCameraTests
     {
         [Theory]
+        [InlineData(1, 1, 3)]
+        [InlineData(50, 1, 128)]
+        [InlineData(100, 1, 255)]
+        [InlineData(50, 4, 128)]
+        [InlineData(50, 0.5, 32)]
+        public void SpeedPercentScalesTheCurveForBothAxesButNotZoom(int percent, double input, int expected)
+        {
+            var camera = Opened(panTiltInvert: true, panTiltSpeedPercent: percent);
+            camera.Pan(input);
+            _transport.EchoLastSend();
+            camera.Tilt(-input);
+
+            Assert.Equal(-expected, _transport.Sent[^1].Pan);
+            Assert.Equal(expected, _transport.Sent[^1].Tilt);
+            _transport.EchoLastSend();
+            camera.Zoom(1);
+            Assert.Equal(255, _transport.Sent[^1].Zoom);
+            _transport.EchoLastSend();
+            camera.Pan(0);
+            _transport.EchoLastSend();
+            camera.Tilt(0);
+            Assert.Equal(0, _transport.Sent[^1].Pan);
+            Assert.Equal(0, _transport.Sent[^1].Tilt);
+        }
+
+        [Theory]
         [InlineData(1.0, 255)]
         [InlineData(-1.0, -255)]
         [InlineData(0.5, 64)]
@@ -181,20 +207,21 @@ public class WebsocketPtzLancCameraTests
         }
     }
 
-    private WebsocketPtzLancCamera Build(bool panTiltInvert = false, bool showTallyLight = true) =>
+    private WebsocketPtzLancCamera Build(bool panTiltInvert = false, bool showTallyLight = true, int panTiltSpeedPercent = 100) =>
         new(
             new WebsocketPtzLancCameraConfiguration
             {
                 Ip = "10.0.0.1",
                 PanTiltInvert = panTiltInvert,
+                PanTiltSpeedPercent = panTiltSpeedPercent,
                 ShowTallyLight = showTallyLight,
             },
             _transport);
 
     /// The controller announces its idle state on connect, which is what opens the gate.
-    private WebsocketPtzLancCamera Opened(bool panTiltInvert = false, bool showTallyLight = true)
+    private WebsocketPtzLancCamera Opened(bool panTiltInvert = false, bool showTallyLight = true, int panTiltSpeedPercent = 100)
     {
-        var camera = Build(panTiltInvert, showTallyLight);
+        var camera = Build(panTiltInvert, showTallyLight, panTiltSpeedPercent);
         _transport.Echo(default);
         return camera;
     }
