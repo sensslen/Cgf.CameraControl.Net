@@ -73,6 +73,21 @@
       </StackPanel>
     </DataTemplate>
 
+    <DataTemplate DataType="edit:PercentField">
+      <StackPanel Margin="0,0,0,10">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Classes="caption" Text="{Binding Caption^}" />
+          <Slider Width="140" Minimum="1" Maximum="100" TickFrequency="1"
+                  IsSnapToTickEnabled="True" Value="{Binding SliderValue, Mode=TwoWay}"
+                  VerticalAlignment="Center" />
+          <TextBox Width="64" Margin="8,0,0,0" Text="{Binding Value}" />
+          <TextBlock Text="%" Margin="4,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Classes="wrong" Text="{Binding Error}"
+                   IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+    </DataTemplate>
+
     <DataTemplate DataType="edit:SwitchField">
       <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
         <TextBlock Classes="caption" Text="{Binding Caption^}" />

@@ -25,6 +25,9 @@ public sealed record WebsocketPtzLancCameraConfiguration
 
     public bool PanTiltInvert { get; set; }
 
+    [JsonConverter(typeof(PercentConverter))]
+    public int PanTiltSpeedPercent { get; set; } = 100;
+
     public bool ShowTallyLight { get; set; } = true;
 }
 

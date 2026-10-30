@@ -6,6 +6,28 @@ namespace Cgf.CameraControl.Cameras.ViscaOverIp.Tests;
 public class ViscaOverIpCameraConfigurationTests
 {
     [Fact]
+    public void PanTiltSpeedDefaultsToFullSpeed() =>
+        Assert.Equal(100, Read("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1" }""").PanTiltSpeedPercent);
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(50)]
+    [InlineData(100)]
+    public void ReadsPanTiltSpeedPercent(int percent) =>
+        Assert.Equal(percent, Read($$"""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1", "panTiltSpeedPercent": {{percent}} }""").PanTiltSpeedPercent);
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("101")]
+    [InlineData("50.5")]
+    [InlineData("null")]
+    [InlineData("\"50\"")]
+    public void RejectsInvalidPanTiltSpeed(string value) =>
+        Assert.Throws<ConfigValidationException>(() =>
+            Read($$"""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1", "panTiltSpeedPercent": {{value}} }"""));
+
+    [Fact]
     public void ReadsTheShippedShape()
     {
         var config = Read(

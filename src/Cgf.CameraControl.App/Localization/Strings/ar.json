@@ -39,6 +39,7 @@
     "port": "المنفذ",
     "portDefault": "52381",
     "panTiltInvert": "عكس التحريك والإمالة",
+    "panTiltSpeedPercent": "سرعة التحريك والإمالة",
     "tallyMode": "مؤشر البث",
     "showTallyLight": "إظهار ضوء مؤشر البث",
     "connectionUrl": "عنوان وحدة التحكم",

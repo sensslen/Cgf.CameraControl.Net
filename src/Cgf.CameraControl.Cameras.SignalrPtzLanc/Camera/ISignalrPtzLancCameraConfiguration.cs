@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Cgf.CameraControl.Core.Configuration.Converters;
 
 namespace Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
 
@@ -41,6 +42,9 @@ public sealed record SignalrPtzLancCameraConfiguration
     public string ConnectionPort { get; set; } = null!;
 
     public bool PanTiltInvert { get; set; }
+
+    [JsonConverter(typeof(PercentConverter))]
+    public int PanTiltSpeedPercent { get; set; } = 100;
 }
 
 [JsonSourceGenerationOptions(

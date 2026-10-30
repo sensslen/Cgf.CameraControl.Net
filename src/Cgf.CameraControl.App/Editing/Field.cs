@@ -152,6 +152,40 @@ public sealed partial class NumberField : Field
     partial void OnValueChanged(string value) => Write(Number is { } number ? JsonValue.Create(number) : null);
 }
 
+public sealed partial class PercentField : Field
+{
+    public PercentField(JsonObject entry, string key, string label)
+        : base(entry, key, label)
+    {
+        Value = (entry[key]?.GetValue<int>() ?? 100).ToString(CultureInfo.CurrentUICulture);
+        Ready();
+    }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SliderValue))]
+    public partial string Value { get; set; } = string.Empty;
+
+    private int? Number =>
+        int.TryParse(Value, NumberStyles.Integer, CultureInfo.CurrentUICulture, out var parsed) ? parsed : null;
+
+    public double SliderValue
+    {
+        get => Math.Clamp(Number ?? 100, 1, 100);
+        set => Value = Math.Round(Math.Clamp(value, 1, 100)).ToString(CultureInfo.CurrentUICulture);
+    }
+
+    protected internal override void Validate() =>
+        Error = Number switch
+        {
+            null => Localizer.Current.Text("edit.notANumber"),
+            < 1 or > 100 => string.Format(
+                CultureInfo.CurrentUICulture, Localizer.Current.Text("edit.outOfRange"), 1, 100),
+            _ => null,
+        };
+
+    partial void OnValueChanged(string value) => Write(Number is { } number ? JsonValue.Create(number) : null);
+}
+
 public sealed partial class SwitchField : Field
 {
     public SwitchField(JsonObject entry, string key, string label, bool fallback)

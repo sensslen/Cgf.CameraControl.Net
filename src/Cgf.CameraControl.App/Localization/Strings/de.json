@@ -39,6 +39,7 @@
     "port": "Port",
     "portDefault": "52381",
     "panTiltInvert": "Schwenken und Neigen umkehren",
+    "panTiltSpeedPercent": "Schwenk- und Neigegeschwindigkeit",
     "tallyMode": "Tally",
     "showTallyLight": "Tally-Licht anzeigen",
     "connectionUrl": "Controller-URL",

@@ -12,6 +12,12 @@ camera's `instance`.
 All three take `panTiltInvert`, which flips pan and tilt for a camera mounted upside down. It never
 touches zoom or focus.
 
+All three also take `panTiltSpeedPercent`, a whole percentage from `1` to `100` (default `100`
+when omitted). It scales pan and tilt speeds without affecting zoom, focus, or the existing response
+curve. Adjust it in the configuration editor using the linked slider and text box; it is not a
+live control on the operating surface. For example, `"panTiltSpeedPercent": 50` halves the requested
+pan and tilt speeds. Hardware speed steps still apply; VISCA cannot move below speed 1.
+
 ## `viscaoverip`
 
 ```json

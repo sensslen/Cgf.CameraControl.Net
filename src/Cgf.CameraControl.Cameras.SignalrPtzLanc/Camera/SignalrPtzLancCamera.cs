@@ -48,9 +48,9 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
 
     /// The whole state travels in one call, so the movement the controller is holding is whatever
     /// was asked for last rather than a sequence of per-axis updates that can interleave.
-    public void Pan(double value) => Change(state => state with { Pan = Invert(Scale(value, 255)) });
+    public void Pan(double value) => Change(state => state with { Pan = Invert(ScalePanTilt(value)) });
 
-    public void Tilt(double value) => Change(state => state with { Tilt = Invert(Scale(value, 255)) });
+    public void Tilt(double value) => Change(state => state with { Tilt = Invert(ScalePanTilt(value)) });
 
     public void Zoom(double value) => Change(state => state with { Zoom = Scale(value, 8) });
 
@@ -217,6 +217,9 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
     private void Log(string message) => _logger.Log("CgfPtzCamera", $"({_config.ConnectionUrl}) {message}");
 
     private int Invert(int value) => _config.PanTiltInvert ? -value : value;
+
+    private int ScalePanTilt(double value) =>
+        Scale(Math.Clamp(value, -1, 1) * (_config.PanTiltSpeedPercent / 100.0), 255);
 
     private static int Scale(double value, int maximum) =>
         (int)Math.Round(Math.Clamp(value * maximum, -maximum, maximum));

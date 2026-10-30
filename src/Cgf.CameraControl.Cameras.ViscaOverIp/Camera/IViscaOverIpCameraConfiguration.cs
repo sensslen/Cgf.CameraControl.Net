@@ -38,6 +38,9 @@ public sealed record ViscaOverIpCameraConfiguration
 
     public bool PanTiltInvert { get; set; }
 
+    [JsonConverter(typeof(PercentConverter))]
+    public int PanTiltSpeedPercent { get; set; } = 100;
+
     public ViscaTallyMode TallyMode { get; set; } = ViscaTallyMode.None;
 }
 

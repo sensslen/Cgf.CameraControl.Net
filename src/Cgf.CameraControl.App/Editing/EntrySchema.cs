@@ -29,12 +29,14 @@ internal static class EntrySchema
                 new TextField(entry, "ip", "edit.ip", required: true),
                 new NumberField(entry, "port", "edit.port", required: false, minimum: 1, "edit.portDefault"),
                 new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
+                new PercentField(entry, "panTiltSpeedPercent", "edit.panTiltSpeedPercent"),
                 new ChoiceField(entry, "tallyMode", "edit.tallyMode", ["none", "avonic", "ptzoptics"], "none"),
             ],
             "websocket.ptzlanc" =>
             [
                 new TextField(entry, "ip", "edit.ip", required: true),
                 new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
+                new PercentField(entry, "panTiltSpeedPercent", "edit.panTiltSpeedPercent"),
                 new SwitchField(entry, "showTallyLight", "edit.showTallyLight", fallback: true),
             ],
             "signalr.ptzlanc" =>
@@ -42,6 +44,7 @@ internal static class EntrySchema
                 new TextField(entry, "connectionUrl", "edit.connectionUrl", required: true),
                 new TextField(entry, "connectionPort", "edit.connectionPort", required: true),
                 new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
+                new PercentField(entry, "panTiltSpeedPercent", "edit.panTiltSpeedPercent"),
             ],
             "blackmagicdesign/atem" =>
             [
