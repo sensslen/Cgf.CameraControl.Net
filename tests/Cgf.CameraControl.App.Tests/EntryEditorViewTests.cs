@@ -241,9 +241,11 @@ public class EntryEditorViewTests
                 var map = Assert.Single(entry.Fields.OfType<MapField>());
                 var editor = new EntryEditorView { DataContext = entry };
                 var window = new Window { Width = 560, Height = 800, Content = editor };
+                var previousLanguage = Localizer.Current.Active;
                 window.Show();
                 try
                 {
+                    Localizer.Current.Use(Localizer.Languages.First(language => language.Culture == "en"));
                     Dispatcher.UIThread.RunJobs();
                     var summary = Assert.Single(editor.GetVisualDescendants().OfType<TextBlock>(),
                         control => control.Text == entry.Problem);
@@ -287,6 +289,14 @@ public class EntryEditorViewTests
                     Assert.Equal($"{Localizer.Current.Text(map.LeftLabel)} 2", AutomationProperties.GetName(keys[1]));
                     Assert.Equal($"{Localizer.Current.Text(map.RightLabel)} 1", AutomationProperties.GetName(values[0]));
                     Assert.Equal($"{Localizer.Current.Text(map.RightLabel)} 2", AutomationProperties.GetName(values[1]));
+                    var originalName = AutomationProperties.GetName(keys[0]);
+                    Localizer.Current.Use(Localizer.Languages.First(language => language.Culture == "de"));
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.NotEqual(originalName, AutomationProperties.GetName(keys[0]));
+                    Assert.Equal($"{Localizer.Current.Text(map.LeftLabel)} 1", AutomationProperties.GetName(keys[0]));
+                    Assert.Equal($"{Localizer.Current.Text(map.LeftLabel)} 2", AutomationProperties.GetName(keys[1]));
+                    Assert.Equal($"{Localizer.Current.Text(map.RightLabel)} 1", AutomationProperties.GetName(values[0]));
+                    Assert.Equal($"{Localizer.Current.Text(map.RightLabel)} 2", AutomationProperties.GetName(values[1]));
                     map.RemoveRowCommand.Execute(first);
                     Dispatcher.UIThread.RunJobs();
                     Assert.Equal(1, second.Position);
@@ -297,6 +307,7 @@ public class EntryEditorViewTests
                 }
                 finally
                 {
+                    Localizer.Current.Use(previousLanguage);
                     window.Close();
                 }
             }, TestContext.Current.CancellationToken);
