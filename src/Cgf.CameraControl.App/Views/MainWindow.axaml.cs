@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Avalonia.Interactivity;
 using Cgf.CameraControl.App.ViewModels;
 
 namespace Cgf.CameraControl.App.Views;
@@ -31,6 +32,15 @@ public partial class MainWindow : Window
         DataContextChanged += (_, _) => Follow();
         Deactivated += (_, _) => _keyboard.Release();
 
+        AddHandler(KeyDownEvent, (_, e) =>
+        {
+            if (e.Source is not MenuItem)
+            {
+                e.Handled |= _keyboard.Down(e.Key);
+            }
+        }, RoutingStrategies.Tunnel);
+        AddHandler(KeyUpEvent, (_, e) => e.Handled |= _keyboard.Up(e.Key), RoutingStrategies.Tunnel);
+
         // Windows and Linux let Avalonia draw the frame, which is what makes an icon, a name and a
         // menu inside the title bar possible at all. macOS draws its own traffic lights and takes the
         // menu into the system menu bar, so there is nothing of ours to put up there, but the client
@@ -49,20 +59,6 @@ public partial class MainWindow : Window
             // The drawn decorations are the Windows and Linux frame. macOS has its own.
             WindowDecorationsTheme = null;
         }
-    }
-
-    /// A key the configuration bound belongs to the interface, and one it did not belongs to the
-    /// window: an arrow key that walks the interface list is still useful when nothing claims it.
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-        e.Handled |= _keyboard.Down(e.Key);
-    }
-
-    protected override void OnKeyUp(KeyEventArgs e)
-    {
-        base.OnKeyUp(e);
-        e.Handled |= _keyboard.Up(e.Key);
     }
 
     public async Task<string?> PickFileAsync()
