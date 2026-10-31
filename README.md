@@ -206,6 +206,29 @@ through `dotnet test`:
 for suite in tests/*/bin/Debug/net10.0/*.Tests; do "$suite"; done
 ```
 
+### Application icons
+
+`packaging/icon/generate.py` generates the shared artwork. Regeneration needs Pillow; verification
+uses only Python's standard library:
+
+```bash
+python packaging/icon/verify.py
+python -m unittest discover -s packaging/icon -p "test_*.py"
+```
+
+On Windows, add `--windows-exe <path>` for each published executable or installer. Verification
+compares every embedded icon size against the application ICO, not just whether an icon exists.
+PNG image data and classic ICNS RGB streams are decoded; the caption glyph is compared with its
+generated reference in `packaging/icon/appicon-caption.png`.
+CI checks the assets and assignments; Windows releases also check the NativeAOT binary and installer.
+
+The title bar uses a high-DPI raster of the small glyph. Windows executables, shortcuts, uninstall
+metadata and dialog windows use the ICO. macOS bundles use `AppIcon.icns`; the Linux window class
+matches the desktop file and Flatpak icon identity.
+
+Windows 0.4.3 predates executable icon embedding. Upgrade from that version to get the application
+icon in Explorer and shortcuts.
+
 ### Layout
 
 | Project | |
