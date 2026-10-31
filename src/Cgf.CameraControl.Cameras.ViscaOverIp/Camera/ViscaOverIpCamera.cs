@@ -93,8 +93,12 @@ public sealed class ViscaOverIpCamera : ICameraConnection
             // A drive command is a level, not a step: the camera holds it until told otherwise, so
             // sending the same one again asks for nothing. Interfaces stop every axis of a camera
             // they let go of, which on a camera in auto focus means a focus stop it cannot run and
-            // refuses, once per selection change, for the length of a service.
-            if (_accepted.TryGetValue(category, out var last) && last.AsSpan().SequenceEqual(packet))
+            // refuses, once per selection change, for the length of a service. A command in flight
+            // is newer than the last one the camera took, so it is the level to compare against.
+            var last = _inFlight is { } sending && sending.Category == category
+                ? sending.Packet
+                : _accepted.GetValueOrDefault(category);
+            if (last is not null && last.AsSpan().SequenceEqual(packet))
             {
                 if (_queued.Remove(category))
                 {

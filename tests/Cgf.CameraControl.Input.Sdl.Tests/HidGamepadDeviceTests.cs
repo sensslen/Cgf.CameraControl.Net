@@ -71,6 +71,7 @@ public class HidGamepadDeviceTests
         connection.Reports.Enqueue([0, 0, 128, 128, 128, 8, 0, 0, 0]);
 
         await Wait(moved);
+        source.Received(1).Open("83234F94");
         logger.Received().Error("HID", Arg.Is<string>(message => message.Contains("report failed")));
     }
 

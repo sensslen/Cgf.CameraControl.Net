@@ -425,7 +425,8 @@ public class ViscaOverIpCameraTests
                 _transport.Disconnect();
                 _transport.Connect();
 
-                Assert.Equal(_transport.Sent[1], _transport.Sent[^1]);
+                Assert.Equal(3, _transport.Sent.Count);
+                Assert.Equal(_transport.Sent[1], _transport.Sent[2]);
             }
 
             [Fact]
@@ -450,8 +451,24 @@ public class ViscaOverIpCameraTests
                 _transport.Acknowledge(socket: 2);
 
                 _transport.Refuse(socket: 1);
+                camera.Pan(0);
 
                 Assert.Equal(2, _transport.Sent.Count);
+            }
+
+            [Fact]
+            public void AMovementRequestedAgainWhileItsStopIsInFlightGoesOut()
+            {
+                var camera = Connected();
+                camera.Pan(1);
+                _transport.Acknowledge();
+                camera.Pan(0);
+
+                camera.Pan(1);
+                _transport.Acknowledge();
+
+                Assert.Equal(3, _transport.Sent.Count);
+                Assert.Equal(_transport.Sent[0], _transport.Sent[2]);
             }
         }
 
