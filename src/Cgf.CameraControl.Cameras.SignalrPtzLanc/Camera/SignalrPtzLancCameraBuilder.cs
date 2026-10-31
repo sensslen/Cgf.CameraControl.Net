@@ -12,6 +12,7 @@ public sealed class SignalrPtzLancCameraBuilder(ILogger logger) : IBuilder<ICame
     public Task<ICameraConnection> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken)
     {
         var config = entry.Deserialize(SignalrPtzLancCameraConfigurationContext.Default.SignalrPtzLancCameraConfiguration);
+        Validate.HttpUrl(config.ConnectionUrl, $"{entry}.connectionUrl");
         var transport = new SignalrStateTransport(config.ConnectionUrl, config.ConnectionPort, logger);
         return Task.FromResult<ICameraConnection>(new SignalrPtzLancCamera(config, transport, logger));
     }

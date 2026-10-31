@@ -35,6 +35,7 @@ public sealed partial class EntryDraft : ViewModelBase
 
         foreach (var field in Fields)
         {
+            field.Validate();
             field.Edited += OnFieldEdited;
         }
 
@@ -80,7 +81,7 @@ public sealed partial class EntryDraft : ViewModelBase
             }
         }
 
-        if (_entry["keys"]?["function"] is JsonObject functions)
+        if (_entry["keys"] is JsonObject keys && keys["function"] is JsonObject functions)
         {
             foreach (var name in Values(functions))
             {
@@ -111,7 +112,8 @@ public sealed partial class EntryDraft : ViewModelBase
 
     private static IEnumerable<string> Values(JsonNode? node) =>
         node is JsonObject map
-            ? map.Select(pair => pair.Value?.GetValue<string>()).OfType<string>()
+            ? map.Select(pair => pair.Value is JsonValue value && value.TryGetValue<string>(out var name) ? name : null)
+                .OfType<string>()
             : [];
 
     private string Describe() =>
@@ -121,6 +123,12 @@ public sealed partial class EntryDraft : ViewModelBase
 
     private void OnFieldEdited(object? sender, EventArgs e)
     {
+        // A field's rule can depend on another field, as the serial number does on the backend.
+        foreach (var field in Fields.Where(field => field != sender))
+        {
+            field.Validate();
+        }
+
         Title = Describe();
         Edited?.Invoke(this, EventArgs.Empty);
     }

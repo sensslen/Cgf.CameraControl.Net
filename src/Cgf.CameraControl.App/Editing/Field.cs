@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reactive.Linq;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
@@ -44,6 +45,15 @@ public abstract partial class Field(JsonObject entry, string key, string label, 
     protected bool Loaded { get; private set; }
 
     protected internal abstract void Validate();
+
+    /// The value as text, whatever JSON type the file wrote it as. A hand-written `"port": "52381"`
+    /// is shown for correction rather than taking the form down with it.
+    protected static string Text(JsonNode? node) =>
+        node is JsonValue value && value.TryGetValue<string>(out var text) ? text : node?.ToJsonString() ?? string.Empty;
+
+    /// True when the file holds this key as something other than the given JSON kind.
+    protected bool Mistyped(params JsonValueKind[] kinds) =>
+        Entry[Key] is { } node && !kinds.Contains(node.GetValueKind());
 
     protected void Ready()
     {
@@ -91,11 +101,21 @@ public sealed partial class TextField : Field
     {
         _required = required;
         Suggestions = suggestions ?? [];
-        Value = entry[key]?.GetValue<string>() ?? string.Empty;
+        Value = Text(entry[key]);
         Ready();
+        if (Mistyped(JsonValueKind.String))
+        {
+            OnValueChanged(Value);
+        }
     }
 
     public IReadOnlyList<string> Suggestions { get; }
+
+    /// Required only while this holds, such as a serial number while the backend is HID.
+    public Func<bool>? RequiredWhen { get; init; }
+
+    /// A rule beyond being present, returning what is wrong or null.
+    public Func<string, string?>? Check { get; init; }
 
     public bool HasSuggestions => Suggestions.Count > 0;
 
@@ -103,7 +123,9 @@ public sealed partial class TextField : Field
     public partial string Value { get; set; } = string.Empty;
 
     protected internal override void Validate() =>
-        Error = _required && string.IsNullOrWhiteSpace(Value) ? Localizer.Current.Text("edit.required") : null;
+        Error = string.IsNullOrWhiteSpace(Value)
+            ? _required || RequiredWhen?.Invoke() == true ? Localizer.Current.Text("edit.required") : null
+            : Check?.Invoke(Value);
 
     partial void OnValueChanged(string value) =>
         Write(string.IsNullOrWhiteSpace(value) ? null : JsonValue.Create(value));
@@ -115,6 +137,7 @@ public sealed partial class TextField : Field
 public sealed partial class NumberField : Field
 {
     private readonly int _minimum;
+    private readonly int _maximum;
     private readonly bool _required;
 
     public NumberField(
@@ -123,13 +146,22 @@ public sealed partial class NumberField : Field
         string label,
         bool required,
         int minimum,
-        string? placeholder = null)
+        string? placeholder = null,
+        int maximum = int.MaxValue)
         : base(entry, key, label, placeholder)
     {
         _required = required;
         _minimum = minimum;
-        Value = entry[key] is { } node ? node.GetValue<int>().ToString(CultureInfo.CurrentUICulture) : string.Empty;
+        _maximum = maximum;
+        var node = entry[key];
+        Value = node is JsonValue stored && stored.TryGetValue<int>(out var number)
+            ? number.ToString(CultureInfo.CurrentUICulture)
+            : Text(node);
         Ready();
+        if (node is not null && !(node is JsonValue written && written.TryGetValue<int>(out _)))
+        {
+            OnValueChanged(Value);
+        }
     }
 
     [ObservableProperty]
@@ -147,6 +179,11 @@ public sealed partial class NumberField : Field
                 CultureInfo.CurrentUICulture,
                 Localizer.Current.Text("edit.tooSmall"),
                 _minimum),
+            (_, var number) when number > _maximum => string.Format(
+                CultureInfo.CurrentUICulture,
+                Localizer.Current.Text("edit.outOfRange"),
+                _minimum,
+                _maximum),
             _ => null,
         };
 
@@ -158,8 +195,15 @@ public sealed partial class PercentField : Field
     public PercentField(JsonObject entry, string key, string label)
         : base(entry, key, label)
     {
-        Value = (entry[key]?.GetValue<int>() ?? 100).ToString(CultureInfo.CurrentUICulture);
+        var node = entry[key];
+        Value = node is null ? "100"
+            : node is JsonValue stored && stored.TryGetValue<int>(out var number) ? number.ToString(CultureInfo.CurrentUICulture)
+            : Text(node);
         Ready();
+        if (node is not null && !(node is JsonValue written && written.TryGetValue<int>(out _)))
+        {
+            OnValueChanged(Value);
+        }
     }
 
     [ObservableProperty]
@@ -192,8 +236,18 @@ public sealed partial class SwitchField : Field
     public SwitchField(JsonObject entry, string key, string label, bool fallback)
         : base(entry, key, label)
     {
-        Value = entry[key]?.GetValue<bool>() ?? fallback;
+        var mistyped = Mistyped(JsonValueKind.True, JsonValueKind.False);
+        Value = entry[key] switch
+        {
+            null => fallback,
+            var node when !mistyped => node.GetValue<bool>(),
+            var node => bool.TryParse(Text(node), out var parsed) ? parsed : fallback,
+        };
         Ready();
+        if (mistyped)
+        {
+            OnValueChanged(Value);
+        }
     }
 
     [ObservableProperty]
@@ -268,8 +322,15 @@ public sealed partial class FractionField : Field
         : base(entry, key, label)
     {
         _maximum = maximum;
-        Value = (entry[key]?.GetValue<double>() ?? fallback).ToString(CultureInfo.CurrentUICulture);
+        var node = entry[key];
+        Value = node is null ? fallback.ToString(CultureInfo.CurrentUICulture)
+            : node is JsonValue stored && stored.TryGetValue<double>(out var number) ? number.ToString(CultureInfo.CurrentUICulture)
+            : Text(node);
         Ready();
+        if (Mistyped(JsonValueKind.Number))
+        {
+            OnValueChanged(Value);
+        }
     }
 
     [ObservableProperty]

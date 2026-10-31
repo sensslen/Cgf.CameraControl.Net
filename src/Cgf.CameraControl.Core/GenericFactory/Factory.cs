@@ -9,6 +9,10 @@ public abstract class Factory<T>(string section) : IAsyncDisposable
     private readonly Dictionary<string, IBuilder<T>> _builders = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<int, T> _instances = [];
 
+    // Every instance arrives through ParseConfigAsync, so whenever there is something to dispose
+    // there is a logger to report its failure to.
+    private ILogger? _logger;
+
     public IReadOnlyDictionary<int, T> Instances => _instances;
 
     public T? Get(int instance) => _instances.TryGetValue(instance, out var value) ? value : default;
@@ -27,6 +31,7 @@ public abstract class Factory<T>(string section) : IAsyncDisposable
 
     public async Task<LoadIssue?> ParseConfigAsync(ConfigEntry entry, ILogger logger, CancellationToken cancellationToken)
     {
+        _logger = logger;
         if (_instances.ContainsKey(entry.Instance))
         {
             return Issue(entry, $"instance {entry.Instance} is already configured");
@@ -63,9 +68,10 @@ public abstract class Factory<T>(string section) : IAsyncDisposable
             {
                 await instance.DisposeAsync().ConfigureAwait(false);
             }
-            catch
+            catch (Exception ex)
             {
-                // Teardown is best effort, exactly as the TypeScript factory treated it.
+                // Teardown is best effort: one failure must not keep the rest from being released.
+                _logger?.Error(section, $"disposing {instance.GetType().Name} failed - {ex.Message}");
             }
         }
 

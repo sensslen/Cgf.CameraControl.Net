@@ -14,7 +14,8 @@ public partial class MainWindow : Window
     /// What macOS leaves above the client area for its own buttons.
     private const int MacTrafficLightHeight = 28;
 
-    private static readonly FilePickerFileType ConfigurationFiles = new("Configuration")
+    // Built per dialog so the filter name follows the language chosen at run time.
+    private static FilePickerFileType ConfigurationFiles => new(Localization.Localizer.Current.Text("config.fileType"))
     {
         Patterns = ["*.json"],
         MimeTypes = ["application/json"],
@@ -64,7 +65,7 @@ public partial class MainWindow : Window
     {
         var chosen = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Open configuration",
+            Title = Localization.Localizer.Current.Text("config.openTitle"),
             AllowMultiple = false,
             FileTypeFilter = [ConfigurationFiles],
         });

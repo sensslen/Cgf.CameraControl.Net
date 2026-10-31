@@ -344,6 +344,118 @@ public class ViscaOverIpCameraTests
         }
 
         [Fact]
+        public void TheCompletionOfAnAcknowledgedCommandDoesNotReleaseTheNextOne()
+        {
+            var camera = Connected();
+            camera.Pan(1);
+            _transport.Acknowledge();
+            camera.Zoom(1);
+            camera.Focus(1);
+
+            _transport.Complete();
+
+            Assert.Equal(2, _transport.Sent.Count);
+        }
+
+        [Fact]
+        public void ACompletionWithoutAnAcknowledgementLetsTheNextCommandOut()
+        {
+            var camera = Connected();
+            camera.Pan(1);
+            camera.Zoom(1);
+
+            _transport.Complete();
+
+            Assert.Equal(2, _transport.Sent.Count);
+        }
+
+        public class ResendingAStop : ViscaOverIpCameraTests
+        {
+            [Fact]
+            public void AStopBouncedOffFullBuffersGoesOutAgain()
+            {
+                var camera = Connected();
+                camera.Pan(1);
+                _transport.Acknowledge();
+                camera.Pan(0);
+
+                _transport.Refuse(socket: 0);
+
+                Assert.Equal(3, _transport.Sent.Count);
+                Assert.Equal(_transport.Sent[1], _transport.Sent[2]);
+            }
+
+            [Fact]
+            public void AStopRefusedFromItsBufferGoesOutAgain()
+            {
+                var camera = Connected();
+                camera.Pan(1);
+                _transport.Acknowledge(socket: 1);
+                camera.Pan(0);
+                _transport.Acknowledge(socket: 2);
+
+                _transport.Refuse(socket: 2, error: 0x05);
+
+                Assert.Equal(3, _transport.Sent.Count);
+                Assert.Equal(_transport.Sent[1], _transport.Sent[2]);
+            }
+
+            [Fact]
+            public void AnUnansweredStopGoesOutAgain()
+            {
+                var camera = Connected();
+                camera.Pan(1);
+                _transport.Acknowledge();
+                camera.Pan(0);
+
+                _time.Advance(TimeSpan.FromSeconds(5));
+
+                Assert.Equal(3, _transport.Sent.Count);
+                Assert.Equal(_transport.Sent[1], _transport.Sent[2]);
+            }
+
+            [Fact]
+            public void AStopLostToADisconnectGoesOutOnReconnect()
+            {
+                var camera = Connected();
+                camera.Pan(1);
+                _transport.Acknowledge();
+                camera.Pan(0);
+
+                _transport.Disconnect();
+                _transport.Connect();
+
+                Assert.Equal(_transport.Sent[1], _transport.Sent[^1]);
+            }
+
+            [Fact]
+            public void AStopTheCameraCannotRunIsNotRepeated()
+            {
+                var camera = Connected();
+                camera.Focus(0);
+                _transport.Refuse(error: 0x41);
+
+                camera.Focus(0);
+
+                Assert.Single(_transport.Sent);
+            }
+
+            [Fact]
+            public void ARefusalOfAnOlderCommandDoesNotUndoANewerOne()
+            {
+                var camera = Connected();
+                camera.Pan(1);
+                _transport.Acknowledge(socket: 1);
+                camera.Pan(0);
+                _transport.Acknowledge(socket: 2);
+
+                _transport.Refuse(socket: 1);
+
+                Assert.Equal(2, _transport.Sent.Count);
+            }
+        }
+
+        [Fact]
         public void AReplyToNothingIsIgnored()
         {
             var camera = Connected();

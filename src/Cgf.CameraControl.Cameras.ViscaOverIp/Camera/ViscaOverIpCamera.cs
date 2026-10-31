@@ -15,14 +15,13 @@ public sealed class ViscaOverIpCamera : ICameraConnection
     private readonly ITimer _expiry;
     private readonly List<ViscaCategory> _order = [];
     private readonly Dictionary<ViscaCategory, byte[]> _queued = [];
-    private readonly Dictionary<int, ViscaCategory> _sockets = [];
+    private readonly Dictionary<int, Command> _sockets = [];
     private readonly Dictionary<ViscaCategory, byte[]> _accepted = [];
     private readonly IDisposable _replies;
     private readonly IDisposable _connection;
 
     private bool _connected;
-    private ViscaCategory? _inFlight;
-    private ViscaCategory? _lastSent;
+    private Command? _inFlight;
     private int _pan;
     private int _tilt;
 
@@ -132,33 +131,57 @@ public sealed class ViscaOverIpCamera : ICameraConnection
             _order.RemoveAt(0);
             packet = _queued[category];
             _queued.Remove(category);
-            _inFlight = category;
-            _lastSent = category;
-            _accepted[category] = packet;
+            _inFlight = new Command(category, packet);
         }
 
         _expiry.Change(CommandTimeout, Timeout.InfiniteTimeSpan);
         _transport.Send(packet);
     }
 
-    private ViscaCategory? Release()
+    /// A command the camera took, or refused as one it cannot run, counts as sent. One that was lost
+    /// or bounced off full buffers goes out again: the stick that asked for it is usually at rest by
+    /// now, and nothing else will repeat a stop.
+    private Command? Release(bool resend)
     {
         _expiry.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-        ViscaCategory? released;
+        Command? released;
         lock (_gate)
         {
             released = _inFlight;
             _inFlight = null;
+            if (released is { } command)
+            {
+                if (resend)
+                {
+                    Requeue(command);
+                }
+                else
+                {
+                    _accepted[command.Category] = command.Packet;
+                }
+            }
         }
 
         Pump();
         return released;
     }
 
+    /// Called with _gate held. A newer packet for the same axis already says where it should be.
+    private void Requeue(Command command)
+    {
+        if (_queued.ContainsKey(command.Category) || _inFlight?.Category == command.Category)
+        {
+            return;
+        }
+
+        _order.Add(command.Category);
+        _queued[command.Category] = command.Packet;
+    }
+
     private void Expire() =>
         _logger.Error(
             "ViscaOverIpCamera",
-            $"({_config.Ip}) no answer to {Name(Release())} within {CommandTimeout.TotalSeconds:0} seconds");
+            $"({_config.Ip}) no answer to {Name(Release(resend: true)?.Category)} within {CommandTimeout.TotalSeconds:0} seconds");
 
     /// A refusal only says what went wrong, never which command it went wrong for, and the answer
     /// arrives after the request is gone. Naming the command here is the difference between a log
@@ -183,7 +206,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection
                     // The camera has taken the command into one of its two buffers and will report
                     // how it went against that buffer, which can be several commands later. The gate
                     // opens here, and which command the buffer holds is remembered for that report.
-                    if (Release() is { } accepted)
+                    if (Release(resend: false) is { } accepted)
                     {
                         lock (_gate)
                         {
@@ -193,8 +216,19 @@ public sealed class ViscaOverIpCamera : ICameraConnection
 
                     break;
                 case ViscaReply.Completed:
-                    Forget(socket);
-                    Release();
+                    // The acknowledgement already opened the gate for this buffer. Opening it again
+                    // would release whichever command went out after it, unanswered.
+                    bool acknowledged;
+                    lock (_gate)
+                    {
+                        acknowledged = _sockets.Remove(socket);
+                    }
+
+                    if (!acknowledged)
+                    {
+                        Release(resend: false);
+                    }
+
                     break;
                 case ViscaReply.Failed:
                     // The reply itself goes into the message. Which buffer a camera answers on is
@@ -202,7 +236,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection
                     // argument about who refused what.
                     _logger.Error(
                         "ViscaOverIpCamera",
-                        $"({_config.Ip}) {NameIn(socket)} was refused - " +
+                        $"({_config.Ip}) {Name(Refuse(socket, ViscaPacket.IsTransient(packet)))} was refused - " +
                         $"{ViscaPacket.Describe(packet)} (reply {Convert.ToHexString(packet)})");
                     break;
                 default:
@@ -212,27 +246,33 @@ public sealed class ViscaOverIpCamera : ICameraConnection
     }
 
     /// A refusal that follows an acknowledgement is reported against the buffer that holds the
-    /// command, not against whatever is in flight now, so the buffer is what names it. A camera that
-    /// answers on a buffer it never acknowledged leaves only the command last sent to point at.
-    private string NameIn(int socket)
+    /// command, not against whatever is in flight now, so the buffer is what names it. Any other
+    /// refusal is for the command in flight.
+    private ViscaCategory? Refuse(int socket, bool resend)
     {
+        Command buffered;
         lock (_gate)
         {
-            if (_sockets.Remove(socket, out var category))
+            if (!_sockets.Remove(socket, out buffered))
             {
-                return Name(category);
+                buffered = default;
+            }
+            else if (resend
+                && _accepted.TryGetValue(buffered.Category, out var newest)
+                && ReferenceEquals(newest, buffered.Packet))
+            {
+                _accepted.Remove(buffered.Category);
+                Requeue(buffered);
             }
         }
 
-        return Name(Release() ?? _lastSent);
-    }
-
-    private void Forget(int socket)
-    {
-        lock (_gate)
+        if (buffered.Packet is null)
         {
-            _sockets.Remove(socket);
+            return Release(resend)?.Category;
         }
+
+        Pump();
+        return buffered.Category;
     }
 
     private void OnConnectionChanged(bool connected)
@@ -243,11 +283,16 @@ public sealed class ViscaOverIpCamera : ICameraConnection
             if (!connected)
             {
                 // Whatever was in flight will never be answered, and a camera that went away has
-                // emptied its buffers. What is still queued stays: each entry holds the latest
-                // position of that axis rather than a step along the way, so sending it once the
-                // camera is back is what puts the camera where the stick is.
-                _inFlight = null;
-                _lastSent = null;
+                // emptied its buffers. What is still queued stays, and the lost command joins it:
+                // each entry holds the latest position of that axis rather than a step along the
+                // way, so sending it once the camera is back is what puts the camera where the
+                // stick is.
+                if (_inFlight is { } lost)
+                {
+                    _inFlight = null;
+                    Requeue(lost);
+                }
+
                 _sockets.Clear();
 
                 // A camera that went away may come back having forgotten everything, so nothing it
@@ -273,4 +318,6 @@ public sealed class ViscaOverIpCamera : ICameraConnection
 
     private static int Scale(double value, double maximum) =>
         (int)Math.Round(Math.Clamp(value, -1, 1) * maximum);
+
+    private readonly record struct Command(ViscaCategory Category, byte[] Packet);
 }

@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
+using Cgf.CameraControl.App.Localization;
+using Cgf.CameraControl.Core.Configuration;
 
 namespace Cgf.CameraControl.App.Editing;
 
@@ -27,7 +29,7 @@ internal static class EntrySchema
             "viscaoverip" =>
             [
                 new TextField(entry, "ip", "edit.ip", required: true),
-                new NumberField(entry, "port", "edit.port", required: false, minimum: 1, "edit.portDefault"),
+                new NumberField(entry, "port", "edit.port", required: false, minimum: 1, "edit.portDefault", maximum: 65535),
                 new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
                 new PercentField(entry, "panTiltSpeedPercent", "edit.panTiltSpeedPercent"),
                 new ChoiceField(entry, "tallyMode", "edit.tallyMode", ["none", "avonic", "ptzoptics"], "none"),
@@ -41,7 +43,10 @@ internal static class EntrySchema
             ],
             "signalr.ptzlanc" =>
             [
-                new TextField(entry, "connectionUrl", "edit.connectionUrl", required: true),
+                new TextField(entry, "connectionUrl", "edit.connectionUrl", required: true)
+                {
+                    Check = value => Validate.IsHttpUrl(value) ? null : Localizer.Current.Text("edit.notAUrl"),
+                },
                 new TextField(entry, "connectionPort", "edit.connectionPort", required: true),
                 new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
                 new PercentField(entry, "panTiltSpeedPercent", "edit.panTiltSpeedPercent"),
@@ -58,16 +63,7 @@ internal static class EntrySchema
                 new ChoiceField(entry, "tallyMode", "edit.mixerTallyMode", ["preview-program", "program", "none"], "preview-program",
                     optionLabelPrefix: "edit.mixerTally"),
             ],
-            "gamepad" =>
-            [
-                new ChoiceField(entry, "backend", "edit.gamepadBackend", ["sdl", "hid"], "sdl"),
-                new NumberField(entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
-                new MapField(entry, "cameraMap", "edit.cameraMap", "edit.input", "edit.camera"),
-                new SwitchField(entry, "enableChangingProgram", "edit.enableChangingProgram", fallback: true),
-                new TextField(entry, "serialNumber", "edit.serialNumber", required: false, "edit.anyPad", pads),
-                new FractionField(entry, "deadzone", "edit.deadzone", fallback: 0.05, maximum: 1),
-                new SwitchField(entry, "rumble", "edit.rumble", fallback: true),
-            ],
+            "gamepad" => Gamepad(entry, pads),
             "keyboard" =>
             [
                 new NumberField(entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
@@ -76,6 +72,24 @@ internal static class EntrySchema
             ],
             _ => [],
         };
+
+    private static IReadOnlyList<Field> Gamepad(JsonObject entry, IReadOnlyList<string> pads)
+    {
+        var backend = new ChoiceField(entry, "backend", "edit.gamepadBackend", ["sdl", "hid"], "sdl");
+        return
+        [
+            backend,
+            new NumberField(entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
+            new MapField(entry, "cameraMap", "edit.cameraMap", "edit.input", "edit.camera"),
+            new SwitchField(entry, "enableChangingProgram", "edit.enableChangingProgram", fallback: true),
+            new TextField(entry, "serialNumber", "edit.serialNumber", required: false, "edit.anyPad", pads)
+            {
+                RequiredWhen = () => string.Equals(backend.Value, "hid", StringComparison.OrdinalIgnoreCase),
+            },
+            new FractionField(entry, "deadzone", "edit.deadzone", fallback: 0.05, maximum: 1),
+            new SwitchField(entry, "rumble", "edit.rumble", fallback: true),
+        ];
+    }
 
     /// What a newly added entry has to carry before the loader will take it. An interface without a
     /// `connectionChange` or a `cameraMap` is rejected whole, so a new one is born holding the empty

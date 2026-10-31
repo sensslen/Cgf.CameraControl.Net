@@ -4,10 +4,15 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
 
@@ -15,6 +20,11 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
+
+      # The images disagree on whether python is called python or python3.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
 
       # Before the build, because a source generator compiles the report into the binary. It names
       # the exact versions restored, so generating it here is what keeps the notices from crediting
@@ -27,20 +37,23 @@ jobs:
       - name: Licence report
         run: |
           dotnet tool restore
-          python3 packaging/licenses/fetch-texts.py --report-only --markdown third-party-licenses.md
+          python packaging/licenses/fetch-texts.py --report-only --markdown third-party-licenses.md
 
       - name: Build
         run: dotnet build -c Release
 
       - name: Verify icon assets and assignments
+        if: runner.os == 'Linux'
         run: |
           python3 -m unittest discover -s packaging/icon -p "test_*.py"
           python3 packaging/icon/verify.py
 
       - name: Format
+        if: runner.os == 'Linux'
         run: dotnet format --verify-no-changes
 
       - name: Publish the licence report
+        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v7
         with:
           name: third-party-licenses
@@ -49,11 +62,37 @@ jobs:
       # The test projects are Microsoft.Testing.Platform executables, so they are run directly
       # rather than through dotnet test.
       - name: Test
+        shell: bash
         run: |
           failed=0
-          for suite in tests/*/bin/Release/net10.0/*.Tests; do
+          for suite in tests/*/bin/Release/net10.0/*.Tests tests/*/bin/Release/net10.0/*.Tests.exe; do
+            [ -f "$suite" ] || continue
             echo "::group::$(basename "$suite")"
             "$suite" || failed=1
             echo "::endgroup::"
           done
           exit $failed
+
+  # Trimming drops what reflection reaches for without a word, so a build that passes every test
+  # can still publish a binary that fails at start. The release builds every platform; one is
+  # enough to catch that before a tag.
+  aot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Licence report
+        run: |
+          dotnet tool restore
+          python3 packaging/licenses/fetch-texts.py --report-only --runtime linux-x64
+
+      - name: Publish
+        run: dotnet publish src/Cgf.CameraControl.App/Cgf.CameraControl.App.csproj -c Release -r linux-x64 -o publish
+
+      - name: Verify the trimmed build
+        run: publish/CgfCameraControl --aot-probe

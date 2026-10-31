@@ -51,6 +51,62 @@ public class HidGamepadDeviceTests
     }
 
     [Fact]
+    public async Task AMalformedReportCostsOnlyThatReport()
+    {
+        var connection = new Connection();
+        var source = Substitute.For<IHidGamepadSource>();
+        source.Open("83234F94").Returns(connection);
+        var logger = Substitute.For<ILogger>();
+        await using var device = new HidGamepadDevice(source, "desk", "83234F94", 0, logger);
+        var moved = Signal();
+        using var movement = device.LeftStick.Subscribe(position =>
+        {
+            if (position.X == 1)
+            {
+                moved.TrySetResult();
+            }
+        });
+
+        connection.Reports.Enqueue([0, 0, 128]);
+        connection.Reports.Enqueue([0, 0, 128, 128, 128, 8, 0, 0, 0]);
+
+        await Wait(moved);
+        logger.Received().Error("HID", Arg.Is<string>(message => message.Contains("report failed")));
+    }
+
+    [Fact]
+    public async Task AThrowingSubscriberCostsOnlyThatReport()
+    {
+        var connection = new Connection();
+        var source = Substitute.For<IHidGamepadSource>();
+        source.Open("83234F94").Returns(connection);
+        await using var device = new HidGamepadDevice(source, "desk", "83234F94", 0, Substitute.For<ILogger>());
+        var moved = Signal();
+        var thrown = false;
+        using var movement = device.LeftStick.Subscribe(position =>
+        {
+            if (position.X != 1)
+            {
+                return;
+            }
+
+            if (!thrown)
+            {
+                thrown = true;
+                throw new InvalidOperationException("camera gone");
+            }
+
+            moved.TrySetResult();
+        });
+
+        connection.Reports.Enqueue([0, 0, 128, 128, 128, 8, 0, 0, 0]);
+        connection.Reports.Enqueue([0, 128, 128, 128, 128, 8, 0, 0, 0]);
+        connection.Reports.Enqueue([0, 0, 128, 128, 128, 8, 0, 0, 0]);
+
+        await Wait(moved);
+    }
+
+    [Fact]
     public async Task MissingPadRemainsOfflineAndCanBeCancelledPromptly()
     {
         var source = Substitute.For<IHidGamepadSource>();
@@ -76,6 +132,24 @@ public class HidGamepadDeviceTests
         Assert.Throws<InvalidOperationException>(() => system.Claim("second", "8323-4f94", 0));
         await first.DisposeAsync();
         await using var next = system.Claim("second", "83234F94", 0);
+    }
+
+    [Fact]
+    public async Task TheSdlReservationLastsAsLongAsTheClaim()
+    {
+        var source = Substitute.For<IHidGamepadSource>();
+        source.Open(Arg.Any<string>()).Returns(_ => new Connection());
+        await using var system = new HidGamepadSystem(Substitute.For<ILogger>(), source);
+        var held = Substitute.For<IDisposable>();
+        var refused = Substitute.For<IDisposable>();
+
+        var first = system.Claim("first", "83234F94", 0, held);
+        Assert.Throws<InvalidOperationException>(() => system.Claim("second", "83234F94", 0, refused));
+        refused.Received(1).Dispose();
+        held.DidNotReceive().Dispose();
+
+        await first.DisposeAsync();
+        held.Received(1).Dispose();
     }
 
     private static TaskCompletionSource Signal() => new(TaskCreationOptions.RunContinuationsAsynchronously);

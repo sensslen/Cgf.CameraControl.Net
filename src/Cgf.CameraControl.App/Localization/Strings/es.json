@@ -61,6 +61,7 @@
     "rumble": "Vibración",
     "required": "es un campo obligatorio",
     "notANumber": "no es un número",
+    "notAUrl": "no es una dirección http o https",
     "tooSmall": "debe ser {0} o más",
     "outOfRange": "debe estar entre {0} y {1}",
     "mapNeedsNumbers": "cada fila necesita dos números",

@@ -33,9 +33,11 @@ public sealed partial class ConfigDraft : ViewModelBase
     /// while the mode is on, which is what makes them available to offer.
     public IReadOnlyList<string> Pads { get; private set; } = [];
 
+    private RootConfig _original = RootConfig.Empty;
+
     public static ConfigDraft From(RootConfig config, IReadOnlyList<string>? pads = null)
     {
-        var draft = new ConfigDraft { Pads = pads ?? [] };
+        var draft = new ConfigDraft { Pads = pads ?? [], _original = config };
         draft.Fill(EntryKind.Camera, draft.Cameras, config.Cams);
         draft.Fill(EntryKind.Mixer, draft.Mixers, config.VideoMixers);
         draft.Fill(EntryKind.Interface, draft.Interfaces, config.Interfaces);
@@ -44,10 +46,12 @@ public sealed partial class ConfigDraft : ViewModelBase
     }
 
     public RootConfig ToConfig() =>
-        new(
-            [.. Cameras.Select(entry => entry.ToEntry())],
-            [.. Mixers.Select(entry => entry.ToEntry())],
-            [.. Interfaces.Select(entry => entry.ToEntry())]);
+        _original with
+        {
+            Cams = [.. Cameras.Select(entry => entry.ToEntry())],
+            VideoMixers = [.. Mixers.Select(entry => entry.ToEntry())],
+            Interfaces = [.. Interfaces.Select(entry => entry.ToEntry())],
+        };
 
     /// The lowest number nothing in that collection has taken, so a new entry is proposed one that
     /// does not collide rather than one that has to be corrected before it can be saved.

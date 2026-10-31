@@ -21,8 +21,9 @@ public interface IAtemConnection
 {
     /// A mirror of the switcher state, applied from the same command stream the switcher consumes.
     /// AtemSharp's state objects raise nothing when they change, so this copy exists to give the
-    /// mixer a deterministic point at which to diff. Reads go here, never to switcher.State.
-    AtemState State { get; }
+    /// mixer a deterministic point at which to diff. Reads go here, never to switcher.State, and
+    /// run under the lock that applies incoming commands, so nothing changes mid-read.
+    T Read<T>(Func<AtemState, T> read);
 
     bool Connected { get; }
 
@@ -30,7 +31,7 @@ public interface IAtemConnection
 
     IObservable<Unit> WhenStateChanged { get; }
 
-    IEnumerable<Macro> Macros { get; }
+    Task RunMacroAsync(int macro);
 
     Task StartupAsync(CancellationToken cancellationToken);
 
@@ -63,7 +64,15 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
         _initCompleteType = services.CreateCommandParser().ParseCommand("InCm", [])?.GetType();
     }
 
-    public AtemState State { get; private set; } = new();
+    private AtemState State { get; set; } = new();
+
+    public T Read<T>(Func<AtemState, T> read)
+    {
+        lock (_stateLock)
+        {
+            return read(State);
+        }
+    }
 
     public bool Connected => _connected.Value;
 
@@ -73,7 +82,20 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
 
     /// Running a macro needs a Macro instance carrying the right id, and Macro.Id has an internal
     /// setter, so the switcher's own macro system is the only way to reach one.
-    public IEnumerable<Macro> Macros => _switcher is { } switcher ? switcher.Macros : [];
+    public async Task RunMacroAsync(int macro)
+    {
+        try
+        {
+            if (Connected && _switcher?.Macros.FirstOrDefault(m => m.Id == macro) is { } found)
+            {
+                await found.Run().ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            Error($"running macro {macro} failed - {ex.Message}");
+        }
+    }
 
     public Task StartupAsync(CancellationToken cancellationToken)
     {

@@ -61,6 +61,7 @@
     "rumble": "Vibration",
     "required": "ist erforderlich",
     "notANumber": "ist keine Zahl",
+    "notAUrl": "ist keine http- oder https-Adresse",
     "tooSmall": "muss mindestens {0} sein",
     "outOfRange": "muss zwischen {0} und {1} liegen",
     "mapNeedsNumbers": "jede Zeile braucht zwei Zahlen",

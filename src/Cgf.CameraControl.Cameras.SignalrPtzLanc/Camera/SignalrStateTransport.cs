@@ -46,6 +46,21 @@ public sealed class SignalrStateTransport : ISignalrStateTransport
             return Task.CompletedTask;
         };
 
+        // Automatic reconnect gives up after about 42 seconds, and a controller rebooting mid-service
+        // takes longer than that. Starting over also claims the port again.
+        _hub.Closed += _ =>
+        {
+            Report(connected: false);
+            var stopping = _stopping.Token;
+            if (!stopping.IsCancellationRequested)
+            {
+                Log("connection closed - reconnecting");
+                _loop = Task.Run(() => ConnectAsync(stopping));
+            }
+
+            return Task.CompletedTask;
+        };
+
         _hub.Reconnected += async _ =>
         {
             Log("reconnect successful");

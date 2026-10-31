@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Reactive.Disposables;
 using System.Reactive.Subjects;
 using Cgf.CameraControl.Core.Logger;
 using SDL3;
@@ -18,6 +19,7 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
     private readonly BehaviorSubject<IReadOnlyList<SdlGamepadPresence>> _presence = new([]);
     private readonly List<SdlGamepadDevice> _devices = [];
     private readonly Dictionary<uint, OpenPad> _pads = [];
+    private readonly List<string> _reserved = [];
     private readonly Thread _thread;
 
     public SdlGamepadSystem(ILogger logger)
@@ -43,6 +45,22 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
             Rebind();
         });
         return device;
+    }
+
+    /// The HID backend reads its pad by serial, and SDL sees the same pad. Without the reservation an
+    /// auto-detecting SDL interface could take it too, and two interfaces would follow one pair of sticks.
+    public IDisposable Reserve(string serial)
+    {
+        Post(() =>
+        {
+            _reserved.Add(serial);
+            Rebind();
+        });
+        return Disposable.Create(() => Post(() =>
+        {
+            _reserved.Remove(serial);
+            Rebind();
+        }));
     }
 
     public async ValueTask DisposeAsync()
@@ -250,8 +268,17 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
 
     private void Rebind()
     {
+        foreach (var pad in _pads.Values)
+        {
+            if (pad.ClaimedBy is { } holder && Reserved(pad.Info.Serial))
+            {
+                holder.Unbind();
+                pad.ClaimedBy = null;
+            }
+        }
+
         var unbound = _devices.Where(device => device.Bound is null).ToList();
-        var free = _pads.Values.Where(pad => pad.ClaimedBy is null).ToList();
+        var free = _pads.Values.Where(pad => pad.ClaimedBy is null && !Reserved(pad.Info.Serial)).ToList();
         var assignment = GamepadClaims.Assign(
             unbound.Select(device => device.SerialNumber).ToList(),
             free.Select(pad => pad.Info.Serial).ToList());
@@ -277,6 +304,9 @@ public sealed class SdlGamepadSystem : IAsyncDisposable
             .Select(pad => new SdlGamepadPresence(pad.Info, pad.ClaimedBy?.Label))
             .ToList());
     }
+
+    private bool Reserved(string? serial) =>
+        serial is not null && _reserved.Any(reserved => GamepadClaims.Matches(reserved, serial));
 
     private static bool Unmatched(SdlGamepadDevice device) =>
         device is { Bound: null, SerialNumber: not null, ReportedUnmatched: false };

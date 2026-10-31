@@ -78,13 +78,13 @@ express. [Camera compatibility](../CameraCompatibility.md) records what has been
 ## `Signalr.PtzLanc`
 
 ```json
-{ "type": "Signalr.PtzLanc", "instance": 3, "connectionUrl": "http://10.0.0.9", "connectionPort": "5000" }
+{ "type": "Signalr.PtzLanc", "instance": 3, "connectionUrl": "http://10.0.0.9", "connectionPort": "COM6" }
 ```
 
 | Key | Default | Means |
 | --- | --- | --- |
 | `connectionUrl` | required | the service's address |
-| `connectionPort` | required | its port, as a string |
+| `connectionPort` | required | the serial port the service drives the LANC adapter on, such as `COM6` |
 | `panTiltInvert` | `false` | flip pan and tilt |
 
 On shutdown or configuration reload, the SignalR camera sends a zero movement state and waits for

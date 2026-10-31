@@ -102,6 +102,7 @@ public class FactoryTests
         await _factory.DisposeAsync();
 
         Assert.Empty(_factory.Instances);
+        _logger.Received(1).Error("cams", Arg.Is<string>(m => m.StartsWith("disposing Thing failed")));
     }
 
     private Task<LoadIssue?> Parse(int instance, string type) =>

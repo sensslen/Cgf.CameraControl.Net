@@ -60,11 +60,6 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     public partial InterfaceViewModel? SelectedInterface { get; set; }
 
-    public IReadOnlyList<MixerViewModel> UnassignedMixers { get; private set; } = [];
-
-    public IReadOnlyList<CameraViewModel> UnassignedCameras { get; private set; } = [];
-
-    public bool HasUnassigned => UnassignedMixers.Count > 0 || UnassignedCameras.Count > 0;
 
     /// The pane is collapsed by default, so its lamp is all an operator sees of what is inside it.
     /// Green means every one of them is up: anything less is worth opening the pane for, and one
@@ -144,8 +139,11 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         try
         {
             Clear();
-            var result = await _host.LoadAsync(path, CancellationToken.None).ConfigureAwait(true);
-            ConfigPath = result.Path;
+            await _host.LoadAsync(path, CancellationToken.None).ConfigureAwait(true);
+
+            // The host keeps the file it last loaded when this one fails, and that is the one Reload
+            // and Save act on, so that is the one shown.
+            ConfigPath = _host.ConfigPath ?? Localizer.Current.Text("config.none");
             Rebuild();
         }
         finally
@@ -231,25 +229,47 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         await FinishEditingAsync(_host.ConfigPath).ConfigureAwait(true);
     }
 
+    /// Whether the window may close. Closing in edit mode is leaving it, so unsaved edits are offered
+    /// for saving the same way, and a save that does not land keeps the window open.
+    public async Task<bool> CanCloseAsync()
+    {
+        if (Draft is not { IsDirty: true } draft || AskToSave is not { } ask)
+        {
+            return true;
+        }
+
+        return await ask(draft.CanSave, draft.Issues).ConfigureAwait(true) switch
+        {
+            SaveChoice.Cancel => false,
+            SaveChoice.Save => await WriteAsync(draft).ConfigureAwait(true) is not null,
+            _ => true,
+        };
+    }
+
     /// The file is loaded after it is written rather than the draft being adopted, so what the desk
     /// runs is what is on the disk, and a file that cannot be read back says so at once.
     private async Task SaveAsync(ConfigDraft draft)
+    {
+        if (await WriteAsync(draft).ConfigureAwait(true) is { } path)
+        {
+            await FinishEditingAsync(path).ConfigureAwait(true);
+        }
+    }
+
+    private async Task<string?> WriteAsync(ConfigDraft draft)
     {
         var path = _host.ConfigPath;
         if (path is null)
         {
             if (PickSaveFile is not { } pick || await pick().ConfigureAwait(true) is not { } chosen)
             {
-                return;
+                return null;
             }
 
             path = chosen;
         }
 
-        if (_host.Save(draft.ToConfig(), path))
-        {
-            await FinishEditingAsync(path).ConfigureAwait(true);
-        }
+        return _host.Save(draft.ToConfig(), path) ? path : null;
     }
 
     private async Task FinishEditingAsync(string? path)
@@ -411,16 +431,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
                 Owned(hmi, cameraViews, gamepad => gamepad.Cameras)));
         }
 
-        // Anything no interface claims would otherwise not be drawn at all, and a camera missing
-        // from the panel reads as one that failed to load rather than one nothing can reach.
         SelectedInterface = Interfaces.FirstOrDefault();
-
-        UnassignedMixers = [.. Mixers.Where(view => Interfaces.All(entry => !entry.Mixers.Contains(view)))];
-        UnassignedCameras = [.. Cameras.Where(view => Interfaces.All(entry => !entry.Cameras.Contains(view)))];
-
-        OnPropertyChanged(nameof(UnassignedMixers));
-        OnPropertyChanged(nameof(UnassignedCameras));
-        OnPropertyChanged(nameof(HasUnassigned));
         OnChildChanged(this, new System.ComponentModel.PropertyChangedEventArgs(null));
     }
 

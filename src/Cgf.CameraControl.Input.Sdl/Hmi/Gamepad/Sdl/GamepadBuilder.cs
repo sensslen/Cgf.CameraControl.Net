@@ -41,7 +41,7 @@ public sealed class GamepadBuilder(
             }
             var serial = config.SerialNumber
                 ?? throw new ConfigValidationException($"{entry}.serialNumber", "HID backend requires a serial number.");
-            device = hid.Claim(entry.ToString(), serial, config.Deadzone);
+            device = hid.Claim(entry.ToString(), serial, config.Deadzone, system.Reserve(serial));
         }
         else if (config.Backend == GamepadBackend.Sdl)
         {

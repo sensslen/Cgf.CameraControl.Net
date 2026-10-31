@@ -1,4 +1,5 @@
 using Cgf.CameraControl.Core.Configuration;
+using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange;
 
 namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 
@@ -28,10 +29,31 @@ public static class InterfaceValidation
         Names(entry, config, "pad.default", config.Pad.Default.Values);
         Names(entry, config, "pad.alt", config.Pad.Alt?.Values);
         Names(entry, config, "pad.altLower", config.Pad.AltLower?.Values);
+        Shared(entry, config);
     }
 
-    public static void Bindings(ConfigEntry entry, KeyboardConfiguration config) =>
+    public static void Bindings(ConfigEntry entry, KeyboardConfiguration config)
+    {
         Names(entry, config, "keys.function", config.Keys.Function?.Values);
+        Shared(entry, config);
+    }
+
+    private static void Shared(ConfigEntry entry, InterfaceConfiguration config)
+    {
+        Validate.NonNegativeMap(config.CameraMap, $"{entry}.cameraMap");
+        foreach (var (name, function) in config.Functions)
+        {
+            // An empty loop is a button that logs an error on every press instead of running a macro.
+            if (function is MacroLoopSpecialFunctionConfiguration loop)
+            {
+                Validate.MinCount(loop.Indexes, 1, $"{entry}.functions.{name}.indexes");
+                foreach (var index in loop.Indexes)
+                {
+                    Validate.NonNegative(index, $"{entry}.functions.{name}.indexes");
+                }
+            }
+        }
+    }
 
     private static void Names(
         ConfigEntry entry,

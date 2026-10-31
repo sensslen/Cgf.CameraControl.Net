@@ -5,6 +5,7 @@ using AtemSharp.Commands.Macro;
 using AtemSharp.Commands.MixEffects;
 using AtemSharp.Commands.MixEffects.Key;
 using AtemSharp.Commands.MixEffects.Transition;
+using AtemSharp.State;
 using AtemSharp.State.Video.MixEffect;
 using AtemSharp.State.Video.MixEffect.UpstreamKeyer;
 using Cgf.CameraControl.Core.VideoMixer;
@@ -69,20 +70,20 @@ public sealed class Atem : IVideoMixer
             return;
         }
 
-        _ = _connection.Macros.FirstOrDefault(m => m.Id == macro)?.Run();
+        _ = _connection.RunMacroAsync(macro);
     }
 
     public async Task<bool> IsKeySetAsync(int key, CancellationToken cancellationToken)
     {
-        var me = await AwaitMixEffectAsync(cancellationToken).ConfigureAwait(false);
-        return FindKeyer(me, key)?.OnAir ?? false;
+        await AwaitMixEffectAsync(cancellationToken).ConfigureAwait(false);
+        return _connection.Read(state => FindMixEffect(state) is { } me && (FindKeyer(me, key)?.OnAir ?? false));
     }
 
     public async Task<int> GetAuxiliarySelectionAsync(int aux, CancellationToken cancellationToken)
     {
         await AwaitMixEffectAsync(cancellationToken).ConfigureAwait(false);
-        var output = _connection.State.Video.Auxiliaries.FirstOrDefault(a => a.Id == aux);
-        return output?.Source ?? throw new InvalidOperationException($"the switcher has no auxiliary {aux}");
+        var source = _connection.Read(state => state.Video.Auxiliaries.FirstOrDefault(a => a.Id == aux)?.Source);
+        return source ?? throw new InvalidOperationException($"the switcher has no auxiliary {aux}");
     }
 
     public async ValueTask DisposeAsync()
@@ -96,7 +97,8 @@ public sealed class Atem : IVideoMixer
 
     private void Send(Func<MixEffect, AtemSharp.Commands.SerializedCommand?> build)
     {
-        if (!_connection.Connected || FindMixEffect() is not { } me || build(me) is not { } command)
+        if (!_connection.Connected
+            || _connection.Read(state => FindMixEffect(state) is { } me ? build(me) : null) is not { } command)
         {
             return;
         }
@@ -106,20 +108,22 @@ public sealed class Atem : IVideoMixer
 
     private void UpdateActiveInputs()
     {
-        if (FindMixEffect() is not { } me)
+        var inputs = _connection.Read(state => FindMixEffect(state) is { } me
+            ? (Preview: new PreviewChange(me.PreviewInput, IsVisibleOnProgram(me, me.PreviewInput)), Program: me.ProgramInput)
+            : default((PreviewChange Preview, int Program)?));
+        if (inputs is not { } next)
         {
             return;
         }
 
-        var next = new PreviewChange(me.PreviewInput, IsVisibleOnProgram(me, me.PreviewInput));
-        if (!_preview.Value.Equals(next))
+        if (!_preview.Value.Equals(next.Preview))
         {
-            _preview.OnNext(next);
+            _preview.OnNext(next.Preview);
         }
 
-        if (_program.Value != me.ProgramInput)
+        if (_program.Value != next.Program)
         {
-            _program.OnNext(me.ProgramInput);
+            _program.OnNext(next.Program);
         }
     }
 
@@ -143,27 +147,30 @@ public sealed class Atem : IVideoMixer
 
     // ItemCollection's indexer throws KeyNotFoundException for anything the switcher has not
     // reported yet, and state is empty until it does, so every lookup goes through a scan.
-    private MixEffect? FindMixEffect() =>
-        _connection.State.Video.MixEffects.FirstOrDefault(me => me.Id == _config.MixEffectBlock);
+    private MixEffect? FindMixEffect(AtemState state) =>
+        state.Video.MixEffects.FirstOrDefault(me => me.Id == _config.MixEffectBlock);
 
     private static UpstreamKeyer? FindKeyer(MixEffect me, int key) =>
         me.UpstreamKeyers.FirstOrDefault(keyer => keyer.Id == key);
 
-    private async Task<MixEffect> AwaitMixEffectAsync(CancellationToken cancellationToken)
+    private bool HasMixEffect() => _connection.Read(state => FindMixEffect(state) is not null);
+
+    private async Task AwaitMixEffectAsync(CancellationToken cancellationToken)
     {
-        if (FindMixEffect() is { } known)
+        if (HasMixEffect())
         {
-            return known;
+            return;
         }
 
         await _connection.WhenStateChanged
-            .Select(_ => FindMixEffect())
-            .Where(me => me is not null)
+            .Where(_ => HasMixEffect())
             .FirstAsync()
             .ToTask(cancellationToken)
             .ConfigureAwait(false);
 
-        return FindMixEffect()
-            ?? throw new InvalidOperationException($"the switcher has no mix effect block {_config.MixEffectBlock}");
+        if (!HasMixEffect())
+        {
+            throw new InvalidOperationException($"the switcher has no mix effect block {_config.MixEffectBlock}");
+        }
     }
 }

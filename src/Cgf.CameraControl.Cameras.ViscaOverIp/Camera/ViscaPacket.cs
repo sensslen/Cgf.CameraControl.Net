@@ -116,6 +116,10 @@ public static class ViscaPacket
             var other => $"unknown error 0x{other:X2}",
         };
 
+    /// Full buffers and a missing socket say nothing about the command itself, so it can run once
+    /// the camera has room. Any other error comes back the same way every time it is sent.
+    public static bool IsTransient(byte[] failure) => failure.Length >= 3 && failure[2] is 0x03 or 0x05;
+
     private static byte[] Lens(byte operation, int speed)
     {
         var magnitude = Math.Min(LensSpeeds, Math.Abs(speed));

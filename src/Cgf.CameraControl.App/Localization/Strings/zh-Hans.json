@@ -61,6 +61,7 @@
     "rumble": "振动",
     "required": "为必填项",
     "notANumber": "不是数字",
+    "notAUrl": "不是 http 或 https 地址",
     "tooSmall": "必须不小于 {0}",
     "outOfRange": "必须在 {0} 和 {1} 之间",
     "mapNeedsNumbers": "每行需要两个数字",

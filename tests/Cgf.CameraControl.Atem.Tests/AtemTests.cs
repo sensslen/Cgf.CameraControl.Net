@@ -211,6 +211,17 @@ public class AtemTests
             atem.RunMacro(1);
 
             Assert.Empty(_connection.Sent);
+            Assert.Empty(_connection.MacrosRun);
+        }
+
+        [Fact]
+        public void RunMacroHandsTheIdToTheConnection()
+        {
+            var atem = Build();
+
+            atem.RunMacro(3);
+
+            Assert.Equal([3], _connection.MacrosRun);
         }
     }
 

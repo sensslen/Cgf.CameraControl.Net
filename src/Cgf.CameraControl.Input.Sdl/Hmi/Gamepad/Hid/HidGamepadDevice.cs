@@ -87,13 +87,27 @@ public sealed class HidGamepadDevice : IGamepadDevice
                     while (!_stopping.IsCancellationRequested)
                     {
                         var count = connection.Read(buffer);
-                        if (count > 0)
+                        if (count == 0)
+                        {
+                            continue;
+                        }
+
+                        // A malformed report or a subscriber that throws costs one report, not the pad.
+                        try
                         {
                             _reports.Apply(buffer.AsSpan(0, count));
                         }
+                        catch (Exception ex)
+                        {
+                            if (ex.Message != lastError)
+                            {
+                                _logger.Error("HID", $"{_label}: report failed - {ex.Message}");
+                                lastError = ex.Message;
+                            }
+                        }
                     }
                 }
-                catch (Exception ex) when (ex is IOException or NotSupportedException or UnauthorizedAccessException)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     if (ex.Message != lastError)
                     {
@@ -115,11 +129,6 @@ public sealed class HidGamepadDevice : IGamepadDevice
         }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested)
         {
-        }
-        catch (Exception ex)
-        {
-            _logger.Error("HID", $"{_label}: input loop failed: {ex}");
-            throw;
         }
     }
 }
