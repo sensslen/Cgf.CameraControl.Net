@@ -99,6 +99,11 @@ foot of it. Add asks for the type first and then the fields that type carries, a
 leaves nothing behind. Deleting says what still names the entry: a camera goes out of the maps that
 named it, and a video mixer leaves the interfaces that drove it to be pointed somewhere else.
 
+The selected entry's title and validation summary stay above the scrolling form. Field errors sit
+under their inputs. Pan and tilt speed has a compact slider and percentage box; either edits the same
+value. Serial-number suggestions still accept an unlisted controller. The editor follows the system
+light or dark theme and the selected language's reading direction.
+
 **Done** asks whether to save. Saving rewrites the whole file, the entries that were edited from the
 form and everything else from the JSON it was read as, and then loads what it wrote, so what the desk
 runs is what is on the disk. Comments in the file do not survive, because the loader has always

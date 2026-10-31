@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Cgf.CameraControl.App.ViewModels;
 
@@ -106,20 +105,5 @@ public partial class MainWindow : Window
                 _keyboard.Target = model.SelectedInterface;
             }
         };
-    }
-
-    /// The backdrop is a request, not a guarantee: an older Windows, a Linux compositor without
-    /// blur, or a machine with transparency effects switched off all refuse it. A transparent
-    /// background over a refused backdrop is a see-through window, so paint one when that happens.
-    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-    {
-        base.OnPropertyChanged(change);
-
-        if (change.Property == ActualTransparencyLevelProperty)
-        {
-            Background = ActualTransparencyLevel == WindowTransparencyLevel.None
-                ? this.FindResource("SystemControlBackgroundAltHighBrush") as IBrush
-                : Brushes.Transparent;
-        }
     }
 }
