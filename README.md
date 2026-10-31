@@ -5,7 +5,9 @@ Drive Blackmagic ATEM switchers and PTZ cameras from a game controller.
 One operator steers whichever camera is on preview, changes the preview selection, cuts, toggles
 keyers and runs macros, without taking their eyes off the stage.
 
-![The main window](docs/images/window.png)
+![Main window with preview and program state](docs/images/window.png)
+
+The screenshots use a passthrough mixer and simulated controllers and cameras.
 
 This is a .NET port of [Cgf.CameraControl.Main](https://github.com/sensslen/Cgf.CameraControl.Main),
 which is TypeScript and headless. It reads the same configuration files.
@@ -88,7 +90,7 @@ Every key of every entry is described in [docs/Configuration](docs/Configuration
 application with no configuration turns it on by itself, because a window with nothing in it but a
 menu is not an answer to having nothing configured.
 
-![Edit mode](docs/images/edit-mode.png)
+![Camera editor with compact pan and tilt speed trim](docs/images/edit-mode.png)
 
 Nothing is connected while the mode is on. The cameras and the mixers are torn down, so a pad left in
 a pocket cannot move a camera while its bindings are being changed, and a half-written address cannot
@@ -148,6 +150,8 @@ against and what a VISCA camera has to accept to work at all.
 | Right trigger | auto |
 | Left shoulder | hold for the `alt` bindings |
 | Left trigger | hold for the `altLower` bindings |
+
+![Gamepad controls and their configured bindings](docs/images/interface-gamepad.png)
 
 SDL normalises every controller to this one layout, so `gamepad` is the only interface type that
 matters. The old `logitech/F310`, `logitech/F710` and `logitech/Rumblepad2` strings still load, but
