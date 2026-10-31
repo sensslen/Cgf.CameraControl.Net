@@ -31,10 +31,7 @@ public static class ConfigLoader
             var config = new RootConfig(
                 ReadSection(document.RootElement, "cams", collected),
                 ReadSection(document.RootElement, "videoMixers", collected),
-                ReadSection(document.RootElement, "interfaces", collected))
-            {
-                Source = document.RootElement.Clone(),
-            };
+                ReadSection(document.RootElement, "interfaces", collected));
 
             issues = collected;
             return config;
@@ -43,12 +40,6 @@ public static class ConfigLoader
 
     public static RootConfig LoadFile(string path, out IReadOnlyList<string> issues) =>
         Load(File.ReadAllText(path), out issues);
-
-    /// What a section entry needs before anything reads it as one.
-    public static bool IsEntry(JsonElement element) =>
-        element.ValueKind == JsonValueKind.Object
-        && element.TryGetProperty("instance", out var instance) && instance.TryGetInt32(out _)
-        && element.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String;
 
     private static List<ConfigEntry> ReadSection(JsonElement root, string name, List<string> issues)
     {

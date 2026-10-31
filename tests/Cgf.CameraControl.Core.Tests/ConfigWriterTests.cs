@@ -58,63 +58,6 @@ public class ConfigWriterTests
         Assert.Empty(written.Interfaces);
     }
 
-    public class WhatTheLoaderSkipped : ConfigWriterTests
-    {
-        private const string Rejected =
-            """
-            {
-              "logLevel": "debug",
-              "cams": [ { "type": "viscaoverip", "ip": "10.0.0.2" }, { "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1" } ],
-              "videoMixers": { "type": "passthrough/default" },
-              "interfaces": []
-            }
-            """;
-
-        [Fact]
-        public void AnEntryTheLoaderRejectedSurvivesASave()
-        {
-            var config = ConfigLoader.Load(Rejected, out _);
-
-            var written = JsonNode.Parse(ConfigWriter.Write(config));
-
-            Assert.NotNull(written);
-            var cams = Assert.IsType<JsonArray>(written["cams"]);
-            Assert.Equal(2, cams.Count);
-            Assert.Equal("10.0.0.2", cams[1]?["ip"]?.GetValue<string>());
-        }
-
-        [Fact]
-        public void AnUnknownTopLevelKeySurvivesASave()
-        {
-            var config = ConfigLoader.Load(Rejected, out _);
-
-            var written = JsonNode.Parse(ConfigWriter.Write(config));
-
-            Assert.Equal("debug", written?["logLevel"]?.GetValue<string>());
-        }
-
-        [Fact]
-        public void ASectionThatWasNotAnArraySurvivesASave()
-        {
-            var config = ConfigLoader.Load(Rejected, out _);
-
-            var written = JsonNode.Parse(ConfigWriter.Write(config));
-
-            Assert.IsType<JsonObject>(written?["videoMixers"]);
-        }
-
-        [Fact]
-        public void ARejectedEntryIsNotWrittenTwice()
-        {
-            var config = ConfigLoader.Load(Rejected, out _);
-
-            var twice = ConfigLoader.Load(ConfigWriter.Write(ConfigLoader.Load(ConfigWriter.Write(config), out _)), out _);
-
-            Assert.Single(twice.Cams);
-            Assert.Equal(2, Assert.IsType<JsonArray>(JsonNode.Parse(ConfigWriter.Write(twice))?["cams"]).Count);
-        }
-    }
-
     /// Compared as content rather than as text: the writer indents what it writes, so the entry it
     /// left alone comes back saying the same thing on differently shaped lines.
     private static string Raw(ConfigEntry entry) => JsonNode.Parse(entry.Raw.GetRawText())!.ToJsonString();
