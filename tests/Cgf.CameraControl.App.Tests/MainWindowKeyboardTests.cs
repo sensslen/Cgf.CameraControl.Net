@@ -91,12 +91,15 @@ public class MainWindowKeyboardTests
         {
             await WithWindowAsync((window, _, _, device, _) =>
             {
-                var item = window.GetVisualDescendants().OfType<MenuItem>().First();
+                var menu = Assert.Single(window.GetVisualDescendants().OfType<Menu>());
+                var items = menu.Items.OfType<MenuItem>().ToArray();
+                var item = items[0];
                 Assert.True(item.Focus());
                 var movements = new List<StickPosition>();
                 using var subscription = device.LeftStick.Subscribe(movements.Add);
                 window.KeyPress(Key.Right, RawInputModifiers.None, PhysicalKey.ArrowRight, null);
                 window.KeyRelease(Key.Right, RawInputModifiers.None, PhysicalKey.ArrowRight, null);
+                Assert.Same(items[1], window.FocusManager?.GetFocusedElement());
                 Assert.Empty(movements);
             });
         }
@@ -142,6 +145,11 @@ public class MainWindowKeyboardTests
                 using var subscription = device.LeftStick.Subscribe(movements.Add);
                 window.KeyPress(Key.W, RawInputModifiers.None, PhysicalKey.W, "w");
                 model.SelectedInterface = null;
+                window.KeyRelease(Key.W, RawInputModifiers.None, PhysicalKey.W, "w");
+                Key? receivedKey = null;
+                input.KeyDown += (_, e) => receivedKey = e.Key;
+                window.KeyPress(Key.W, RawInputModifiers.None, PhysicalKey.W, "w");
+                Assert.Equal(Key.W, receivedKey);
                 window.KeyRelease(Key.W, RawInputModifiers.None, PhysicalKey.W, "w");
                 window.KeyTextInput("w");
                 Assert.Equal([new StickPosition(0, 1), new StickPosition(0, 0)], movements);
