@@ -8,6 +8,41 @@ number in that interface's `cameraMap` and `keys.input` is one of this mixer's i
 | `blackmagicdesign/atem` | an ATEM switcher over the network | `ip`, `mixEffectBlock` |
 | `passthrough/default` | nothing | — |
 
+## Tally signals
+
+Both mixer types accept `tallyMode`. It controls the signals sent to every camera mapped by an
+interface using that mixer, independently of the camera's tally protocol.
+
+| Editor option | `tallyMode` | This mixer's contribution |
+| --- | --- | --- |
+| Program and preview | `preview-program` | preview and program, with program taking priority; the default |
+| Program only | `program` | program only; off for preview cameras |
+| Disabled | `none` | off for all mapped cameras |
+
+For example, `"tallyMode": "program"` on an ATEM mixer contributes a lit tally only for its
+on-air camera. Disabling tally sends off updates rather than ignoring changes.
+Program-only and disabled tally initialize this mixer's contribution to off when the interface
+starts. Preview selection and camera steering are unchanged.
+
+When interfaces using different mixers map the same camera instance, the camera combines their
+contributions after applying each mixer's `tallyMode`. **Program wins over preview, and preview wins
+over off**, regardless of which mixer updated last. A disabled mixer cannot turn off a camera that
+another mixer has on program or preview.
+
+For example, a camera on program in mixer 1 and preview in mixer 2 displays program. When mixer 1
+selects another camera, it falls back to mixer 2's preview. It turns off only when no interface
+contributes program or preview. Removing an interface withdraws only its own contribution, including
+when several interfaces share the same mixer.
+
+Set **Tally signals** in the mixer's editor. Keep the camera's `tallyMode` set to its supported
+protocol, such as `avonic` or `ptzoptics` for VISCA. A camera configured with no tally protocol
+cannot receive tally commands, regardless of the mixer's setting.
+
+Invalid stored tally values leave the editor selection empty and block saving until a supported
+option is selected. Valid values are matched without regard to case and are not rewritten on opening.
+
+![Mixer editor configured for program-only tally](../images/mixer-tally.png)
+
 ## `blackmagicdesign/atem`
 
 ```json

@@ -1,5 +1,6 @@
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 using Cgf.CameraControl.Core.Configuration;
+using Cgf.CameraControl.Core.VideoMixer;
 
 namespace Cgf.CameraControl.Atem.Tests;
 
@@ -58,6 +59,40 @@ public class AtemConfigurationTests
     {
         Assert.Throws<ConfigValidationException>(() =>
             Read("""{ "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": 1.5 }"""));
+    }
+
+    public class TallyPolicy : AtemConfigurationTests
+    {
+        [Fact]
+        public void ExistingConfigurationsKeepPreviewAndProgram()
+        {
+            Assert.Equal(MixerTallyMode.PreviewProgram,
+                Read("""{ "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": 0 }""").TallyMode);
+        }
+
+        [Theory]
+        [InlineData("preview-program", MixerTallyMode.PreviewProgram)]
+        [InlineData("program", MixerTallyMode.Program)]
+        [InlineData("none", MixerTallyMode.None)]
+        public void ReadsTheSelectedPolicy(string value, MixerTallyMode expected)
+        {
+            Assert.Equal(expected, Read($$"""
+                { "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": 0, "tallyMode": "{{value}}" }
+                """).TallyMode);
+        }
+
+        [Theory]
+        [InlineData("\"invalid\"")]
+        [InlineData("0")]
+        [InlineData("\"2\"")]
+        [InlineData("null")]
+        public void InvalidPoliciesReportTheMixerField(string value)
+        {
+            var error = Assert.Throws<ConfigValidationException>(() => Read($$"""
+                { "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": 0, "tallyMode": {{value}} }
+                """));
+            Assert.Equal("blackmagicdesign/atem[1].tallyMode", error.Path);
+        }
     }
 
     private static AtemConfiguration Read(string json)

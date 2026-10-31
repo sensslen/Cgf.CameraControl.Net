@@ -161,7 +161,7 @@ public class MainWindowKeyboardTests
     private static async Task WithWindowAsync(
         Action<MainWindow, MainViewModel, InterfaceViewModel, ControlSurfaceDevice, IVideoMixer> check)
     {
-        await using var session = HeadlessUnitTestSession.StartNew(typeof(MainWindowKeyboardTests));
+        var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(MainWindowKeyboardTests).Assembly);
         await session.Dispatch(async () =>
         {
             await using var host = new AppHost();

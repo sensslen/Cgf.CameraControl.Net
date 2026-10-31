@@ -2,6 +2,7 @@
 using Cgf.CameraControl.Core.CameraConnection;
 using Cgf.CameraControl.Core.Logger;
 using Cgf.CameraControl.Core.VideoMixer;
+using Cgf.CameraControl.Core.VideoMixer.Passthrough;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange;
 using NSubstitute;
@@ -197,6 +198,221 @@ public class GamepadTests
             first.Received(2).SetTally(TallyState.Preview);
             second.Received(1).SetTally(TallyState.Program);
         }
+    }
+
+    public class MixerTallyPolicy : GamepadTests
+    {
+        [Theory]
+        [InlineData(MixerTallyMode.Program)]
+        [InlineData(MixerTallyMode.None)]
+        public void RestrictedModesClearAllMappedCamerasAtStartup(MixerTallyMode mode)
+        {
+            var first = Camera(1);
+            var second = Camera(2);
+            _mixer.TallyMode.Returns(mode);
+
+            Build();
+
+            first.Received(1).SetTally(TallyState.Off);
+            second.Received(1).SetTally(TallyState.Off);
+        }
+
+        [Fact]
+        public void ProgramOnlyTurnsOffPreviewAndTheCameraLeavingProgram()
+        {
+            var first = Camera(1);
+            var second = Camera(2);
+            _mixer.TallyMode.Returns(MixerTallyMode.Program);
+            Build();
+
+            _preview.OnNext(new PreviewChange(1, false));
+            _program.OnNext(1);
+            _preview.OnNext(new PreviewChange(2, false));
+            _program.OnNext(2);
+
+            first.Received(1).SetTally(TallyState.Program);
+            first.Received(3).SetTally(TallyState.Off);
+            second.Received(1).SetTally(TallyState.Program);
+            first.DidNotReceive().SetTally(TallyState.Preview);
+            second.DidNotReceive().SetTally(TallyState.Preview);
+        }
+
+        [Fact]
+        public void ProgramOnlyKeepsTheLiveCameraLitWhenPreviewChanges()
+        {
+            var first = Camera(1);
+            Camera(2);
+            _mixer.TallyMode.Returns(MixerTallyMode.Program);
+            Build();
+            _program.OnNext(1);
+            first.ClearReceivedCalls();
+
+            _preview.OnNext(new PreviewChange(1, true));
+            _preview.OnNext(new PreviewChange(2, false));
+
+            first.DidNotReceive().SetTally(TallyState.Off);
+            first.DidNotReceive().SetTally(TallyState.Preview);
+        }
+
+        [Fact]
+        public void NoTallySendsOffForBothBusesInsteadOfLeavingOldLampsLit()
+        {
+            var first = Camera(1);
+            var second = Camera(2);
+            _mixer.TallyMode.Returns(MixerTallyMode.None);
+            Build();
+            first.ClearReceivedCalls();
+            second.ClearReceivedCalls();
+
+            _preview.OnNext(new PreviewChange(1, false));
+            _program.OnNext(1);
+            _preview.OnNext(new PreviewChange(2, false));
+            _program.OnNext(2);
+
+            first.Received().SetTally(TallyState.Off);
+            second.Received().SetTally(TallyState.Off);
+            first.DidNotReceive().SetTally(TallyState.Preview);
+            first.DidNotReceive().SetTally(TallyState.Program);
+            second.DidNotReceive().SetTally(TallyState.Preview);
+            second.DidNotReceive().SetTally(TallyState.Program);
+            Assert.Equal(2, _device.Rumbles.Count);
+        }
+    }
+
+    public class TallyAcrossMixers : GamepadTests
+    {
+        [Theory]
+        [InlineData(TallyState.Off, TallyState.Off, TallyState.Off)]
+        [InlineData(TallyState.Off, TallyState.Preview, TallyState.Preview)]
+        [InlineData(TallyState.Off, TallyState.Program, TallyState.Program)]
+        [InlineData(TallyState.Preview, TallyState.Off, TallyState.Preview)]
+        [InlineData(TallyState.Preview, TallyState.Preview, TallyState.Preview)]
+        [InlineData(TallyState.Preview, TallyState.Program, TallyState.Program)]
+        [InlineData(TallyState.Program, TallyState.Off, TallyState.Program)]
+        [InlineData(TallyState.Program, TallyState.Preview, TallyState.Program)]
+        [InlineData(TallyState.Program, TallyState.Program, TallyState.Program)]
+        public async Task HighestPriorityWins(TallyState first, TallyState second, TallyState expected)
+        {
+            var camera = Camera(1);
+            var displayed = TallyState.Off;
+            camera.When(c => c.SetTally(Arg.Any<TallyState>())).Do(call => displayed = call.Arg<TallyState>());
+            await using var primary = Build();
+            await using var mixer = new Passthrough(_logger);
+            await using var secondary = OtherInterface(mixer);
+            _preview.OnNext(new PreviewChange(1, false));
+            _program.OnNext(first == TallyState.Program ? 1 : -1);
+            if (first == TallyState.Off)
+            {
+                _preview.OnNext(new PreviewChange(9, false));
+            }
+
+            mixer.ChangeInput(1);
+            if (second == TallyState.Program)
+            {
+                mixer.Cut();
+            }
+            else if (second == TallyState.Off)
+            {
+                mixer.ChangeInput(9);
+            }
+
+            Assert.Equal(expected, displayed);
+        }
+
+        [Fact]
+        public async Task LeavingProgramFallsBackToAnotherMixersPreviewThenOff()
+        {
+            var camera = Camera(1);
+            var displayed = new List<TallyState>();
+            camera.When(c => c.SetTally(Arg.Any<TallyState>())).Do(call => displayed.Add(call.Arg<TallyState>()));
+            await using var primary = Build();
+            await using var mixer = new Passthrough(_logger);
+            await using var secondary = OtherInterface(mixer);
+            _program.OnNext(1);
+            mixer.ChangeInput(1);
+
+            Assert.All(displayed, state => Assert.Equal(TallyState.Program, state));
+            _program.OnNext(9);
+            Assert.Equal(TallyState.Preview, displayed[^1]);
+            mixer.ChangeInput(9);
+            Assert.Equal(TallyState.Off, displayed[^1]);
+        }
+
+        [Theory]
+        [InlineData(MixerTallyMode.Program)]
+        [InlineData(MixerTallyMode.None)]
+        public async Task SuppressedSignalsAndStartupCannotClearAnotherMixersProgram(MixerTallyMode mode)
+        {
+            var camera = Camera(1);
+            await using var primary = Build();
+            _program.OnNext(1);
+            camera.ClearReceivedCalls();
+
+            await using var mixer = new Passthrough(_logger, mode);
+            await using var secondary = OtherInterface(mixer);
+            mixer.ChangeInput(1);
+            mixer.Cut();
+            mixer.ChangeInput(9);
+            mixer.Cut();
+
+            camera.Received().SetTally(TallyState.Program);
+            camera.DidNotReceive().SetTally(TallyState.Preview);
+            camera.DidNotReceive().SetTally(TallyState.Off);
+        }
+
+        [Fact]
+        public async Task RemovingAnInterfaceRecomputesTheRemainingMixersTally()
+        {
+            var camera = Camera(1);
+            var displayed = TallyState.Off;
+            camera.When(c => c.SetTally(Arg.Any<TallyState>())).Do(call => displayed = call.Arg<TallyState>());
+            var primary = Build();
+            await using var mixer = new Passthrough(_logger);
+            var secondary = OtherInterface(mixer);
+            mixer.ChangeInput(1);
+            _program.OnNext(1);
+
+            await primary.DisposeAsync();
+            Assert.Equal(TallyState.Preview, displayed);
+            await secondary.DisposeAsync();
+            Assert.Equal(TallyState.Off, displayed);
+
+            _program.OnNext(1);
+            mixer.Cut();
+            Assert.Equal(TallyState.Off, displayed);
+        }
+
+        [Fact]
+        public async Task RemovingOneOfTwoInterfacesOnTheSameMixerKeepsItsTally()
+        {
+            var camera = Camera(1);
+            var primary = Build();
+            var secondary = OtherInterface(_mixer);
+            _program.OnNext(1);
+            camera.ClearReceivedCalls();
+
+            await primary.DisposeAsync();
+            camera.Received().SetTally(TallyState.Program);
+            camera.DidNotReceive().SetTally(TallyState.Off);
+            await secondary.DisposeAsync();
+            camera.Received(1).SetTally(TallyState.Off);
+        }
+
+        private Gamepad OtherInterface(IVideoMixer mixer) =>
+            new(
+                new KeyboardConfiguration
+                {
+                    VideoMixer = 2,
+                    CameraMap = _cameras.Keys.ToDictionary(key => key, key => key),
+                    ConnectionChange = new DirectConnectionChangeConfiguration
+                    {
+                        Default = new Dictionary<ButtonDirection, int>(),
+                    },
+                },
+                new ControlSurfaceDevice(2),
+                mixer,
+                instance => _cameras.GetValueOrDefault(instance),
+                _logger);
     }
 
     public class Buttons : GamepadTests

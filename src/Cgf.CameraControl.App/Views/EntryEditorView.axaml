@@ -111,10 +111,19 @@
     </DataTemplate>
 
     <DataTemplate DataType="edit:ChoiceField">
-      <Grid Classes="field" ColumnDefinitions="180,12,*">
+      <Grid Classes="field" ColumnDefinitions="180,12,*" RowDefinitions="Auto,Auto">
         <TextBlock Classes="caption" Text="{Binding Caption^}" />
-        <ComboBox Grid.Column="2" Classes="value" ItemsSource="{Binding Options}" SelectedItem="{Binding Value}"
-                  AutomationProperties.Name="{Binding Caption^}" />
+        <ComboBox Grid.Column="2" Classes="value" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedOption}"
+                  AutomationProperties.Name="{Binding Caption^}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="edit:ChoiceOption">
+              <TextBlock Text="{Binding Caption^}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Grid.Row="1" Grid.Column="2" Classes="wrong" Text="{Binding Error}"
+                   AutomationProperties.LiveSetting="Polite"
+                   IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </Grid>
     </DataTemplate>
 

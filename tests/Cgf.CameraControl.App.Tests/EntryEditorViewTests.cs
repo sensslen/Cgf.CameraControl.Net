@@ -1,3 +1,4 @@
+using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -11,6 +12,8 @@ using Avalonia.VisualTree;
 using Cgf.CameraControl.App.Editing;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.Views;
+
+[assembly: AvaloniaTestApplication(typeof(Cgf.CameraControl.App.Tests.EntryEditorViewTests))]
 
 namespace Cgf.CameraControl.App.Tests;
 
@@ -32,7 +35,7 @@ public class EntryEditorViewTests
         [InlineData(true, true)]
         public async Task VisibleSliderPartsAlignWithTextboxCenter(bool dark, bool rtl)
         {
-            await using var session = HeadlessUnitTestSession.StartNew(typeof(EntryEditorViewTests));
+            var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(EntryEditorViewTests).Assembly);
             await session.Dispatch(() =>
             {
                 var editor = new EntryEditorView
@@ -86,7 +89,7 @@ public class EntryEditorViewTests
         [InlineData(true, "Signalr.PtzLanc")]
         public async Task CompactInputsKeepSliderTypingAndValidation(bool dark, string type)
         {
-            await using var session = HeadlessUnitTestSession.StartNew(typeof(EntryEditorViewTests));
+            var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(EntryEditorViewTests).Assembly);
             await session.Dispatch(() =>
             {
                 var entry = new NewEntry(EntryKind.Camera, 1) { SelectedType = type }.Entry;
@@ -146,6 +149,63 @@ public class EntryEditorViewTests
     }
 
     [Collection("Avalonia UI")]
+    public class MixerChoices
+    {
+        [Fact]
+        public async Task AlignedChoicesKeepFriendlyNamesAndValidation()
+        {
+            var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(EntryEditorViewTests).Assembly);
+            await session.Dispatch(() =>
+            {
+                var entry = new NewEntry(EntryKind.Mixer, 1) { SelectedType = "blackmagicdesign/atem" }.Entry;
+                var field = Assert.Single(entry.Fields.OfType<ChoiceField>());
+                var editor = new EntryEditorView { DataContext = entry };
+                var window = new Window { Width = 560, Height = 500, Content = editor };
+                window.Show();
+                try
+                {
+                    Dispatcher.UIThread.RunJobs();
+                    var choice = Assert.Single(editor.GetVisualDescendants().OfType<ComboBox>());
+                    var address = Assert.Single(editor.GetVisualDescendants().OfType<TextBox>(),
+                        control => control.DataContext is TextField);
+                    var choicePosition = Assert.IsType<Point>(choice.TranslatePoint(default, window));
+                    var addressPosition = Assert.IsType<Point>(address.TranslatePoint(default, window));
+                    Assert.InRange(Math.Abs(choicePosition.X - addressPosition.X), 0, 0.5);
+                    Assert.Equal(280, choice.Bounds.Width);
+                    Assert.Equal(Localizer.Current.Text(field.Label), AutomationProperties.GetName(choice));
+
+                    field.Value = "invalid";
+                    Dispatcher.UIThread.RunJobs();
+                    var error = Assert.Single(editor.GetVisualDescendants().OfType<TextBlock>(),
+                        control => control.DataContext == field && control.Classes.Contains("wrong"));
+                    Assert.Null(choice.SelectedItem);
+                    Assert.NotNull(field.Error);
+                    Assert.True(error.IsEffectivelyVisible);
+                    Assert.Equal(field.Error, error.Text);
+                    Assert.Equal(AutomationLiveSetting.Polite, AutomationProperties.GetLiveSetting(error));
+                    var errorPosition = Assert.IsType<Point>(error.TranslatePoint(default, window));
+                    Assert.InRange(Math.Abs(errorPosition.X - choicePosition.X), 0, 0.5);
+                    Assert.True(errorPosition.Y >= choicePosition.Y + choice.Bounds.Height);
+
+                    choice.SelectedItem = field.Items[1];
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.Equal("program", field.Value);
+                    Assert.Equal("program", entry.ToEntry().Raw.GetProperty("tallyMode").GetString());
+                    Assert.Null(field.Error);
+                    Assert.False(error.IsVisible);
+                    var caption = field.Items[1].Caption.FirstAsync().Wait();
+                    Assert.Contains(choice.GetVisualDescendants().OfType<TextBlock>(),
+                        control => control.Text == caption);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }, TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Collection("Avalonia UI")]
     public class AddingAnEntry
     {
         [Theory]
@@ -155,7 +215,7 @@ public class EntryEditorViewTests
         [InlineData(true, true)]
         public async Task MinimumDialogSizeKeepsInputsAndFooterReachable(bool rtl, bool dark)
         {
-            await using var session = HeadlessUnitTestSession.StartNew(typeof(EntryEditorViewTests));
+            var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(EntryEditorViewTests).Assembly);
             await session.Dispatch(() =>
             {
                 var window = new AddEntryWindow
@@ -232,7 +292,7 @@ public class EntryEditorViewTests
         [Fact]
         public async Task PickerAcceptsUnlistedSerialAndMapButtonsStillEditRows()
         {
-            await using var session = HeadlessUnitTestSession.StartNew(typeof(EntryEditorViewTests));
+            var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(EntryEditorViewTests).Assembly);
             await session.Dispatch(() =>
             {
                 var entry = new NewEntry(EntryKind.Interface, 1, ["known-pad"]).Entry;
@@ -320,7 +380,7 @@ public class EntryEditorViewTests
         [Fact]
         public async Task AnOpaqueWindowFollowsThemeChangesWithoutACompositor()
         {
-            await using var session = HeadlessUnitTestSession.StartNew(typeof(EntryEditorViewTests));
+            var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(EntryEditorViewTests).Assembly);
             await session.Dispatch(() =>
             {
                 var window = new MainWindow { RequestedThemeVariant = ThemeVariant.Light };

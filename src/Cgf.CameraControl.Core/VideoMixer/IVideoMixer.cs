@@ -6,6 +6,8 @@ public interface IVideoMixer : IConnectionProvider, IImageSelectionChange, IAsyn
 {
     string ConnectionString { get; }
 
+    MixerTallyMode TallyMode { get; }
+
     void Cut();
 
     void Auto();

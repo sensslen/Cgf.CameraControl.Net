@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reactive.Linq;
 using System.Text.Json.Nodes;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
@@ -205,28 +206,55 @@ public sealed partial class SwitchField : Field
     partial void OnValueChanged(bool value) => Write(JsonValue.Create(value));
 }
 
+public sealed record ChoiceOption(string Value, string? CaptionKey)
+{
+    public IObservable<string> Caption =>
+        CaptionKey is { } key ? Localizer.Current[key] : Observable.Return(Value);
+}
+
 /// One of a fixed set of names, which is how every enum in the configuration is written.
 public sealed partial class ChoiceField : Field
 {
-    public ChoiceField(JsonObject entry, string key, string label, IReadOnlyList<string> options, string fallback)
+    public ChoiceField(
+        JsonObject entry,
+        string key,
+        string label,
+        IReadOnlyList<string> options,
+        string fallback,
+        string? optionLabelPrefix = null)
         : base(entry, key, label)
     {
         Options = options;
-        var written = entry[key]?.GetValue<string>();
-        Value = written is not null && options.Contains(written, StringComparer.OrdinalIgnoreCase)
-            ? written
-            : fallback;
+        Items = options.Select(value => new ChoiceOption(
+            value, optionLabelPrefix is null ? null : $"{optionLabelPrefix}.{value}")).ToArray();
+        var written = entry.TryGetPropertyValue(key, out var node) ? node?.ToString() ?? string.Empty : fallback;
+        Value = options.FirstOrDefault(option => string.Equals(option, written, StringComparison.OrdinalIgnoreCase))
+            ?? written;
         Ready();
     }
 
     public IReadOnlyList<string> Options { get; }
 
+    public IReadOnlyList<ChoiceOption> Items { get; }
+
+    public ChoiceOption? SelectedOption
+    {
+        get => Items.FirstOrDefault(option => string.Equals(option.Value, Value, StringComparison.OrdinalIgnoreCase));
+        set
+        {
+            if (value is not null)
+            {
+                Value = value.Value;
+            }
+        }
+    }
+
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedOption))]
     public partial string Value { get; set; } = string.Empty;
 
-    protected internal override void Validate()
-    {
-    }
+    protected internal override void Validate() =>
+        Error = SelectedOption is null ? Localizer.Current.Text("edit.required") : null;
 
     partial void OnValueChanged(string value) => Write(JsonValue.Create(value));
 }
