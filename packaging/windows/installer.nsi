@@ -86,11 +86,11 @@ Function .onInit
 FunctionEnd
 
 ; The uninstaller removes the install folder whole, so the installer only accepts a folder that is
-; empty, missing, or already holds this application. Anything else, D:\Tools say, would go with it.
+; empty, missing, or already holds this installer's uninstaller. A copied CgfCameraControl.exe is not
+; proof: D:\Tools holding a portable copy would go with it.
 !macro ForeignFolder RESULT
   ${DirState} "$INSTDIR" ${RESULT}
-  ${If} ${FileExists} "$INSTDIR\${EXENAME}"
-  ${OrIf} ${FileExists} "$INSTDIR\uninstall.exe"
+  ${If} ${FileExists} "$INSTDIR\uninstall.exe"
     StrCpy ${RESULT} 0
   ${EndIf}
 !macroend

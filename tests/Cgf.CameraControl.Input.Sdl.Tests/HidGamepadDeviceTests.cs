@@ -108,6 +108,37 @@ public class HidGamepadDeviceTests
     }
 
     [Fact]
+    public async Task AThrowingStateSubscriberDoesNotSwallowTheMovement()
+    {
+        var connection = new Connection();
+        var source = Substitute.For<IHidGamepadSource>();
+        source.Open("83234F94").Returns(connection);
+        await using var device = new HidGamepadDevice(source, "desk", "83234F94", 0, Substitute.For<ILogger>());
+        var moved = Signal();
+        var thrown = false;
+        using var drawing = device.State.Subscribe(state =>
+        {
+            if (state.LeftStick.X == 1 && !thrown)
+            {
+                thrown = true;
+                throw new InvalidOperationException("drawing gone");
+            }
+        });
+        using var movement = device.LeftStick.Subscribe(position =>
+        {
+            if (position.X == 1)
+            {
+                moved.TrySetResult();
+            }
+        });
+
+        connection.Reports.Enqueue([0, 0, 128, 128, 128, 8, 0, 0, 0]);
+        connection.Reports.Enqueue([0, 0, 128, 128, 128, 8, 0, 0, 0]);
+
+        await Wait(moved);
+    }
+
+    [Fact]
     public async Task MissingPadRemainsOfflineAndCanBeCancelledPromptly()
     {
         var source = Substitute.For<IHidGamepadSource>();

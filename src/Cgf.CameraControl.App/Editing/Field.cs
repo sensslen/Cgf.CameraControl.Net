@@ -44,6 +44,9 @@ public abstract partial class Field(JsonObject entry, string key, string label, 
     /// edited for having been read.
     protected bool Loaded { get; private set; }
 
+    /// True once this field has written into the entry, including a mistyped value it rewrote on load.
+    public bool Rewritten { get; private set; }
+
     protected internal abstract void Validate();
 
     /// The value as text, whatever JSON type the file wrote it as. A hand-written `"port": "52381"`
@@ -77,6 +80,7 @@ public abstract partial class Field(JsonObject entry, string key, string label, 
             Entry[Key] = value;
         }
 
+        Rewritten = true;
         Validate();
         Edited?.Invoke(this, EventArgs.Empty);
     }

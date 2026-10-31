@@ -85,6 +85,11 @@ internal static class EntrySchema
             new TextField(entry, "serialNumber", "edit.serialNumber", required: false, "edit.anyPad", pads)
             {
                 RequiredWhen = () => string.Equals(backend.Value, "hid", StringComparison.OrdinalIgnoreCase),
+                // The loader refuses a serial with no letter or digit in it, as it would refuse none.
+                Check = serial =>
+                    serial.Any(char.IsLetterOrDigit) || !string.Equals(backend.Value, "hid", StringComparison.OrdinalIgnoreCase)
+                        ? null
+                        : Localizer.Current.Text("edit.required"),
             },
             new FractionField(entry, "deadzone", "edit.deadzone", fallback: 0.05, maximum: 1),
             new SwitchField(entry, "rumble", "edit.rumble", fallback: true),

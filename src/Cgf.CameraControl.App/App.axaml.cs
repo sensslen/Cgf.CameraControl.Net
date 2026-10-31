@@ -114,9 +114,9 @@ public partial class App : Application
     {
         _model?.Dispose();
         _model = null;
+        // The host stays set after disposal so a teardown failure can still be logged through it.
         if (_host is { } host)
         {
-            _host = null;
             await host.DisposeAsync().ConfigureAwait(false);
         }
     }

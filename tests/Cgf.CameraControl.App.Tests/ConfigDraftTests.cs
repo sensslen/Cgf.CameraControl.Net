@@ -382,6 +382,14 @@ public class ConfigDraftTests
         }
 
         [Fact]
+        public void LeavesTheDraftWithChangesToSave()
+        {
+            var draft = Draft(Desk.Replace("\"ip\": \"10.0.0.2\"", "\"ip\": \"10.0.0.2\", \"port\": \"52381\""));
+
+            Assert.True(draft.IsDirty);
+        }
+
+        [Fact]
         public void TextThatIsNotANumberBlocksTheSave()
         {
             var draft = Draft(Desk.Replace("\"ip\": \"10.0.0.2\"", "\"ip\": \"10.0.0.2\", \"port\": \"camera\""));
@@ -436,6 +444,17 @@ public class ConfigDraftTests
             draft.Interfaces[0].Fields.OfType<ChoiceField>().Single(field => field.Key == "backend").Value = "hid";
 
             Assert.True(draft.CanSave);
+        }
+
+        [Fact]
+        public void AnHidSerialWithoutALetterOrDigitBlocksTheSave()
+        {
+            var draft = Draft(Desk);
+            draft.Interfaces[0].Fields.OfType<TextField>().Single(field => field.Key == "serialNumber").Value = "---";
+
+            draft.Interfaces[0].Fields.OfType<ChoiceField>().Single(field => field.Key == "backend").Value = "hid";
+
+            Assert.False(draft.CanSave);
         }
 
         [Theory]
