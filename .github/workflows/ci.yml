@@ -32,6 +32,9 @@ jobs:
       - name: Build
         run: dotnet build -c Release
 
+      - name: Verify icon assets and assignments
+        run: python3 packaging/icon/verify.py
+
       - name: Format
         run: dotnet format --verify-no-changes
 

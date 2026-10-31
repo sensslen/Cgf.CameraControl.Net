@@ -265,7 +265,7 @@ def main():
     for ico in [os.path.join(assets, "appicon.ico"), os.path.join(HERE, "installer.ico")]:
         images[256].save(ico, sizes=[(s, s) for s in ICO_SIZES],
                          append_images=[images[s] for s in ICO_SIZES if s != 256])
-    images[512].save(os.path.join(assets, "appicon.png"))
+    draw(64, points=16).save(os.path.join(assets, "appicon.png"))
     icns = os.path.join(HERE, "AppIcon.icns")
     write_icns(icns)
 
