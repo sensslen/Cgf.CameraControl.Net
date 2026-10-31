@@ -208,6 +208,8 @@ public sealed class GamepadInputMapper : IDisposable
         return magnitude <= _deadzone ? 0 : Math.Sign(value) * (magnitude - _deadzone) / (1 - _deadzone);
     }
 
+    /// The position is kept only once it is out, so a subscriber that throws leaves the next identical
+    /// report to publish it again rather than having it suppressed as unchanged.
     private void SetLeft(StickPosition position)
     {
         if (position == _left)
@@ -215,9 +217,9 @@ public sealed class GamepadInputMapper : IDisposable
             return;
         }
 
-        _left = position;
         Draw(state => state with { LeftStick = position });
         _leftStick.OnNext(position);
+        _left = position;
     }
 
     private void SetRight(StickPosition position)
@@ -227,9 +229,9 @@ public sealed class GamepadInputMapper : IDisposable
             return;
         }
 
-        _right = position;
         Draw(state => state with { RightStick = position });
         _rightStick.OnNext(position);
+        _right = position;
     }
 
     private void SetModifiers(bool alt, bool altLower)

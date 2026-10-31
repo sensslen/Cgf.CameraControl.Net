@@ -60,6 +60,7 @@ VIAddVersionKey "FileDescription" "${APPNAME} setup"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${EXENAME}"
 
 !insertmacro MUI_PAGE_LICENSE "..\..\LICENSE"
+!define MUI_DIRECTORYPAGE_TEXT_TOP "Setup will install ${APPNAME} in the following folder. The folder must be empty or hold an earlier installation of ${APPNAME}, because uninstalling removes it."
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -84,8 +85,32 @@ Function .onInit
   !endif
 FunctionEnd
 
+; The uninstaller removes the install folder whole, so the installer only accepts a folder that is
+; empty, missing, or already holds this installer's uninstaller. A copied CgfCameraControl.exe is not
+; proof: D:\Tools holding a portable copy would go with it.
+!macro ForeignFolder RESULT
+  ${DirState} "$INSTDIR" ${RESULT}
+  ${If} ${FileExists} "$INSTDIR\uninstall.exe"
+    StrCpy ${RESULT} 0
+  ${EndIf}
+!macroend
+
+Function .onVerifyInstDir
+  !insertmacro ForeignFolder $R0
+  ${If} $R0 == 1
+    Abort
+  ${EndIf}
+FunctionEnd
+
 Section "Install"
   SetRegView 64
+
+  ; A silent install with /D skips the directory page and its check.
+  !insertmacro ForeignFolder $R0
+  ${If} $R0 == 1
+    MessageBox MB_ICONSTOP "$INSTDIR is not empty. Choose an empty folder for ${APPNAME}." /SD IDOK
+    Abort
+  ${EndIf}
 
   ; SDL3.dll imports VCRUNTIME140.dll, which is not part of Windows. The payload is native and a 32
   ; bit installer sees SysWOW64 as System32, so the test runs with redirection off.

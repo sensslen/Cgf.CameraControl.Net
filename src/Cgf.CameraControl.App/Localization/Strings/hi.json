@@ -61,6 +61,7 @@
     "rumble": "कंपन",
     "required": "आवश्यक है",
     "notANumber": "संख्या नहीं है",
+    "notAUrl": "http या https पता नहीं है",
     "tooSmall": "{0} या उससे अधिक होना चाहिए",
     "outOfRange": "{0} और {1} के बीच होना चाहिए",
     "mapNeedsNumbers": "हर पंक्ति में दो संख्याएँ चाहिए",

@@ -13,6 +13,9 @@ on:
 # refuses the application outright, which the release notes have to say.
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   version:
     runs-on: ubuntu-latest
     outputs:
@@ -34,7 +37,7 @@ jobs:
           exit 1
 
   build:
-    needs: [version]
+    needs: [version, ci]
     strategy:
       fail-fast: false
       matrix:
@@ -58,11 +61,11 @@ jobs:
             runs-on: ubuntu-24.04-arm
             native: true
     runs-on: ${{ matrix.runs-on }}
-    # Lifted to the job so the signing steps can test for them: an if condition cannot read secrets
-    # directly, only through env.
+    # An if condition cannot read secrets directly, only through env. Only whether they exist is
+    # lifted to the job, so the certificates themselves reach no step but the one that signs.
     env:
-      WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+      HAS_WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 != '' }}
+      HAS_APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -116,6 +119,15 @@ jobs:
           $arch = '${{ matrix.rid }}' -replace '^win-', ''
           Invoke-WebRequest "https://aka.ms/vs/17/release/vc_redist.$arch.exe" -OutFile vc_redist.exe
 
+      # Before packaging, because the installer carries its own copy of the executable.
+      - name: Sign the application (Windows)
+        if: ${{ startsWith(matrix.rid, 'win-') && env.HAS_WINDOWS_CERTIFICATE == 'true' }}
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        shell: pwsh
+        run: packaging/windows/sign.ps1 publish/CgfCameraControl.exe
+
       - name: Package (Windows)
         if: startsWith(matrix.rid, 'win-')
         shell: pwsh
@@ -149,20 +161,13 @@ jobs:
           --windows-exe publish/CgfCameraControl.exe
           --windows-exe artifacts/CameraControl-${{ needs.version.outputs.full }}-${{ matrix.rid }}-setup.exe
 
-      - name: Sign (Windows)
-        if: ${{ startsWith(matrix.rid, 'win-') && env.WINDOWS_CERTIFICATE_BASE64 != '' }}
+      - name: Sign the installer (Windows)
+        if: ${{ startsWith(matrix.rid, 'win-') && env.HAS_WINDOWS_CERTIFICATE == 'true' }}
         env:
           CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-
         shell: pwsh
-        run: |
-          [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:CERTIFICATE))
-          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
-            Where-Object { $_.FullName -match "x64" } | Select-Object -First 1
-          & $signtool.FullName sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
-            /f cert.pfx /p $env:CERTIFICATE_PASSWORD artifacts/*.exe
-          Remove-Item cert.pfx
+        run: packaging/windows/sign.ps1 (Get-ChildItem artifacts/*.exe).FullName
 
       - name: Package (macOS)
         if: startsWith(matrix.rid, 'osx-')
@@ -172,7 +177,7 @@ jobs:
           packaging/macos/make-bundle.sh publish "${{ needs.version.outputs.full }}" "staging/Camera Control.app"
 
       - name: Sign and notarize (macOS)
-        if: ${{ startsWith(matrix.rid, 'osx-') && env.APPLE_CERTIFICATE_BASE64 != '' }}
+        if: ${{ startsWith(matrix.rid, 'osx-') && env.HAS_APPLE_CERTIFICATE == 'true' }}
         env:
           CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -225,7 +230,7 @@ jobs:
 
           mkdir -p artifacts packaging/linux/payload
           cp publish/CgfCameraControl packaging/linux/payload/
-          cp publish/*.so packaging/linux/payload/ 2>/dev/null || true
+          cp publish/*.so packaging/linux/payload/
           cp packaging/linux/*.desktop packaging/linux/*.metainfo.xml packaging/linux/payload/
           cp packaging/icon/icon-256.png packaging/icon/icon.svg packaging/linux/payload/
 
@@ -247,7 +252,7 @@ jobs:
     permissions:
       contents: write
     env:
-      APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+      HAS_APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 != '' }}
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -257,7 +262,7 @@ jobs:
       # Whoever downloads an unnotarized build meets a dialog that does not say what to do about it,
       # so the release itself says it. The generated notes are appended below this.
       - name: Note the missing notarization
-        if: ${{ env.APPLE_CERTIFICATE_BASE64 == '' }}
+        if: ${{ env.HAS_APPLE_CERTIFICATE != 'true' }}
         run: |
           cat >> "$GITHUB_ENV" <<'NOTE'
           RELEASE_BODY<<BODY

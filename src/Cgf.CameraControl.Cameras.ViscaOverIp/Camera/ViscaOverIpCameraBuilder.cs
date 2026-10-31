@@ -12,6 +12,7 @@ public sealed class ViscaOverIpCameraBuilder(ILogger logger) : IBuilder<ICameraC
     public Task<ICameraConnection> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken)
     {
         var config = entry.Deserialize(ViscaOverIpCameraConfigurationContext.Default.ViscaOverIpCameraConfiguration);
+        Validate.Port(config.Port, $"{entry}.port");
         var transport = new ViscaUdpTransport(config.Ip, config.Port, logger);
         return Task.FromResult<ICameraConnection>(new ViscaOverIpCamera(config, transport, logger));
     }

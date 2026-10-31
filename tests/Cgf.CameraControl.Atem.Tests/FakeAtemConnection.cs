@@ -2,7 +2,6 @@ using System.Reactive;
 using System.Reactive.Subjects;
 using AtemSharp.Commands;
 using AtemSharp.State;
-using AtemSharp.State.Macro;
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 
 namespace Cgf.CameraControl.Atem.Tests;
@@ -13,7 +12,7 @@ public sealed class FakeAtemConnection : IAtemConnection, IAtemConnectionFactory
     private readonly BehaviorSubject<bool> _connected = new(true);
     private readonly Subject<Unit> _stateChanged = new();
 
-    public AtemState State => _driver.State;
+    public T Read<T>(Func<AtemState, T> read) => read(_driver.State);
 
     public bool Connected
     {
@@ -25,7 +24,7 @@ public sealed class FakeAtemConnection : IAtemConnection, IAtemConnectionFactory
 
     public IObservable<Unit> WhenStateChanged => _stateChanged;
 
-    public IEnumerable<Macro> Macros { get; set; } = [];
+    public List<int> MacrosRun { get; } = [];
 
     public List<SerializedCommand> Sent { get; } = [];
 
@@ -48,9 +47,7 @@ public sealed class FakeAtemConnection : IAtemConnection, IAtemConnectionFactory
 
     public Task StartupAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    public Task SendAsync(SerializedCommand command)
-    {
-        Sent.Add(command);
-        return Task.CompletedTask;
-    }
+    public void RunMacro(int macro) => MacrosRun.Add(macro);
+
+    public void Send(SerializedCommand command) => Sent.Add(command);
 }

@@ -32,6 +32,7 @@ public sealed class Gamepad : IHmi
     private readonly Dictionary<ButtonDirection, string> _altLower = [];
     private readonly CompositeDisposable _subscriptions = [];
     private readonly CancellationTokenSource _stopping = new();
+    private readonly HashSet<Task> _running = [];
     private readonly object _steeringGate = new();
     private readonly PadBindings? _pad;
 
@@ -163,7 +164,22 @@ public sealed class Gamepad : IHmi
                 RemoveTally(camera);
             }
         }
-        await _stopping.CancelAsync().ConfigureAwait(false);
+        Task[] running;
+        lock (_running)
+        {
+            _stopping.Cancel();
+            running = [.. _running];
+        }
+
+        try
+        {
+            await Task.WhenAll(running).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected while shutting down.
+        }
+
         _stopping.Dispose();
         await _device.DisposeAsync().ConfigureAwait(false);
     }
@@ -241,7 +257,16 @@ public sealed class Gamepad : IHmi
     {
         if (_functions.TryGetValue(name, out var function))
         {
-            _ = RunSafelyAsync(function);
+            // A press can race the dispose, which then has to wait for every run it let start.
+            lock (_running)
+            {
+                if (!_stopping.IsCancellationRequested)
+                {
+                    _running.RemoveWhere(run => run.IsCompleted);
+                    _running.Add(RunSafelyAsync(function));
+                }
+            }
+
             return;
         }
 

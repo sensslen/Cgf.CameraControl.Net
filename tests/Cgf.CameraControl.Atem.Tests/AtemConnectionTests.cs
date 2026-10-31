@@ -128,6 +128,35 @@ public class AtemConnectionTests
         await reconnected.WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
     }
 
+    // The switcher never acks the cut here, and the send waiting on that ack must not hold up the unload.
+    [Fact]
+    public async Task QueuedCommandsReachTheSwitcherAndDoNotHoldUpTheUnload()
+    {
+        var socket = new TestUdpClient();
+        await using var provider = Services(socket);
+        var factory = new AtemFactory(Substitute.For<ILogger>(), provider.GetRequiredService<IServices>());
+        var mixer = new VideoMixer.Blackmagicdesign.Atem(new AtemConfiguration { Ip = "10.0.0.1", MixEffectBlock = 0 }, factory);
+        var connected = mixer.WhenConnectedChanged.Where(value => value).FirstAsync().ToTask();
+        await mixer.StartupAsync(TestContext.Current.CancellationToken);
+        await socket.InitializeAsync().WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
+        await connected.WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
+        var addressable = mixer.WhenPreviewChanged.Where(change => change.Preview >= 0).FirstAsync().ToTask();
+        socket.Push(new AtemPacket([.. Command("_top", [1, 20, 2, .. new byte[29]]), .. Command("_MeC", [0, 4, 0, 0])])
+        {
+            Flags = PacketFlag.AckRequest,
+            SessionId = 1,
+            PacketId = 3,
+        });
+        await addressable.WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
+
+        mixer.Cut();
+
+        Assert.Equal("DCut", await socket.Commands.Reader.ReadAsync(TestContext.Current.CancellationToken)
+            .AsTask().WaitAsync(TestTimeout, TestContext.Current.CancellationToken));
+        await mixer.DisposeAsync().AsTask().WaitAsync(TestTimeout, TestContext.Current.CancellationToken);
+        Assert.True(socket.Disposed);
+    }
+
     [Fact]
     public async Task HandshakeWithoutInitializationStaysDisconnectedAndCanBeUnloaded()
     {
@@ -165,6 +194,9 @@ public class AtemConnectionTests
         Assert.True(socket.Disposed);
     }
 
+    private static byte[] Command(string name, byte[] payload) =>
+        [0, (byte)(payload.Length + 8), 0, 0, .. System.Text.Encoding.ASCII.GetBytes(name), .. payload];
+
     private static ServiceProvider Services(TestUdpClient socket) =>
         new ServiceCollection().AddAtemSharp().AddTransient<IUdpClient>(_ => socket).BuildServiceProvider();
 
@@ -183,6 +215,8 @@ public class AtemConnectionTests
         public int Hellos => Volatile.Read(ref _hellosCount);
 
         public bool Disposed { get; private set; }
+
+        public Channel<string> Commands { get; } = Channel.CreateUnbounded<string>();
 
         public Exception? SendFailure { get; init; }
 
@@ -203,6 +237,10 @@ public class AtemConnectionTests
                 Interlocked.Increment(ref _hellosCount);
                 _hellos.Writer.TryWrite(true);
                 Started.TrySetResult();
+            }
+            else if (packet.HasFlag(PacketFlag.AckRequest) && packet.Payload.Length >= 8)
+            {
+                Commands.Writer.TryWrite(System.Text.Encoding.ASCII.GetString(packet.Payload, 4, 4));
             }
             else if (packet.HasFlag(PacketFlag.AckReply))
             {
@@ -242,6 +280,8 @@ public class AtemConnectionTests
                 PacketId = 2,
             }.ToBytes(), _endpoint));
         }
+
+        public void Push(AtemPacket packet) => _received.Writer.TryWrite(new UdpReceiveResult(packet.ToBytes(), _endpoint));
 
         public void Dispose() => Disposed = true;
     }

@@ -30,8 +30,8 @@ public sealed class FakeViscaTransport : IViscaTransport
     /// 90 5y FF, the command in buffer y having run.
     public void Complete(int socket = 1) => _received.OnNext([0x90, (byte)(0x50 | socket), 0xFF]);
 
-    /// 90 6y 03 FF, the camera refusing the command in buffer y because its buffers are full.
-    public void Refuse(int socket = 1) => _received.OnNext([0x90, (byte)(0x60 | socket), 0x03, 0xFF]);
+    /// 90 6y ee FF, the camera refusing the command in buffer y, by default because its buffers are full.
+    public void Refuse(int socket = 1, byte error = 0x03) => _received.OnNext([0x90, (byte)(0x60 | socket), error, 0xFF]);
 
     public void Receive(params byte[] datagram) => _received.OnNext(datagram);
 

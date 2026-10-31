@@ -18,6 +18,22 @@ public static class Validate
             ? value
             : throw new ConfigValidationException(path, $"expected a number in ]{minimumExclusive} .. {maximum}], found {value}");
 
+    /// What a socket can be bound to.
+    public static int Port(int value, string path) =>
+        value is > 0 and <= 65535
+            ? value
+            : throw new ConfigValidationException(path, $"expected a port in 1 .. 65535, found {value}");
+
+    /// What a SignalR hub connection accepts.
+    public static string HttpUrl(string value, string path) =>
+        IsHttpUrl(value) ? value : throw new ConfigValidationException(path, $"expected an http or https URL, found {value}");
+
+    /// SignalR appends its negotiate path to the raw string, which a query or fragment would swallow.
+    public static bool IsHttpUrl(string? value) =>
+        Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+        (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) &&
+        uri.Query.Length == 0 && uri.Fragment.Length == 0;
+
     /// z.array(...).min(count)
     public static IReadOnlyList<T> MinCount<T>(IReadOnlyList<T>? items, int count, string path) =>
         items is not null && items.Count >= count

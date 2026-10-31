@@ -61,6 +61,7 @@
     "rumble": "الاهتزاز",
     "required": "مطلوب",
     "notANumber": "ليس رقمًا",
+    "notAUrl": "ليس عنوان http أو https",
     "tooSmall": "يجب أن يكون {0} أو أكثر",
     "outOfRange": "يجب أن يكون بين {0} و{1}",
     "mapNeedsNumbers": "كل صف يحتاج إلى رقمين",

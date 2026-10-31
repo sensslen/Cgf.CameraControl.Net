@@ -122,7 +122,11 @@ public sealed partial class ConfigDraft : ViewModelBase
         foreach (var entry in entries)
         {
             var node = JsonNode.Parse(entry.Raw.GetRawText()) as JsonObject ?? [];
-            list.Add(Attach(new EntryDraft(kind, entry.Type, node, Pads)));
+            var draft = Attach(new EntryDraft(kind, entry.Type, node, Pads));
+            list.Add(draft);
+
+            // A field that rewrote a mistyped value while loading has changed what will be saved.
+            IsDirty |= draft.Fields.Any(field => field.Rewritten);
         }
     }
 

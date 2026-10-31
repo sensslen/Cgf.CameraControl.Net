@@ -51,6 +51,94 @@ public class HidGamepadDeviceTests
     }
 
     [Fact]
+    public async Task AMalformedReportCostsOnlyThatReport()
+    {
+        var connection = new Connection();
+        var source = Substitute.For<IHidGamepadSource>();
+        source.Open("83234F94").Returns(connection);
+        var logger = Substitute.For<ILogger>();
+        await using var device = new HidGamepadDevice(source, "desk", "83234F94", 0, logger);
+        var moved = Signal();
+        using var movement = device.LeftStick.Subscribe(position =>
+        {
+            if (position.X == 1)
+            {
+                moved.TrySetResult();
+            }
+        });
+
+        connection.Reports.Enqueue([0, 0, 128]);
+        connection.Reports.Enqueue([0, 0, 128, 128, 128, 8, 0, 0, 0]);
+
+        await Wait(moved);
+        source.Received(1).Open("83234F94");
+        logger.Received().Error("HID", Arg.Is<string>(message => message.Contains("report failed")));
+    }
+
+    [Fact]
+    public async Task AThrowingSubscriberCostsOnlyThatReport()
+    {
+        var connection = new Connection();
+        var source = Substitute.For<IHidGamepadSource>();
+        source.Open("83234F94").Returns(connection);
+        await using var device = new HidGamepadDevice(source, "desk", "83234F94", 0, Substitute.For<ILogger>());
+        var moved = Signal();
+        var thrown = false;
+        using var movement = device.LeftStick.Subscribe(position =>
+        {
+            if (position.X != 1)
+            {
+                return;
+            }
+
+            if (!thrown)
+            {
+                thrown = true;
+                throw new InvalidOperationException("camera gone");
+            }
+
+            moved.TrySetResult();
+        });
+
+        connection.Reports.Enqueue([0, 0, 128, 128, 128, 8, 0, 0, 0]);
+        connection.Reports.Enqueue([0, 128, 128, 128, 128, 8, 0, 0, 0]);
+        connection.Reports.Enqueue([0, 0, 128, 128, 128, 8, 0, 0, 0]);
+
+        await Wait(moved);
+    }
+
+    [Fact]
+    public async Task AThrowingStateSubscriberDoesNotSwallowTheMovement()
+    {
+        var connection = new Connection();
+        var source = Substitute.For<IHidGamepadSource>();
+        source.Open("83234F94").Returns(connection);
+        await using var device = new HidGamepadDevice(source, "desk", "83234F94", 0, Substitute.For<ILogger>());
+        var moved = Signal();
+        var thrown = false;
+        using var drawing = device.State.Subscribe(state =>
+        {
+            if (state.LeftStick.X == 1 && !thrown)
+            {
+                thrown = true;
+                throw new InvalidOperationException("drawing gone");
+            }
+        });
+        using var movement = device.LeftStick.Subscribe(position =>
+        {
+            if (position.X == 1)
+            {
+                moved.TrySetResult();
+            }
+        });
+
+        connection.Reports.Enqueue([0, 0, 128, 128, 128, 8, 0, 0, 0]);
+        connection.Reports.Enqueue([0, 0, 128, 128, 128, 8, 0, 0, 0]);
+
+        await Wait(moved);
+    }
+
+    [Fact]
     public async Task MissingPadRemainsOfflineAndCanBeCancelledPromptly()
     {
         var source = Substitute.For<IHidGamepadSource>();

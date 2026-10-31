@@ -61,6 +61,7 @@
     "rumble": "Rumble",
     "required": "is required",
     "notANumber": "is not a number",
+    "notAUrl": "is not an http or https address",
     "tooSmall": "must be {0} or more",
     "outOfRange": "must be between {0} and {1}",
     "mapNeedsNumbers": "every row needs two numbers",

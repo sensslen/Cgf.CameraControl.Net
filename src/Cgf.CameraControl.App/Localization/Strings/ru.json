@@ -61,6 +61,7 @@
     "rumble": "Вибрация",
     "required": "обязательное поле",
     "notANumber": "не число",
+    "notAUrl": "не является адресом http или https",
     "tooSmall": "не меньше {0}",
     "outOfRange": "от {0} до {1}",
     "mapNeedsNumbers": "в каждой строке нужны два числа",

@@ -1,5 +1,6 @@
 ﻿using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
+using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange;
 
 namespace Cgf.CameraControl.Input.Sdl.Tests;
 
@@ -45,6 +46,86 @@ public class GamepadConfigurationRejectionTests
         Assert.Contains("gamepad[4]", failure.Path, StringComparison.Ordinal);
         Assert.Contains("keys", failure.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void AMisspeltKeyInsideABindingIsRejected()
+    {
+        var failure = Assert.Throws<ConfigValidationException>(() => Read(
+            """
+            {
+              "type": "gamepad",
+              "instance": 4,
+              "videoMixer": 1,
+              "connectionChange": { "type": "direct", "default": { "right": 2 } },
+              "cameraMap": { "1": 1 },
+              "pad": { "altlower": {} }
+            }
+            """));
+
+        Assert.Contains("altlower", failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ANullPadNamesTheProperty()
+    {
+        var failure = Assert.Throws<ConfigValidationException>(() => Read(
+            """
+            {
+              "type": "gamepad",
+              "instance": 4,
+              "videoMixer": 1,
+              "connectionChange": { "type": "direct", "default": { "right": 2 } },
+              "cameraMap": { "1": 1 },
+              "pad": null
+            }
+            """));
+
+        Assert.Equal("gamepad[4].pad", failure.Path);
+    }
+
+    [Fact]
+    public void AnEmptyMacroLoopIsRejected()
+    {
+        var entry = Entry(
+            """
+            {
+              "type": "gamepad",
+              "instance": 4,
+              "videoMixer": 1,
+              "connectionChange": { "type": "direct", "default": { "right": 2 } },
+              "cameraMap": { "1": 1 },
+              "functions": { "loop": { "type": "macroLoop", "indexes": [] } }
+            }
+            """);
+
+        var failure = Assert.Throws<ConfigValidationException>(() =>
+            InterfaceValidation.Bindings(entry, entry.Deserialize(InterfaceConfigurationContext.Default.GamepadConfiguration)));
+
+        Assert.Equal("gamepad[4].functions.loop.indexes", failure.Path);
+    }
+
+    [Fact]
+    public void ANegativeCameraMapEntryIsRejected()
+    {
+        var entry = Entry(
+            """
+            {
+              "type": "gamepad",
+              "instance": 4,
+              "videoMixer": 1,
+              "connectionChange": { "type": "direct", "default": { "right": 2 } },
+              "cameraMap": { "1": -1 }
+            }
+            """);
+
+        var failure = Assert.Throws<ConfigValidationException>(() =>
+            InterfaceValidation.Bindings(entry, entry.Deserialize(InterfaceConfigurationContext.Default.GamepadConfiguration)));
+
+        Assert.StartsWith("gamepad[4].cameraMap", failure.Path, StringComparison.Ordinal);
+    }
+
+    private static ConfigEntry Entry(string json) =>
+        Assert.Single(ConfigLoader.Load($$"""{ "interfaces": [ {{json}} ] }""", out _).Interfaces);
 
     private static GamepadConfiguration Read(string json)
     {

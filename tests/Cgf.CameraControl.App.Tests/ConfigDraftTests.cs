@@ -357,6 +357,130 @@ public class ConfigDraftTests
         }
     }
 
+    public class AValueOfTheWrongType : ConfigDraftTests
+    {
+        [Theory]
+        [InlineData("\"ip\": \"10.0.0.2\", \"port\": \"52381\"")]
+        [InlineData("\"ip\": 10")]
+        [InlineData("\"ip\": \"10.0.0.2\", \"panTiltInvert\": \"true\"")]
+        [InlineData("\"ip\": \"10.0.0.2\", \"panTiltSpeedPercent\": \"50\"")]
+        public void IsReadForCorrectionRatherThanFailingTheForm(string properties)
+        {
+            var draft = Draft(Desk.Replace("\"ip\": \"10.0.0.2\"", properties));
+
+            Assert.Equal(2, draft.Cameras.Count);
+        }
+
+        [Fact]
+        public void ANumberWrittenAsTextIsWrittenBackAsANumber()
+        {
+            var draft = Draft(Desk.Replace("\"ip\": \"10.0.0.2\"", "\"ip\": \"10.0.0.2\", \"port\": \"52381\""));
+
+            var written = ConfigLoader.Load(ConfigWriter.Write(draft.ToConfig()), out _);
+
+            Assert.Equal(52381, written.Cams[1].Raw.GetProperty("port").GetInt32());
+        }
+
+        [Fact]
+        public void LeavesTheDraftWithChangesToSave()
+        {
+            var draft = Draft(Desk.Replace("\"ip\": \"10.0.0.2\"", "\"ip\": \"10.0.0.2\", \"port\": \"52381\""));
+
+            Assert.True(draft.IsDirty);
+        }
+
+        [Fact]
+        public void TextThatIsNotANumberBlocksTheSave()
+        {
+            var draft = Draft(Desk.Replace("\"ip\": \"10.0.0.2\"", "\"ip\": \"10.0.0.2\", \"port\": \"camera\""));
+
+            Assert.False(draft.CanSave);
+        }
+    }
+
+    public class WhatTheLoaderWouldReject : ConfigDraftTests
+    {
+        [Fact]
+        public void APortAboveTheLastOneBlocksTheSave()
+        {
+            var draft = Draft(Desk.Replace("\"ip\": \"10.0.0.2\"", "\"ip\": \"10.0.0.2\", \"port\": 70000"));
+
+            Assert.False(draft.CanSave);
+        }
+
+        [Theory]
+        [InlineData("controller.local", false)]
+        [InlineData("ftp://controller.local", false)]
+        [InlineData("http://controller.local:5000/hub", true)]
+        [InlineData("http://controller.local:5000/hub?token=1", false)]
+        [InlineData("http://controller.local:5000/hub#main", false)]
+        public void AConnectionUrlHasToBeAnHttpAddress(string url, bool saves)
+        {
+            var draft = Draft($$"""
+                {"cams":[{"type":"Signalr.PtzLanc","instance":1,"connectionUrl":"{{url}}","connectionPort":"COM6"}]}
+                """);
+
+            Assert.Equal(saves, draft.CanSave);
+        }
+
+        [Fact]
+        public void AnHidPadNeedsASerialNumber()
+        {
+            var draft = Draft(Desk);
+            var backend = draft.Interfaces[0].Fields.OfType<ChoiceField>().Single(field => field.Key == "backend");
+
+            backend.Value = "hid";
+
+            Assert.False(draft.CanSave);
+            Assert.NotNull(draft.Interfaces[0].Fields.OfType<TextField>().Single(field => field.Key == "serialNumber").Error);
+        }
+
+        [Fact]
+        public void AnHidPadWithASerialNumberCanBeSaved()
+        {
+            var draft = Draft(Desk);
+            draft.Interfaces[0].Fields.OfType<TextField>().Single(field => field.Key == "serialNumber").Value = "ABC123";
+
+            draft.Interfaces[0].Fields.OfType<ChoiceField>().Single(field => field.Key == "backend").Value = "hid";
+
+            Assert.True(draft.CanSave);
+        }
+
+        [Fact]
+        public void AnHidSerialWithoutALetterOrDigitBlocksTheSave()
+        {
+            var draft = Draft(Desk);
+            draft.Interfaces[0].Fields.OfType<TextField>().Single(field => field.Key == "serialNumber").Value = "---";
+
+            draft.Interfaces[0].Fields.OfType<ChoiceField>().Single(field => field.Key == "backend").Value = "hid";
+
+            Assert.False(draft.CanSave);
+        }
+
+        [Theory]
+        [InlineData("logitech/F710")]
+        [InlineData("logitech/Rumblepad2")]
+        public void OnlyTheF310OffersTheHidBackend(string type)
+        {
+            var draft = Draft(Desk.Replace("\"type\": \"gamepad\"", $"\"type\": \"{type}\", \"backend\": \"hid\""));
+
+            var backend = draft.Interfaces[0].Fields.OfType<ChoiceField>().Single(field => field.Key == "backend");
+            Assert.Equal(["sdl"], backend.Options);
+            Assert.Equal("hid", backend.Value);
+            Assert.False(draft.CanSave);
+        }
+
+        [Fact]
+        public void ADeadzoneThatIsNotFiniteBlocksTheSave()
+        {
+            var draft = Draft(Desk);
+
+            draft.Interfaces[0].Fields.OfType<FractionField>().Single(field => field.Key == "deadzone").Value = double.NaN.ToString(System.Globalization.CultureInfo.CurrentUICulture);
+
+            Assert.False(draft.CanSave);
+        }
+    }
+
     public class AddingAndRemoving : ConfigDraftTests
     {
         [Fact]

@@ -61,6 +61,7 @@
     "rumble": "ارتعاش",
     "required": "لازمی ہے",
     "notANumber": "عدد نہیں ہے",
+    "notAUrl": "http یا https پتہ نہیں ہے",
     "tooSmall": "{0} یا اس سے زیادہ ہونا چاہیے",
     "outOfRange": "{0} اور {1} کے درمیان ہونا چاہیے",
     "mapNeedsNumbers": "ہر قطار میں دو اعداد درکار ہیں",

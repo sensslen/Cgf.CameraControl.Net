@@ -18,12 +18,13 @@
     <IsAotCompatible>true</IsAotCompatible>
     <!--
       AtemSharp builds its command registry with Assembly.GetTypes() and then reflects over the
-      resolved command type. ILLink.Descriptors.xml in Cgf.CameraControl.Atem preserves that
-      assembly whole, so the pattern is safe here but still trips the analyzer. The published
-      binary is checked with the aot-probe switch, which fails loudly if the registry ever comes
-      up empty.
+      resolved command type, and HidSharp reflects inside itself too. IL2104 is the one summary
+      warning each of them raises as a whole assembly, so it cannot be scoped to a call site.
+      ILLink.Descriptors.xml in Cgf.CameraControl.Atem preserves AtemSharp whole, and the published
+      binary is checked with the aot-probe switch, which fails loudly if the registry ever comes up
+      empty. Trim warnings in this repository's own code still fail the build.
     -->
-    <NoWarn>$(NoWarn);IL2026;IL2075;IL2104</NoWarn>
+    <NoWarn>$(NoWarn);IL2104</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

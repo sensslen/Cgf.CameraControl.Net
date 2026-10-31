@@ -61,6 +61,7 @@
     "rumble": "কম্পন",
     "required": "আবশ্যক",
     "notANumber": "সংখ্যা নয়",
+    "notAUrl": "http বা https ঠিকানা নয়",
     "tooSmall": "{0} বা তার বেশি হতে হবে",
     "outOfRange": "{0} এবং {1} এর মধ্যে হতে হবে",
     "mapNeedsNumbers": "প্রতিটি সারিতে দুটি সংখ্যা দরকার",
