@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -24,6 +25,58 @@ public class EntryEditorViewTests
     [Collection("Avalonia UI")]
     public class CameraSpeed
     {
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public async Task VisibleSliderPartsAlignWithTextboxCenter(bool dark, bool rtl)
+        {
+            await using var session = HeadlessUnitTestSession.StartNew(typeof(EntryEditorViewTests));
+            await session.Dispatch(() =>
+            {
+                var editor = new EntryEditorView
+                {
+                    DataContext = new NewEntry(EntryKind.Camera, 1) { SelectedType = "viscaoverip" }.Entry,
+                };
+                var window = new Window
+                {
+                    Width = 560,
+                    Height = 500,
+                    Content = editor,
+                    FlowDirection = rtl ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
+                    RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light,
+                };
+                window.Show();
+                try
+                {
+                    Dispatcher.UIThread.RunJobs();
+                    var slider = Assert.Single(editor.GetVisualDescendants().OfType<Slider>());
+                    slider.Value = 50;
+                    Dispatcher.UIThread.RunJobs();
+                    var thumb = Assert.Single(slider.GetVisualDescendants().OfType<Thumb>());
+                    var box = Assert.Single(editor.GetVisualDescendants().OfType<TextBox>(),
+                        control => control.DataContext is PercentField);
+                    var tracks = slider.GetVisualDescendants().OfType<Border>()
+                        .Where(control => control.Name == "TrackBackground").ToArray();
+                    Assert.Equal(2, tracks.Length);
+                    var controls = tracks.Append<Control>(thumb);
+                    var center = Assert.IsType<Point>(
+                        box.TranslatePoint(new Point(box.Bounds.Width / 2, box.Bounds.Height / 2), window));
+                    foreach (var control in controls)
+                    {
+                        var actual = Assert.IsType<Point>(
+                            control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window));
+                        Assert.InRange(Math.Abs(actual.Y - center.Y), 0, 0.5);
+                    }
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }, TestContext.Current.CancellationToken);
+        }
+
         [Theory]
         [InlineData(false, "viscaoverip")]
         [InlineData(true, "viscaoverip")]
