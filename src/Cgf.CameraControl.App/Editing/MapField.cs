@@ -71,17 +71,28 @@ public sealed partial class MapField : Field
     {
         row.PropertyChanged -= OnRowChanged;
         Rows.Remove(row);
+        for (var index = 0; index < Rows.Count; index++)
+        {
+            Rows[index].Position = index + 1;
+        }
+
         Save();
     }
 
     private void Add(string key, string value)
     {
-        var row = new MapRow { Key = key, Value = value };
+        var row = new MapRow { Key = key, Value = value, Position = Rows.Count + 1 };
         row.PropertyChanged += OnRowChanged;
         Rows.Add(row);
     }
 
-    private void OnRowChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => Save();
+    private void OnRowChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(MapRow.Key) or nameof(MapRow.Value))
+        {
+            Save();
+        }
+    }
 
     /// Rebuilt whole rather than patched, because a row whose left side changed has moved to a
     /// different key and there is nothing to patch.
@@ -102,6 +113,9 @@ public sealed partial class MapField : Field
 
 public sealed partial class MapRow : ViewModelBase
 {
+    [ObservableProperty]
+    public partial int Position { get; set; }
+
     [ObservableProperty]
     public partial string Key { get; set; } = string.Empty;
 

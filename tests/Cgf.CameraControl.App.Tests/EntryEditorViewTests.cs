@@ -115,8 +115,15 @@ public class EntryEditorViewTests
                 };
                 try
                 {
+                    Assert.Equal(540, window.MinWidth);
+                    Assert.Equal(400, window.MinHeight);
                     window.Show();
                     Dispatcher.UIThread.RunJobs();
+                    var typeSelector = Assert.Single(window.GetVisualDescendants().OfType<ComboBox>(),
+                        control => !control.GetVisualAncestors().OfType<EntryEditorView>().Any());
+                    Assert.True(typeSelector.IsEffectivelyVisible);
+                    Assert.Equal(Localizer.Current.Text("edit.type"), AutomationProperties.GetName(typeSelector));
+                    AssertWithinWindow(typeSelector, window);
                     var editor = Assert.Single(window.GetVisualDescendants().OfType<EntryEditorView>());
                     foreach (var input in editor.GetVisualDescendants().OfType<TextBox>()
                                  .Where(control => control.IsEffectivelyVisible))
@@ -142,6 +149,10 @@ public class EntryEditorViewTests
                     address.Text = "10.0.0.11";
                     Dispatcher.UIThread.RunJobs();
                     Assert.True(accept.IsEnabled);
+                    AssertWithinWindow(accept, window);
+                    var cancel = window.FindControl<Button>("Reject");
+                    Assert.NotNull(cancel);
+                    AssertWithinWindow(cancel, window);
                 }
                 finally
                 {
@@ -149,6 +160,17 @@ public class EntryEditorViewTests
                 }
             }, TestContext.Current.CancellationToken);
         }
+    }
+
+    private static void AssertWithinWindow(Control control, Window window)
+    {
+        var topLeft = Assert.IsType<Point>(control.TranslatePoint(default, window));
+        var bottomRight = Assert.IsType<Point>(
+            control.TranslatePoint(new Point(control.Bounds.Width, control.Bounds.Height), window));
+        Assert.InRange(topLeft.X, 0, window.Bounds.Width);
+        Assert.InRange(topLeft.Y, 0, window.Bounds.Height);
+        Assert.InRange(bottomRight.X, 0, window.Bounds.Width);
+        Assert.InRange(bottomRight.Y, 0, window.Bounds.Height);
     }
 
     [Collection("Avalonia UI")]
@@ -195,6 +217,30 @@ public class EntryEditorViewTests
                     remove.Command.Execute(remove.CommandParameter);
                     Dispatcher.UIThread.RunJobs();
                     Assert.Empty(map.Rows);
+
+                    map.AddRowCommand.Execute(null);
+                    map.AddRowCommand.Execute(null);
+                    var first = map.Rows[0];
+                    var second = map.Rows[1];
+                    first.Key = first.Value = second.Key = second.Value = string.Empty;
+                    Dispatcher.UIThread.RunJobs();
+                    var keys = editor.GetVisualDescendants().OfType<TextBox>()
+                        .Where(control => control.DataContext is MapRow && Grid.GetColumn(control) == 0).ToArray();
+                    var values = editor.GetVisualDescendants().OfType<TextBox>()
+                        .Where(control => control.DataContext is MapRow && Grid.GetColumn(control) == 2).ToArray();
+                    Assert.Equal(2, keys.Length);
+                    Assert.Equal(2, values.Length);
+                    Assert.Equal($"{Localizer.Current.Text(map.LeftLabel)} 1", AutomationProperties.GetName(keys[0]));
+                    Assert.Equal($"{Localizer.Current.Text(map.LeftLabel)} 2", AutomationProperties.GetName(keys[1]));
+                    Assert.Equal($"{Localizer.Current.Text(map.RightLabel)} 1", AutomationProperties.GetName(values[0]));
+                    Assert.Equal($"{Localizer.Current.Text(map.RightLabel)} 2", AutomationProperties.GetName(values[1]));
+                    map.RemoveRowCommand.Execute(first);
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.Equal(1, second.Position);
+                    Assert.Equal($"{Localizer.Current.Text(map.LeftLabel)} 1", AutomationProperties.GetName(keys[1]));
+                    Assert.Equal($"{Localizer.Current.Text(map.RightLabel)} 1", AutomationProperties.GetName(values[1]));
+                    map.AddRowCommand.Execute(null);
+                    Assert.Equal(2, map.Rows[1].Position);
                 }
                 finally
                 {

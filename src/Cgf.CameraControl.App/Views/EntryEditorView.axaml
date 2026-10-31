@@ -126,10 +126,22 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="edit:MapRow">
               <Grid ColumnDefinitions="120,8,120,8,Auto" Margin="0,0,0,6">
-                <TextBox Text="{Binding Key}"
-                         AutomationProperties.Name="{Binding $parent[ItemsControl].((edit:MapField)DataContext).LeftCaption^}" />
-                <TextBox Grid.Column="2" Text="{Binding Value}"
-                         AutomationProperties.Name="{Binding $parent[ItemsControl].((edit:MapField)DataContext).RightCaption^}" />
+                <TextBox Text="{Binding Key}">
+                  <AutomationProperties.Name>
+                    <MultiBinding StringFormat="{}{0} {1}">
+                      <Binding Path="$parent[ItemsControl].((edit:MapField)DataContext).LeftCaption^" />
+                      <Binding Path="Position" />
+                    </MultiBinding>
+                  </AutomationProperties.Name>
+                </TextBox>
+                <TextBox Grid.Column="2" Text="{Binding Value}">
+                  <AutomationProperties.Name>
+                    <MultiBinding StringFormat="{}{0} {1}">
+                      <Binding Path="$parent[ItemsControl].((edit:MapField)DataContext).RightCaption^" />
+                      <Binding Path="Position" />
+                    </MultiBinding>
+                  </AutomationProperties.Name>
+                </TextBox>
                 <Button Grid.Column="4" Classes="remove" Content="&#x2715;"
                         Command="{Binding $parent[ItemsControl].((edit:MapField)DataContext).RemoveRowCommand}"
                         CommandParameter="{Binding}" />
