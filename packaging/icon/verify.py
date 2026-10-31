@@ -24,6 +24,7 @@ def png_size(data):
     require(data[:8] == b"\x89PNG\r\n\x1a\n", "Invalid PNG signature")
     offset = 8
     dimensions = None
+    compressed = bytearray()
     while offset < len(data):
         length, kind = struct.unpack_from(">I4s", data, offset)
         end = offset + 12 + length
@@ -31,10 +32,24 @@ def png_size(data):
         checksum = struct.unpack_from(">I", data, end - 4)[0]
         require(zlib.crc32(data[offset + 4:end - 4]) == checksum, "Invalid PNG checksum")
         if kind == b"IHDR":
+            require(offset == 8 and length == 13, "Invalid PNG image header")
             dimensions = struct.unpack_from(">II", data, offset + 8)
+            require(all(dimensions) and data[offset + 16:end - 4] == b"\x08\x06\x00\x00\x00",
+                    "Icon PNG must be non-interlaced 8-bit RGBA")
+        if kind == b"IDAT":
+            compressed.extend(data[offset + 8:end - 4])
         offset = end
         if kind == b"IEND":
             require(offset == len(data), "Trailing PNG data")
+            require(dimensions is not None, "PNG has no image header")
+            stride = 1 + dimensions[0] * 4
+            expected = stride * dimensions[1]
+            inflater = zlib.decompressobj()
+            pixels = inflater.decompress(compressed, expected + 1)
+            require(inflater.eof and not inflater.unused_data and not inflater.unconsumed_tail,
+                    "Invalid PNG compressed image data")
+            require(len(pixels) == expected and all(value <= 4 for value in pixels[::stride]),
+                    "Invalid PNG scanlines")
             return dimensions
     raise ValueError("PNG has no end chunk")
 
@@ -58,6 +73,26 @@ def ico_frames(path):
     return frames
 
 
+def unpack_packbits(data, expected):
+    output = bytearray()
+    offset = 0
+    while offset < len(data):
+        control = data[offset]
+        offset += 1
+        if control < 128:
+            count = control + 1
+            require(offset + count <= len(data), "Truncated ICNS literal")
+            output.extend(data[offset:offset + count])
+            offset += count
+        else:
+            require(offset < len(data), "Truncated ICNS repeat")
+            output.extend(bytes([data[offset]]) * (control - 128 + 3))
+            offset += 1
+        require(len(output) <= expected, "ICNS RGB stream is too long")
+    require(len(output) == expected, "ICNS RGB stream is too short")
+    return bytes(output)
+
+
 def verify_assets():
     icons = ROOT / "packaging" / "icon"
     app = ROOT / "src" / "Cgf.CameraControl.App"
@@ -68,8 +103,10 @@ def verify_assets():
         require(png_size(data) == (size, size), f"Invalid {size}px raster")
         if size in ICON_SIZES:
             require(data == frames[size, size], f"ICO and {size}px raster differ")
-    require(png_size((app / "Assets" / "appicon.png").read_bytes()) == (64, 64),
+    caption = (app / "Assets" / "appicon.png").read_bytes()
+    require(png_size(caption) == (64, 64),
             "Caption icon must be the high-DPI small glyph")
+    require(caption == (icons / "appicon-caption.png").read_bytes(), "Caption artwork differs")
     svg = ET.parse(icons / "icon.svg").getroot()
     require(svg.get("viewBox") == "0 0 1024 1024", "Invalid SVG canvas")
     icns = (icons / "AppIcon.icns").read_bytes()
@@ -87,7 +124,8 @@ def verify_assets():
                        (b"ic08", 256), (b"ic14", 512), (b"ic09", 512), (b"ic10", 1024)]:
         require(png_size(representations[kind]) == (size, size), f"Invalid macOS {kind!r} dimensions")
     for rgb, alpha, size in [(b"is32", b"s8mk", 16), (b"il32", b"l8mk", 32)]:
-        require(bool(representations[rgb]) and len(representations[alpha]) == size * size,
+        unpack_packbits(representations[rgb], 3 * size * size)
+        require(len(representations[alpha]) == size * size,
                 f"Missing classic macOS {size}px icon")
 
     project = ET.parse(app / "Cgf.CameraControl.App.csproj")

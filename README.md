@@ -204,10 +204,13 @@ uses only Python's standard library:
 
 ```bash
 python packaging/icon/verify.py
+python -m unittest discover -s packaging/icon -p "test_*.py"
 ```
 
 On Windows, add `--windows-exe <path>` for each published executable or installer. Verification
 compares every embedded icon size against the application ICO, not just whether an icon exists.
+PNG image data and classic ICNS RGB streams are decoded; the caption glyph is compared with its
+generated reference in `packaging/icon/appicon-caption.png`.
 CI checks the assets and assignments; Windows releases also check the NativeAOT binary and installer.
 
 The title bar uses a high-DPI raster of the small glyph. Windows executables, shortcuts, uninstall
