@@ -28,6 +28,8 @@ Set **Tally signals** in the mixer's editor. Keep the camera's `tallyMode` set t
 protocol, such as `avonic` or `ptzoptics` for VISCA. A camera configured with no tally protocol
 cannot receive tally commands, regardless of the mixer's setting.
 
+![Mixer editor configured for program-only tally](../images/mixer-tally.png)
+
 ## `blackmagicdesign/atem`
 
 ```json
