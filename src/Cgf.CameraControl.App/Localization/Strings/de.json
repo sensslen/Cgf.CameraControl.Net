@@ -41,6 +41,7 @@
     "panTiltInvert": "Schwenken und Neigen umkehren",
     "panTiltSpeedPercent": "Schwenk- und Neigegeschwindigkeit",
     "tallyMode": "Tally",
+    "mixerTallyMode": "Tally-Signale",
     "showTallyLight": "Tally-Licht anzeigen",
     "connectionUrl": "Controller-URL",
     "connectionPort": "Serieller Port",

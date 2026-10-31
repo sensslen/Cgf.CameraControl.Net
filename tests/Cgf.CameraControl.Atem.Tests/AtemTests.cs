@@ -3,6 +3,7 @@ using AtemSharp.Commands.MixEffects.Key;
 using AtemSharp.Commands.MixEffects.Transition;
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 using Cgf.CameraControl.Core.VideoMixer;
+using AtemMixer = Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign.Atem;
 
 namespace Cgf.CameraControl.Atem.Tests;
 
@@ -14,6 +15,29 @@ public class AtemTests
     public void ConnectionStringNamesTheBlock()
     {
         Assert.Equal("10.0.0.1:1", Build(mixEffectBlock: 1).ConnectionString);
+    }
+
+    public class TallyPolicy : AtemTests
+    {
+        [Theory]
+        [InlineData(MixerTallyMode.PreviewProgram)]
+        [InlineData(MixerTallyMode.Program)]
+        [InlineData(MixerTallyMode.None)]
+        public void ExposesTheConfiguredPolicyWithoutFilteringMixerState(MixerTallyMode mode)
+        {
+            var atem = new AtemMixer(new AtemConfiguration { Ip = "10.0.0.1", MixEffectBlock = 0, TallyMode = mode }, _connection);
+            var preview = new List<PreviewChange>();
+            var program = new List<int>();
+            using var previewSubscription = atem.WhenPreviewChanged.Subscribe(preview.Add);
+            using var programSubscription = atem.WhenProgramChanged.Subscribe(program.Add);
+
+            _connection.Push(d => d.ProgramInput(0, 1));
+            _connection.Push(d => d.PreviewInput(0, 2));
+
+            Assert.Equal(mode, atem.TallyMode);
+            Assert.Equal(1, program[^1]);
+            Assert.Equal(2, preview[^1].Preview);
+        }
     }
 
     public class Selection : AtemTests

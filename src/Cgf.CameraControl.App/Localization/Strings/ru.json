@@ -41,6 +41,7 @@
     "panTiltInvert": "Инвертировать поворот и наклон",
     "panTiltSpeedPercent": "Скорость поворота и наклона",
     "tallyMode": "Tally",
+    "mixerTallyMode": "Сигналы tally",
     "showTallyLight": "Показывать индикатор Tally",
     "connectionUrl": "URL контроллера",
     "connectionPort": "Последовательный порт",

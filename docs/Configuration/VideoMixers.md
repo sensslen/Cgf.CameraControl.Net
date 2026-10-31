@@ -8,6 +8,26 @@ number in that interface's `cameraMap` and `keys.input` is one of this mixer's i
 | `blackmagicdesign/atem` | an ATEM switcher over the network | `ip`, `mixEffectBlock` |
 | `passthrough/default` | nothing | — |
 
+## Tally signals
+
+Both mixer types accept `tallyMode`. It controls the signals sent to every camera mapped by an
+interface using that mixer, independently of the camera's tally protocol.
+
+| `tallyMode` | Camera tally |
+| --- | --- |
+| `preview-program` | preview and program, with program taking priority; the default |
+| `program` | program only; preview cameras receive off |
+| `none` | all mapped cameras receive off |
+
+For example, `"tallyMode": "program"` on an ATEM mixer keeps preview lamps dark while still
+lighting the on-air camera. Disabling tally sends off updates rather than ignoring changes, so a
+previously lit lamp is cleared. Program-only and disabled tally also clear mapped lamps when the
+interface starts. Preview selection and camera steering are unchanged.
+
+Set **Tally signals** in the mixer's editor. Keep the camera's `tallyMode` set to its supported
+protocol, such as `avonic` or `ptzoptics` for VISCA. A camera configured with no tally protocol
+cannot receive tally commands, regardless of the mixer's setting.
+
 ## `blackmagicdesign/atem`
 
 ```json

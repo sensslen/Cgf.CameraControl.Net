@@ -72,6 +72,14 @@ public sealed class Gamepad : IHmi
             _functions[name] = SpecialFunctionFactory.Get(definition);
         }
 
+        if (mixer.TallyMode != MixerTallyMode.PreviewProgram)
+        {
+            foreach (var camera in _cameras.Values.Distinct())
+            {
+                SetTally(camera, TallyState.Off);
+            }
+        }
+
         Bind(_default, pad?.Default);
         Bind(_alt, pad?.Alt);
         Bind(_altLower, pad?.AltLower);
@@ -280,7 +288,7 @@ public sealed class Gamepad : IHmi
         {
             if (_selectedOnAirCamera != _selectedPreviewCamera)
             {
-                _selectedPreviewCamera?.SetTally(TallyState.Off);
+                SetTally(_selectedPreviewCamera, TallyState.Off);
             }
 
             // Whatever the sticks were last asking for belonged to the previous camera, so it is
@@ -299,7 +307,7 @@ public sealed class Gamepad : IHmi
         Log($"Selected input:{change.Preview} ({selected.ConnectionString}){OnAirSuffix(change.OnAir)}");
         if (_selectedOnAirCamera != selected)
         {
-            selected.SetTally(TallyState.Preview);
+            SetTally(selected, TallyState.Preview);
         }
     }
 
@@ -313,21 +321,30 @@ public sealed class Gamepad : IHmi
 
         if (_selectedOnAirCamera != _selectedPreviewCamera)
         {
-            _selectedOnAirCamera?.SetTally(TallyState.Off);
+            SetTally(_selectedOnAirCamera, TallyState.Off);
         }
         else
         {
-            _selectedPreviewCamera?.SetTally(TallyState.Preview);
+            SetTally(_selectedPreviewCamera, TallyState.Preview);
         }
 
         _selectedOnAirCamera = onAir;
-        _selectedOnAirCamera?.SetTally(TallyState.Program);
+        SetTally(_selectedOnAirCamera, TallyState.Program);
 
         if (onAir is not null)
         {
             Rumble(0.7, OnAirPulse);
         }
     }
+
+    private void SetTally(ICameraConnection? camera, TallyState state) =>
+        camera?.SetTally(_mixer.TallyMode switch
+        {
+            MixerTallyMode.PreviewProgram => state,
+            MixerTallyMode.Program => state == TallyState.Program ? TallyState.Program : TallyState.Off,
+            MixerTallyMode.None => TallyState.Off,
+            _ => throw new InvalidOperationException($"Unknown mixer tally mode: {_mixer.TallyMode}"),
+        });
 
     private void OnMixerConnectionChanged(bool connected)
     {

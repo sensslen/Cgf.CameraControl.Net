@@ -7,12 +7,14 @@ namespace Cgf.CameraControl.Core.VideoMixer.Passthrough;
 /// A switcher that only remembers what it was told. It is how the control surface is exercised
 /// without a desk on the network: everything upstream of the mixer behaves exactly as it does on an
 /// ATEM, so a pad, its bindings and the cameras can all be checked on a laptop.
-public sealed class Passthrough(ILogger logger) : IVideoMixer
+public sealed class Passthrough(ILogger logger, MixerTallyMode tallyMode = MixerTallyMode.PreviewProgram) : IVideoMixer
 {
     private readonly BehaviorSubject<PreviewChange> _preview = new(new PreviewChange(-1, false));
     private readonly BehaviorSubject<int> _program = new(-1);
 
     public string ConnectionString => "passthrough";
+
+    public MixerTallyMode TallyMode => tallyMode;
 
     public IObservable<bool> WhenConnectedChanged => Observable.Return(true);
 

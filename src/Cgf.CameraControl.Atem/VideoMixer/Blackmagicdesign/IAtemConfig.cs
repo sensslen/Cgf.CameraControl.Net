@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using Cgf.CameraControl.Core.Configuration.Converters;
+using Cgf.CameraControl.Core.VideoMixer;
 
 namespace Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 
@@ -14,6 +15,8 @@ public sealed record AtemConfiguration
     [JsonRequired]
     [JsonConverter(typeof(NonNegativeIntConverter))]
     public int MixEffectBlock { get; set; }
+
+    public MixerTallyMode TallyMode { get; set; } = MixerTallyMode.PreviewProgram;
 }
 
 [JsonSourceGenerationOptions(

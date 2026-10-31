@@ -199,6 +199,85 @@ public class GamepadTests
         }
     }
 
+    public class MixerTallyPolicy : GamepadTests
+    {
+        [Theory]
+        [InlineData(MixerTallyMode.Program)]
+        [InlineData(MixerTallyMode.None)]
+        public void RestrictedModesClearAllMappedCamerasAtStartup(MixerTallyMode mode)
+        {
+            var first = Camera(1);
+            var second = Camera(2);
+            _mixer.TallyMode.Returns(mode);
+
+            Build();
+
+            first.Received(1).SetTally(TallyState.Off);
+            second.Received(1).SetTally(TallyState.Off);
+        }
+
+        [Fact]
+        public void ProgramOnlyTurnsOffPreviewAndTheCameraLeavingProgram()
+        {
+            var first = Camera(1);
+            var second = Camera(2);
+            _mixer.TallyMode.Returns(MixerTallyMode.Program);
+            Build();
+
+            _preview.OnNext(new PreviewChange(1, false));
+            _program.OnNext(1);
+            _preview.OnNext(new PreviewChange(2, false));
+            _program.OnNext(2);
+
+            first.Received(1).SetTally(TallyState.Program);
+            first.Received(3).SetTally(TallyState.Off);
+            second.Received(1).SetTally(TallyState.Program);
+            first.DidNotReceive().SetTally(TallyState.Preview);
+            second.DidNotReceive().SetTally(TallyState.Preview);
+        }
+
+        [Fact]
+        public void ProgramOnlyKeepsTheLiveCameraLitWhenPreviewChanges()
+        {
+            var first = Camera(1);
+            Camera(2);
+            _mixer.TallyMode.Returns(MixerTallyMode.Program);
+            Build();
+            _program.OnNext(1);
+            first.ClearReceivedCalls();
+
+            _preview.OnNext(new PreviewChange(1, true));
+            _preview.OnNext(new PreviewChange(2, false));
+
+            first.DidNotReceive().SetTally(TallyState.Off);
+            first.DidNotReceive().SetTally(TallyState.Preview);
+        }
+
+        [Fact]
+        public void NoTallySendsOffForBothBusesInsteadOfLeavingOldLampsLit()
+        {
+            var first = Camera(1);
+            var second = Camera(2);
+            _mixer.TallyMode.Returns(MixerTallyMode.None);
+            Build();
+            first.ClearReceivedCalls();
+            second.ClearReceivedCalls();
+
+            _preview.OnNext(new PreviewChange(1, false));
+            _program.OnNext(1);
+            _preview.OnNext(new PreviewChange(2, false));
+            _program.OnNext(2);
+
+            first.Received().SetTally(TallyState.Off);
+            second.Received().SetTally(TallyState.Off);
+            first.DidNotReceive().SetTally(TallyState.Preview);
+            first.DidNotReceive().SetTally(TallyState.Program);
+            second.DidNotReceive().SetTally(TallyState.Preview);
+            second.DidNotReceive().SetTally(TallyState.Program);
+            Assert.Equal(2, _device.Rumbles.Count);
+        }
+    }
+
     public class Buttons : GamepadTests
     {
         [Fact]

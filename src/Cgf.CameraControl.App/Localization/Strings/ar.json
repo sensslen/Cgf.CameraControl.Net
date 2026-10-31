@@ -41,6 +41,7 @@
     "panTiltInvert": "عكس التحريك والإمالة",
     "panTiltSpeedPercent": "سرعة التحريك والإمالة",
     "tallyMode": "مؤشر البث",
+    "mixerTallyMode": "إشارات مؤشر البث",
     "showTallyLight": "إظهار ضوء مؤشر البث",
     "connectionUrl": "عنوان وحدة التحكم",
     "connectionPort": "المنفذ التسلسلي",

@@ -40,6 +40,8 @@ public sealed class Atem : IVideoMixer
 
     public string ConnectionString => $"{_config.Ip}:{_config.MixEffectBlock}";
 
+    public MixerTallyMode TallyMode => _config.TallyMode;
+
     public IObservable<bool> WhenConnectedChanged => _connection.WhenConnectionChanged;
 
     public IObservable<PreviewChange> WhenPreviewChanged => _preview;

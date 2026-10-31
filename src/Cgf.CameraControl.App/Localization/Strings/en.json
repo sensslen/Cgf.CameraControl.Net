@@ -41,6 +41,7 @@
     "panTiltInvert": "Invert pan and tilt",
     "panTiltSpeedPercent": "Pan and tilt speed",
     "tallyMode": "Tally",
+    "mixerTallyMode": "Tally signals",
     "showTallyLight": "Show the tally light",
     "connectionUrl": "Controller URL",
     "connectionPort": "Serial port",

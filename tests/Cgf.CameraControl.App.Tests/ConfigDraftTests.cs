@@ -65,6 +65,51 @@ public class ConfigDraftTests
         }
     }
 
+    public class MixerTallyPolicy : ConfigDraftTests
+    {
+        [Theory]
+        [InlineData("blackmagicdesign/atem")]
+        [InlineData("passthrough/default")]
+        public void BothMixerEditorsDefaultWithoutRewritingExistingConfigurations(string type)
+        {
+            var draft = Draft($$"""
+                {"videoMixers":[{"type":"{{type}}","instance":1,"ip":"10.0.0.1","mixEffectBlock":0}]}
+                """);
+            var field = Assert.Single(draft.Mixers[0].Fields.OfType<ChoiceField>());
+
+            Assert.Equal("preview-program", field.Value);
+            Assert.Equal(new[] { "preview-program", "program", "none" }, field.Options);
+            Assert.False(draft.IsDirty);
+            Assert.False(draft.ToConfig().VideoMixers[0].Raw.TryGetProperty("tallyMode", out _));
+        }
+
+        [Theory]
+        [InlineData("blackmagicdesign/atem", "preview-program")]
+        [InlineData("blackmagicdesign/atem", "program")]
+        [InlineData("blackmagicdesign/atem", "none")]
+        [InlineData("passthrough/default", "preview-program")]
+        [InlineData("passthrough/default", "program")]
+        [InlineData("passthrough/default", "none")]
+        public void PolicySurvivesSavingWithoutChangingTheCameraProtocol(string type, string policy)
+        {
+            var draft = Draft($$"""
+                {
+                  "cams":[{"type":"viscaoverip","instance":1,"ip":"10.0.0.2","tallyMode":"avonic"}],
+                  "videoMixers":[{"type":"{{type}}","instance":1,"ip":"10.0.0.1","mixEffectBlock":0}]
+                }
+                """);
+            var field = Assert.Single(draft.Mixers[0].Fields.OfType<ChoiceField>());
+            field.Value = "none";
+            field.Value = policy;
+
+            var reopened = Draft(ConfigWriter.Write(draft.ToConfig()));
+            Assert.True(draft.IsDirty);
+            Assert.True(reopened.CanSave);
+            Assert.Equal(policy, Assert.Single(reopened.Mixers[0].Fields.OfType<ChoiceField>()).Value);
+            Assert.Equal("avonic", Assert.Single(reopened.Cameras[0].Fields.OfType<ChoiceField>()).Value);
+        }
+    }
+
     public class PanTiltSpeed : ConfigDraftTests
     {
         [Theory]

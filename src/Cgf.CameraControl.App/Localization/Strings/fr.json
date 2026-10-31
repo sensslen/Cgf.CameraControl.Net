@@ -41,6 +41,7 @@
     "panTiltInvert": "Inverser le panoramique et l'inclinaison",
     "panTiltSpeedPercent": "Vitesse de panoramique et d'inclinaison",
     "tallyMode": "Tally",
+    "mixerTallyMode": "Signaux tally",
     "showTallyLight": "Afficher le voyant tally",
     "connectionUrl": "URL du contrôleur",
     "connectionPort": "Port série",

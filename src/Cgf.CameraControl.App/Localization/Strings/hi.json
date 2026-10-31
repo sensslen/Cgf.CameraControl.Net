@@ -41,6 +41,7 @@
     "panTiltInvert": "पैन और टिल्ट उलटें",
     "panTiltSpeedPercent": "पैन और टिल्ट गति",
     "tallyMode": "टैली",
+    "mixerTallyMode": "टैली संकेत",
     "showTallyLight": "टैली लाइट दिखाएँ",
     "connectionUrl": "कंट्रोलर URL",
     "connectionPort": "सीरियल पोर्ट",

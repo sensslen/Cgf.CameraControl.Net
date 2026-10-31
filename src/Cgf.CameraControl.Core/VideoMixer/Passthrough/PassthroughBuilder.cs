@@ -8,6 +8,9 @@ public sealed class PassthroughBuilder(ILogger logger) : IBuilder<IVideoMixer>
 {
     public IReadOnlyCollection<string> SupportedTypes => ["passthrough/default"];
 
-    public Task<IVideoMixer> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken) =>
-        Task.FromResult<IVideoMixer>(new Passthrough(logger));
+    public Task<IVideoMixer> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken)
+    {
+        var config = entry.Deserialize(PassthroughConfigurationContext.Default.PassthroughConfiguration);
+        return Task.FromResult<IVideoMixer>(new Passthrough(logger, config.TallyMode));
+    }
 }
