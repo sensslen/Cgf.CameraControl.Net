@@ -50,11 +50,13 @@ internal static class EntrySchema
             [
                 new TextField(entry, "ip", "edit.ip", required: true),
                 new NumberField(entry, "mixEffectBlock", "edit.mixEffectBlock", required: true, minimum: 0),
-                new ChoiceField(entry, "tallyMode", "edit.mixerTallyMode", ["preview-program", "program", "none"], "preview-program"),
+                new ChoiceField(entry, "tallyMode", "edit.mixerTallyMode", ["preview-program", "program", "none"], "preview-program",
+                    optionLabelPrefix: "edit.mixerTally"),
             ],
             "passthrough/default" =>
             [
-                new ChoiceField(entry, "tallyMode", "edit.mixerTallyMode", ["preview-program", "program", "none"], "preview-program"),
+                new ChoiceField(entry, "tallyMode", "edit.mixerTallyMode", ["preview-program", "program", "none"], "preview-program",
+                    optionLabelPrefix: "edit.mixerTally"),
             ],
             "gamepad" =>
             [

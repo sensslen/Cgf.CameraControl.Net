@@ -13,11 +13,11 @@ number in that interface's `cameraMap` and `keys.input` is one of this mixer's i
 Both mixer types accept `tallyMode`. It controls the signals sent to every camera mapped by an
 interface using that mixer, independently of the camera's tally protocol.
 
-| `tallyMode` | This mixer's contribution |
-| --- | --- |
-| `preview-program` | preview and program, with program taking priority; the default |
-| `program` | program only; off for preview cameras |
-| `none` | off for all mapped cameras |
+| Editor option | `tallyMode` | This mixer's contribution |
+| --- | --- | --- |
+| Program and preview | `preview-program` | preview and program, with program taking priority; the default |
+| Program only | `program` | program only; off for preview cameras |
+| Disabled | `none` | off for all mapped cameras |
 
 For example, `"tallyMode": "program"` on an ATEM mixer contributes a lit tally only for its
 on-air camera. Disabling tally sends off updates rather than ignoring changes.

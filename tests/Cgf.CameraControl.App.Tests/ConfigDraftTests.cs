@@ -1,3 +1,4 @@
+using System.Reactive.Linq;
 using Cgf.CameraControl.App.Editing;
 using Cgf.CameraControl.Core.Configuration;
 
@@ -67,6 +68,43 @@ public class ConfigDraftTests
 
     public class MixerTallyPolicy : ConfigDraftTests
     {
+        [Fact]
+        public void CameraProtocolNamesAndSelectionsRemainUnchanged()
+        {
+            var draft = Draft(Desk);
+            var field = Assert.Single(draft.Cameras[0].Fields.OfType<ChoiceField>());
+            Assert.Equal(field.Options, field.Items.Select(option => option.Caption.FirstAsync().Wait()));
+
+            field.SelectedOption = field.Items.Single(option => option.Value == "avonic");
+
+            Assert.Equal("avonic", field.Value);
+            Assert.Equal("avonic", draft.ToConfig().Cams[0].Raw.GetProperty("tallyMode").GetString());
+        }
+
+        [Theory]
+        [InlineData("blackmagicdesign/atem")]
+        [InlineData("passthrough/default")]
+        public void FriendlyNamesKeepTheStoredPolicyValues(string type)
+        {
+            var draft = Draft($$"""
+                {"videoMixers":[{"type":"{{type}}","instance":1,"ip":"10.0.0.1","mixEffectBlock":0}]}
+                """);
+            var field = Assert.Single(draft.Mixers[0].Fields.OfType<ChoiceField>());
+            Assert.Equal(new[] { "Program and preview", "Program only", "Disabled" },
+                field.Items.Select(option => option.Caption.FirstAsync().Wait()));
+            Assert.NotNull(field.SelectedOption);
+            Assert.Equal("preview-program", field.SelectedOption.Value);
+            Assert.False(draft.IsDirty);
+
+            field.SelectedOption = field.Items[^1];
+            foreach (var option in field.Items)
+            {
+                field.SelectedOption = option;
+                Assert.Equal(option.Value, field.Value);
+                Assert.Equal(option.Value, draft.ToConfig().VideoMixers[0].Raw.GetProperty("tallyMode").GetString());
+            }
+        }
+
         [Theory]
         [InlineData("blackmagicdesign/atem")]
         [InlineData("passthrough/default")]

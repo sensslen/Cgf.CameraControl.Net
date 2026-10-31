@@ -98,7 +98,13 @@
     <DataTemplate DataType="edit:ChoiceField">
       <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
         <TextBlock Classes="caption" Text="{Binding Caption^}" />
-        <ComboBox Width="220" ItemsSource="{Binding Options}" SelectedItem="{Binding Value}" />
+        <ComboBox Width="220" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedOption}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="edit:ChoiceOption">
+              <TextBlock Text="{Binding Caption^}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
       </StackPanel>
     </DataTemplate>
 
