@@ -7,23 +7,21 @@ namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Hid;
 public sealed class HidGamepadSystem(ILogger logger, IHidGamepadSource? source = null) : IAsyncDisposable
 {
     private readonly IHidGamepadSource _source = source ?? new HidGamepadSource();
-    private readonly Dictionary<HidGamepadDevice, IDisposable?> _devices = [];
+    private readonly List<HidGamepadDevice> _devices = [];
     private readonly Lock _gate = new();
 
     public IReadOnlyList<string> SerialNumbers => _source.SerialNumbers;
 
-    /// The reservation is held for as long as the device is, and released with it.
-    public IGamepadDevice Claim(string label, string serial, double deadzone, IDisposable? reservation = null)
+    public IGamepadDevice Claim(string label, string serial, double deadzone)
     {
         lock (_gate)
         {
-            if (_devices.Keys.Any(device => GamepadClaims.Matches(serial, device.SerialNumber)))
+            if (_devices.Any(device => GamepadClaims.Matches(serial, device.SerialNumber)))
             {
-                reservation?.Dispose();
                 throw new InvalidOperationException($"HID serial {serial} is already claimed by another interface.");
             }
             var claimed = new HidGamepadDevice(_source, label, serial, deadzone, logger, Release);
-            _devices.Add(claimed, reservation);
+            _devices.Add(claimed);
             return claimed;
         }
     }
@@ -33,7 +31,7 @@ public sealed class HidGamepadSystem(ILogger logger, IHidGamepadSource? source =
         HidGamepadDevice[] devices;
         lock (_gate)
         {
-            devices = _devices.Keys.ToArray();
+            devices = _devices.ToArray();
         }
         foreach (var device in devices)
         {
@@ -45,10 +43,7 @@ public sealed class HidGamepadSystem(ILogger logger, IHidGamepadSource? source =
     {
         lock (_gate)
         {
-            if (_devices.Remove(device, out var reservation))
-            {
-                reservation?.Dispose();
-            }
+            _devices.Remove(device);
         }
     }
 }

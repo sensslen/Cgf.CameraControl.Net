@@ -134,24 +134,6 @@ public class HidGamepadDeviceTests
         await using var next = system.Claim("second", "83234F94", 0);
     }
 
-    [Fact]
-    public async Task TheSdlReservationLastsAsLongAsTheClaim()
-    {
-        var source = Substitute.For<IHidGamepadSource>();
-        source.Open(Arg.Any<string>()).Returns(_ => new Connection());
-        await using var system = new HidGamepadSystem(Substitute.For<ILogger>(), source);
-        var held = Substitute.For<IDisposable>();
-        var refused = Substitute.For<IDisposable>();
-
-        var first = system.Claim("first", "83234F94", 0, held);
-        Assert.Throws<InvalidOperationException>(() => system.Claim("second", "83234F94", 0, refused));
-        refused.Received(1).Dispose();
-        held.DidNotReceive().Dispose();
-
-        await first.DisposeAsync();
-        held.Received(1).Dispose();
-    }
-
     private static TaskCompletionSource Signal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
     private static Task Wait(TaskCompletionSource signal) =>
         signal.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
