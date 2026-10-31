@@ -147,15 +147,13 @@ public sealed record FocusKeys
 }
 
 /// Unmapped members are refused at every depth, not only on the entry, so a misspelt key in a binding
-/// or a function is reported rather than silently doing nothing. The TypeScript build wrote `type`
-/// wherever it liked, so the discriminator is found wherever it is, and a `null` where an object is
+/// or a function is reported rather than silently doing nothing, and a `null` where an object is
 /// required is reported against its path rather than surfacing later as a bare null reference.
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DictionaryKeyPolicy = JsonKnownNamingPolicy.CamelCase,
     UseStringEnumConverter = true,
     UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-    AllowOutOfOrderMetadataProperties = true,
     RespectNullableAnnotations = true)]
 [JsonSerializable(typeof(GamepadConfiguration))]
 [JsonSerializable(typeof(KeyboardConfiguration))]

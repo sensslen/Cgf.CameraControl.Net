@@ -48,24 +48,6 @@ public class GamepadConfigurationRejectionTests
     }
 
     [Fact]
-    public void TheTypeOfAFunctionMayBeWrittenLast()
-    {
-        var config = Read(
-            """
-            {
-              "instance": 4,
-              "videoMixer": 1,
-              "connectionChange": { "default": { "right": 2 }, "type": "direct" },
-              "cameraMap": { "1": 1 },
-              "functions": { "wide": { "index": 1, "type": "key" } },
-              "type": "gamepad"
-            }
-            """);
-
-        Assert.IsType<KeySpecialFunctionConfiguration>(config.Functions["wide"]);
-    }
-
-    [Fact]
     public void AMisspeltKeyInsideABindingIsRejected()
     {
         var failure = Assert.Throws<ConfigValidationException>(() => Read(
