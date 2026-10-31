@@ -227,10 +227,9 @@ public sealed partial class ChoiceField : Field
         Options = options;
         Items = options.Select(value => new ChoiceOption(
             value, optionLabelPrefix is null ? null : $"{optionLabelPrefix}.{value}")).ToArray();
-        var written = entry[key]?.GetValue<string>();
-        Value = written is not null && options.Contains(written, StringComparer.OrdinalIgnoreCase)
-            ? written
-            : fallback;
+        var written = entry.TryGetPropertyValue(key, out var node) ? node?.ToString() ?? string.Empty : fallback;
+        Value = options.FirstOrDefault(option => string.Equals(option, written, StringComparison.OrdinalIgnoreCase))
+            ?? written;
         Ready();
     }
 
@@ -254,9 +253,8 @@ public sealed partial class ChoiceField : Field
     [NotifyPropertyChangedFor(nameof(SelectedOption))]
     public partial string Value { get; set; } = string.Empty;
 
-    protected internal override void Validate()
-    {
-    }
+    protected internal override void Validate() =>
+        Error = SelectedOption is null ? Localizer.Current.Text("edit.required") : null;
 
     partial void OnValueChanged(string value) => Write(JsonValue.Create(value));
 }

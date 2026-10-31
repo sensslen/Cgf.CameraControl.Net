@@ -96,15 +96,19 @@
     </DataTemplate>
 
     <DataTemplate DataType="edit:ChoiceField">
-      <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-        <TextBlock Classes="caption" Text="{Binding Caption^}" />
-        <ComboBox Width="220" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedOption}">
-          <ComboBox.ItemTemplate>
-            <DataTemplate x:DataType="edit:ChoiceOption">
-              <TextBlock Text="{Binding Caption^}" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
+      <StackPanel Margin="0,0,0,10">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Classes="caption" Text="{Binding Caption^}" />
+          <ComboBox Width="220" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedOption}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="edit:ChoiceOption">
+                <TextBlock Text="{Binding Caption^}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <TextBlock Classes="wrong" Text="{Binding Error}"
+                   IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
     </DataTemplate>
 

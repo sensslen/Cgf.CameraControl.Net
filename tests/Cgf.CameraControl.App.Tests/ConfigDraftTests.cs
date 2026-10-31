@@ -68,6 +68,57 @@ public class ConfigDraftTests
 
     public class MixerTallyPolicy : ConfigDraftTests
     {
+        [Theory]
+        [InlineData("blackmagicdesign/atem")]
+        [InlineData("passthrough/default")]
+        public void InvalidStoredChoicesBlockSavingUntilCorrected(string type)
+        {
+            foreach (var value in new[] { "\"invalid\"", "\"\"", "42", "true", "null", "[]", "{}" })
+            {
+                var draft = Draft($$"""
+                    {"videoMixers":[{"type":"{{type}}","instance":1,"ip":"10.0.0.1","mixEffectBlock":0,
+                                    "tallyMode":{{value}}}]}
+                    """);
+                var field = Assert.Single(draft.Mixers[0].Fields.OfType<ChoiceField>());
+                Assert.False(draft.IsDirty);
+                Assert.False(draft.CanSave);
+                Assert.NotNull(field.Error);
+                Assert.Null(field.SelectedOption);
+                Assert.NotNull(draft.Mixers[0].Problem);
+
+                field.SelectedOption = field.Items.First();
+
+                Assert.True(draft.CanSave);
+                Assert.Null(field.Error);
+                Assert.True(draft.IsDirty);
+                Assert.Equal("preview-program",
+                    draft.ToConfig().VideoMixers[0].Raw.GetProperty("tallyMode").GetString());
+            }
+        }
+
+        [Theory]
+        [InlineData("blackmagicdesign/atem", "preview-program")]
+        [InlineData("blackmagicdesign/atem", "program")]
+        [InlineData("blackmagicdesign/atem", "none")]
+        [InlineData("passthrough/default", "preview-program")]
+        [InlineData("passthrough/default", "program")]
+        [InlineData("passthrough/default", "none")]
+        public void MixedCaseChoicesSelectCanonicalOptionsWithoutRewritingOnRead(string type, string policy)
+        {
+            var stored = policy.ToUpperInvariant();
+            var draft = Draft($$"""
+                {"videoMixers":[{"type":"{{type}}","instance":1,"ip":"10.0.0.1","mixEffectBlock":0,
+                                "tallyMode":"{{stored}}"}]}
+                """);
+            var field = Assert.Single(draft.Mixers[0].Fields.OfType<ChoiceField>());
+            Assert.Equal(policy, field.Value);
+            Assert.NotNull(field.SelectedOption);
+            Assert.Equal(policy, field.SelectedOption.Value);
+            Assert.True(draft.CanSave);
+            Assert.False(draft.IsDirty);
+            Assert.Equal(stored, draft.ToConfig().VideoMixers[0].Raw.GetProperty("tallyMode").GetString());
+        }
+
         [Fact]
         public void CameraProtocolNamesAndSelectionsRemainUnchanged()
         {
@@ -214,6 +265,26 @@ public class ConfigDraftTests
 
     public class WhatStopsASave : ConfigDraftTests
     {
+        [Theory]
+        [InlineData("viscaoverip", "tallyMode")]
+        [InlineData("gamepad", "backend")]
+        public void UnknownCameraAndBackendChoicesAlsoRequireCorrection(string type, string key)
+        {
+            var draft = Draft(Desk.Replace(
+                $"\"type\": \"{type}\", \"instance\": 1",
+                $"\"type\": \"{type}\", \"instance\": 1, \"{key}\": \"unknown\""));
+            var entry = type == "gamepad" ? draft.Interfaces[0] : draft.Cameras[0];
+            var field = Assert.Single(entry.Fields.OfType<ChoiceField>());
+            Assert.False(draft.CanSave);
+            Assert.NotNull(field.Error);
+            Assert.Null(field.SelectedOption);
+
+            field.SelectedOption = field.Items.First();
+
+            Assert.True(draft.CanSave);
+            Assert.Null(field.Error);
+        }
+
         [Fact]
         public void AConfigurationThatAddsUpCanBeSaved()
         {
