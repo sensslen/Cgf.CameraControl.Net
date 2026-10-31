@@ -10,11 +10,10 @@
         mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="780"
         x:Class="Cgf.CameraControl.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Width="1100" Height="780"
+        Width="1100" Height="780" Classes.editing="{Binding IsEditing}"
         Icon="/Assets/appicon.ico"
         Title="{Binding Strings[app.title]^}"
         FlowDirection="{Binding Strings.FlowDirection^}"
-        Background="Transparent"
         TransparencyLevelHint="Mica, AcrylicBlur, Blur"
         WindowDecorationsTheme="{StaticResource CameraControlWindowDecorations}">
 
@@ -123,14 +122,16 @@
       </DockPanel>
     </DataTemplate>
     <DataTemplate x:Key="EntryTile" x:DataType="edit:EntryDraft">
-      <Grid ColumnDefinitions="*,Auto">
+      <Grid ColumnDefinitions="*,8,Auto">
         <StackPanel Grid.Column="0">
           <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
-          <TextBlock Classes="detail" Foreground="#E74C3C" TextWrapping="Wrap" Text="{Binding Problem}"
+          <TextBlock FontSize="12" Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}"
+                     TextWrapping="Wrap" Text="{Binding Problem}"
                      IsVisible="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}" />
         </StackPanel>
-        <Button Grid.Column="1" Content="&#x2715;" Padding="6,0"
-                VerticalAlignment="Top"
+        <Button Grid.Column="2" Content="&#x2715;" Padding="8,4" VerticalAlignment="Center"
+                AutomationProperties.Name="{Binding [edit.delete]^, Source={x:Static loc:Localizer.Current}}"
+                ToolTip.Tip="{Binding [edit.delete]^, Source={x:Static loc:Localizer.Current}}"
                 Command="{Binding $parent[ListBox].((vm:MainViewModel)DataContext).DeleteEntryCommand}"
                 CommandParameter="{Binding}" />
       </Grid>
@@ -139,6 +140,16 @@
   </Window.Resources>
 
   <Window.Styles>
+    <Style Selector="Window">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Window[ActualTransparencyLevel=None]">
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+    </Style>
+    <Style Selector="Window.editing">
+      <Setter Property="MinWidth" Value="960" />
+      <Setter Property="MinHeight" Value="600" />
+    </Style>
     <Style Selector="TextBlock.heading">
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Margin" Value="0,0,0,6" />
@@ -168,6 +179,30 @@
     </Style>
     <Style Selector="Border.selection">
       <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
+    </Style>
+    <Style Selector="Border.surface">
+      <Setter Property="BorderThickness" Value="0,1,1,1" />
+      <Setter Property="CornerRadius" Value="0,6,6,0" />
+    </Style>
+    <Style Selector="Border.editorNavigation">
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+      <Setter Property="Padding" Value="12" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Margin" Value="0,0,12,0" />
+    </Style>
+    <Style Selector="Border.editorSurface">
+      <Setter Property="Padding" Value="24,20" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="ListBox.editorEntries">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="ListBox.editorEntries > ListBoxItem">
+      <Setter Property="MinHeight" Value="40" />
+      <Setter Property="Padding" Value="8,4" />
     </Style>
     <Style Selector="Border.problem">
       <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
@@ -266,11 +301,13 @@
     <!-- The mode has to be impossible to miss: it stops the desk, and every click in the window
          changes a file rather than a camera. The bar carries the way out, so leaving is where
          entering was. -->
-    <Border Grid.Row="1" IsVisible="{Binding IsEditing}" Background="#F2B01E" Margin="0,0,0,4">
+    <Border Grid.Row="1" IsVisible="{Binding IsEditing}"
+            Background="#22F2B01E" BorderBrush="#80F2B01E" BorderThickness="1"
+            CornerRadius="8" Margin="16,4,16,8">
       <Grid ColumnDefinitions="*,Auto" Margin="16,8">
-        <TextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="#211803" TextWrapping="Wrap"
+        <TextBlock Grid.Column="0" VerticalAlignment="Center" TextWrapping="Wrap"
                    Text="{Binding Strings[edit.banner]^}" />
-        <Button Grid.Column="1" MinWidth="96" Margin="12,0,0,0" HorizontalContentAlignment="Center"
+        <Button Grid.Column="1" Classes="accent" MinWidth="96" Margin="12,0,0,0" HorizontalContentAlignment="Center"
                 Command="{Binding ToggleEditCommand}" Content="{Binding Strings[edit.done]^}" />
       </Grid>
     </Border>
@@ -319,24 +356,24 @@
       <!-- Every collection in the file, each with its own add at the foot of it. One selection between
            the three, because one editor fills the area they all point at. -->
       <Border DockPanel.Dock="Left" Width="260" IsVisible="{Binding IsEditing}"
-              Classes="selection" CornerRadius="6,0,0,6" Padding="8,8,0,8">
+              Classes="selection editorNavigation">
       <ScrollViewer HorizontalScrollBarVisibility="Disabled">
         <StackPanel>
           <TextBlock Classes="heading" Text="{Binding Strings[panel.interfaces]^}" />
-          <ListBox ItemsSource="{Binding Draft.Interfaces}" SelectedItem="{Binding SelectedInterfaceEntry}"
-                   ItemTemplate="{StaticResource EntryTile}" Background="Transparent" BorderThickness="0" />
+          <ListBox Classes="editorEntries" ItemsSource="{Binding Draft.Interfaces}" SelectedItem="{Binding SelectedInterfaceEntry}"
+                   ItemTemplate="{StaticResource EntryTile}" />
           <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,4,0,16"
                   Command="{Binding AddInterfaceCommand}" Content="{Binding Strings[edit.add]^}" />
 
           <TextBlock Classes="heading" Text="{Binding Strings[panel.cameras]^}" />
-          <ListBox ItemsSource="{Binding Draft.Cameras}" SelectedItem="{Binding SelectedCamera}"
-                   ItemTemplate="{StaticResource EntryTile}" Background="Transparent" BorderThickness="0" />
+          <ListBox Classes="editorEntries" ItemsSource="{Binding Draft.Cameras}" SelectedItem="{Binding SelectedCamera}"
+                   ItemTemplate="{StaticResource EntryTile}" />
           <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,4,0,16"
                   Command="{Binding AddCameraCommand}" Content="{Binding Strings[edit.add]^}" />
 
           <TextBlock Classes="heading" Text="{Binding Strings[panel.mixers]^}" />
-          <ListBox ItemsSource="{Binding Draft.Mixers}" SelectedItem="{Binding SelectedMixer}"
-                   ItemTemplate="{StaticResource EntryTile}" Background="Transparent" BorderThickness="0" />
+          <ListBox Classes="editorEntries" ItemsSource="{Binding Draft.Mixers}" SelectedItem="{Binding SelectedMixer}"
+                   ItemTemplate="{StaticResource EntryTile}" />
           <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,4,0,16"
                   Command="{Binding AddMixerCommand}" Content="{Binding Strings[edit.add]^}" />
         </StackPanel>
@@ -367,15 +404,17 @@
       <!-- Focusable, because this is where a key press reaches the selected interface. The panel
            fills whatever the list leaves, which a star column would not: it hands the panel its
            desired width and lets the pads run off the side of the window. -->
-      <Border Classes="surface" BorderThickness="0,1,1,1" CornerRadius="0,6,6,0">
+      <Border Classes="surface" Classes.editorSurface="{Binding IsEditing}">
       <Panel>
         <ContentControl Name="Stage" Focusable="True" IsVisible="{Binding !IsEditing}"
                         Content="{Binding SelectedInterface}"
                         ContentTemplate="{StaticResource InterfacePanel}" />
 
         <Panel IsVisible="{Binding IsEditing}">
-          <views:EntryEditorView DataContext="{Binding SelectedEntry}" />
-          <TextBlock Classes="detail" TextWrapping="Wrap" VerticalAlignment="Top"
+          <views:EntryEditorView DataContext="{Binding SelectedEntry}"
+                                 IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          <TextBlock TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Center"
+                     MaxWidth="360" FontSize="16" TextAlignment="Center"
                      IsVisible="{Binding SelectedEntry, Converter={x:Static ObjectConverters.IsNull}}"
                      Text="{Binding Strings[edit.nothingSelected]^}" />
         </Panel>

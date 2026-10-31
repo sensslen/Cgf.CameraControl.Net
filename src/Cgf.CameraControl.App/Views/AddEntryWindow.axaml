@@ -8,7 +8,7 @@
         mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="420"
         x:Class="Cgf.CameraControl.App.Views.AddEntryWindow"
         x:DataType="edit:NewEntry"
-        Width="520" Height="460"
+        Width="600" Height="540" MinWidth="540" MinHeight="400"
         Icon="/Assets/appicon.ico"
         Title="{Binding [edit.addTitle]^, Source={x:Static loc:Localizer.Current}}"
         FlowDirection="{Binding FlowDirection^, Source={x:Static loc:Localizer.Current}}"
@@ -18,15 +18,16 @@
 
     <!-- The type first, because it decides which fields there are to fill. Changing it starts the
          entry again rather than carrying values into a shape with no room for them. -->
-    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,16">
-      <TextBlock Width="180" Margin="0,0,12,0" VerticalAlignment="Center" Opacity="0.7" FontSize="12"
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="180,12,*" Margin="0,0,0,20">
+      <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" FontSize="13"
                  Text="{Binding [edit.type]^, Source={x:Static loc:Localizer.Current}}" />
-      <ComboBox Width="220" ItemsSource="{Binding Types}" SelectedItem="{Binding SelectedType}" />
-    </StackPanel>
+      <ComboBox Grid.Column="2" Width="280" ItemsSource="{Binding Types}" SelectedItem="{Binding SelectedType}"
+                AutomationProperties.Name="{Binding [edit.type]^, Source={x:Static loc:Localizer.Current}}" />
+    </Grid>
 
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
                 Margin="0,16,0,0" Spacing="8">
-      <Button Name="Accept" MinWidth="96" IsDefault="True" IsEnabled="{Binding CanAdd}"
+      <Button Name="Accept" Classes="accent" MinWidth="96" IsDefault="True" IsEnabled="{Binding CanAdd}"
               HorizontalContentAlignment="Center"
               Content="{Binding [edit.add]^, Source={x:Static loc:Localizer.Current}}" />
       <Button Name="Reject" MinWidth="96" HorizontalContentAlignment="Center"
