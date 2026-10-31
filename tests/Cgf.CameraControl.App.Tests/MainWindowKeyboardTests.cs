@@ -89,6 +89,7 @@ public class MainWindowKeyboardTests
         [Fact]
         public async Task MenuNavigationDoesNotDriveTheCamera()
         {
+            Assert.SkipWhen(OperatingSystem.IsMacOS(), "macOS hides the in-window menu in favour of the system menu bar.");
             await WithWindowAsync((window, _, _, device, _) =>
             {
                 var menu = Assert.Single(window.GetVisualDescendants().OfType<Menu>());
