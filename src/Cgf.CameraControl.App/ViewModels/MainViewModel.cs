@@ -233,9 +233,14 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     /// for saving the same way, and a save that does not land keeps the window open.
     public async Task<bool> CanCloseAsync()
     {
-        if (Draft is not { IsDirty: true } draft || AskToSave is not { } ask)
+        if (Draft is not { IsDirty: true } draft)
         {
             return true;
+        }
+
+        if (AskToSave is not { } ask)
+        {
+            return false;
         }
 
         return await ask(draft.CanSave, draft.Issues).ConfigureAwait(true) switch

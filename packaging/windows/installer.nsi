@@ -89,8 +89,8 @@ FunctionEnd
 ; empty, missing, or already holds this application. Anything else, D:\Tools say, would go with it.
 !macro ForeignFolder RESULT
   ${DirState} "$INSTDIR" ${RESULT}
-  ${If} ${RESULT} == 1
-  ${AndIf} ${FileExists} "$INSTDIR\${EXENAME}"
+  ${If} ${FileExists} "$INSTDIR\${EXENAME}"
+  ${OrIf} ${FileExists} "$INSTDIR\uninstall.exe"
     StrCpy ${RESULT} 0
   ${EndIf}
 !macroend

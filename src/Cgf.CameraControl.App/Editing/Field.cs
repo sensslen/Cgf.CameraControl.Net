@@ -337,7 +337,9 @@ public sealed partial class FractionField : Field
     public partial string Value { get; set; } = string.Empty;
 
     private double? Number =>
-        double.TryParse(Value, NumberStyles.Float, CultureInfo.CurrentUICulture, out var parsed) ? parsed : null;
+        double.TryParse(Value, NumberStyles.Float, CultureInfo.CurrentUICulture, out var parsed) && double.IsFinite(parsed)
+            ? parsed
+            : null;
 
     protected internal override void Validate() =>
         Error = Number switch

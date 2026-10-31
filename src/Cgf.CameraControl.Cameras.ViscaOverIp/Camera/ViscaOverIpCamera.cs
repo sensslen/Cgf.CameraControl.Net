@@ -12,6 +12,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection
     private readonly IViscaTransport _transport;
     private readonly ILogger _logger;
     private readonly Lock _gate = new();
+    private readonly TimeProvider _time;
     private readonly ITimer _expiry;
     private readonly List<ViscaCategory> _order = [];
     private readonly Dictionary<ViscaCategory, byte[]> _queued = [];
@@ -22,6 +23,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection
 
     private bool _connected;
     private Command? _inFlight;
+    private long _sentAt;
     private int _pan;
     private int _tilt;
 
@@ -34,8 +36,8 @@ public sealed class ViscaOverIpCamera : ICameraConnection
         _config = config;
         _transport = transport;
         _logger = logger;
-        _expiry = (time ?? TimeProvider.System)
-            .CreateTimer(_ => Expire(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        _time = time ?? TimeProvider.System;
+        _expiry = _time.CreateTimer(_ => Expire(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         _replies = transport.Received.Subscribe(OnReceived);
         _connection = transport.WhenConnectedChanged.Subscribe(OnConnectionChanged);
         transport.Start();
@@ -136,6 +138,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection
             packet = _queued[category];
             _queued.Remove(category);
             _inFlight = new Command(category, packet);
+            _sentAt = _time.GetTimestamp();
         }
 
         _expiry.Change(CommandTimeout, Timeout.InfiniteTimeSpan);
@@ -145,12 +148,18 @@ public sealed class ViscaOverIpCamera : ICameraConnection
     /// A command the camera took, or refused as one it cannot run, counts as sent. One that was lost
     /// or bounced off full buffers goes out again: the stick that asked for it is usually at rest by
     /// now, and nothing else will repeat a stop.
-    private Command? Release(bool resend)
+    private Command? Release(bool resend, bool expired = false)
     {
-        _expiry.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         Command? released;
         lock (_gate)
         {
+            // An expiry that fired just as an answer released its command must not take the next one.
+            if (expired && _time.GetElapsedTime(_sentAt) < CommandTimeout)
+            {
+                return null;
+            }
+
+            _expiry.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             released = _inFlight;
             _inFlight = null;
             if (released is { } command)
@@ -182,10 +191,15 @@ public sealed class ViscaOverIpCamera : ICameraConnection
         _queued[command.Category] = command.Packet;
     }
 
-    private void Expire() =>
-        _logger.Error(
-            "ViscaOverIpCamera",
-            $"({_config.Ip}) no answer to {Name(Release(resend: true)?.Category)} within {CommandTimeout.TotalSeconds:0} seconds");
+    private void Expire()
+    {
+        if (Release(resend: true, expired: true) is { } lost)
+        {
+            _logger.Error(
+                "ViscaOverIpCamera",
+                $"({_config.Ip}) no answer to {Name(lost.Category)} within {CommandTimeout.TotalSeconds:0} seconds");
+        }
+    }
 
     /// A refusal only says what went wrong, never which command it went wrong for, and the answer
     /// arrives after the request is gone. Naming the command here is the difference between a log

@@ -63,7 +63,7 @@ internal static class EntrySchema
                 new ChoiceField(entry, "tallyMode", "edit.mixerTallyMode", ["preview-program", "program", "none"], "preview-program",
                     optionLabelPrefix: "edit.mixerTally"),
             ],
-            "gamepad" => Gamepad(entry, pads),
+            "gamepad" => Gamepad(entry, pads, HidCapable(type)),
             "keyboard" =>
             [
                 new NumberField(entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
@@ -73,9 +73,9 @@ internal static class EntrySchema
             _ => [],
         };
 
-    private static IReadOnlyList<Field> Gamepad(JsonObject entry, IReadOnlyList<string> pads)
+    private static IReadOnlyList<Field> Gamepad(JsonObject entry, IReadOnlyList<string> pads, bool hidCapable)
     {
-        var backend = new ChoiceField(entry, "backend", "edit.gamepadBackend", ["sdl", "hid"], "sdl");
+        var backend = new ChoiceField(entry, "backend", "edit.gamepadBackend", hidCapable ? ["sdl", "hid"] : ["sdl"], "sdl");
         return
         [
             backend,
@@ -128,4 +128,9 @@ internal static class EntrySchema
         "logitech/f310" or "logitech/f710" or "logitech/rumblepad2" => "gamepad",
         var known => known,
     };
+
+    /// The HID decoder reads only the F310's reports, so the loader refuses `hid` on the other two.
+    private static bool HidCapable(string type) =>
+        !type.Equals("logitech/F710", StringComparison.OrdinalIgnoreCase) &&
+        !type.Equals("logitech/Rumblepad2", StringComparison.OrdinalIgnoreCase);
 }

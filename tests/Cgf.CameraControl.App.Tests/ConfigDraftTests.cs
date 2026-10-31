@@ -404,6 +404,8 @@ public class ConfigDraftTests
         [InlineData("controller.local", false)]
         [InlineData("ftp://controller.local", false)]
         [InlineData("http://controller.local:5000/hub", true)]
+        [InlineData("http://controller.local:5000/hub?token=1", false)]
+        [InlineData("http://controller.local:5000/hub#main", false)]
         public void AConnectionUrlHasToBeAnHttpAddress(string url, bool saves)
         {
             var draft = Draft($$"""
@@ -434,6 +436,29 @@ public class ConfigDraftTests
             draft.Interfaces[0].Fields.OfType<ChoiceField>().Single(field => field.Key == "backend").Value = "hid";
 
             Assert.True(draft.CanSave);
+        }
+
+        [Theory]
+        [InlineData("logitech/F710")]
+        [InlineData("logitech/Rumblepad2")]
+        public void OnlyTheF310OffersTheHidBackend(string type)
+        {
+            var draft = Draft(Desk.Replace("\"type\": \"gamepad\"", $"\"type\": \"{type}\", \"backend\": \"hid\""));
+
+            var backend = draft.Interfaces[0].Fields.OfType<ChoiceField>().Single(field => field.Key == "backend");
+            Assert.Equal(["sdl"], backend.Options);
+            Assert.Equal("hid", backend.Value);
+            Assert.False(draft.CanSave);
+        }
+
+        [Fact]
+        public void ADeadzoneThatIsNotFiniteBlocksTheSave()
+        {
+            var draft = Draft(Desk);
+
+            draft.Interfaces[0].Fields.OfType<FractionField>().Single(field => field.Key == "deadzone").Value = double.NaN.ToString(System.Globalization.CultureInfo.CurrentUICulture);
+
+            Assert.False(draft.CanSave);
         }
     }
 

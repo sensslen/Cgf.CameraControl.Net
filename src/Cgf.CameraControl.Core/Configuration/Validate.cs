@@ -28,8 +28,11 @@ public static class Validate
     public static string HttpUrl(string value, string path) =>
         IsHttpUrl(value) ? value : throw new ConfigValidationException(path, $"expected an http or https URL, found {value}");
 
+    /// SignalR appends its negotiate path to the raw string, which a query or fragment would swallow.
     public static bool IsHttpUrl(string? value) =>
-        Uri.TryCreate(value, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+        Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+        (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) &&
+        uri.Query.Length == 0 && uri.Fragment.Length == 0;
 
     /// z.array(...).min(count)
     public static IReadOnlyList<T> MinCount<T>(IReadOnlyList<T>? items, int count, string path) =>
