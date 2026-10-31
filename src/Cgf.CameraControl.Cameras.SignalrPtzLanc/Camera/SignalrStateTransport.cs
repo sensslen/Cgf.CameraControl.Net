@@ -24,6 +24,7 @@ public sealed class SignalrStateTransport : ISignalrStateTransport
     private readonly BehaviorSubject<bool> _connected = new(false);
     private readonly CancellationTokenSource _stopping = new();
 
+    private readonly object _loopGate = new();
     private Task? _loop;
 
     public SignalrStateTransport(string url, string port, ILogger logger)
@@ -51,13 +52,7 @@ public sealed class SignalrStateTransport : ISignalrStateTransport
         _hub.Closed += _ =>
         {
             Report(connected: false);
-            var stopping = _stopping.Token;
-            if (!stopping.IsCancellationRequested)
-            {
-                Log("connection closed - reconnecting");
-                _loop = Task.Run(() => ConnectAsync(stopping));
-            }
-
+            Restart();
             return Task.CompletedTask;
         };
 
@@ -79,19 +74,31 @@ public sealed class SignalrStateTransport : ISignalrStateTransport
     public static void ConfigurePayload(JsonSerializerOptions options) =>
         options.TypeInfoResolverChain.Insert(0, SignalrPtzLancCameraStateContext.Default);
 
-    public void Start() => _loop ??= Task.Run(() => ConnectAsync(_stopping.Token));
+    public void Start()
+    {
+        lock (_loopGate)
+        {
+            _loop ??= Task.Run(() => ConnectAsync(_stopping.Token));
+        }
+    }
 
     public async Task<bool> SetStateAsync(SignalrPtzLancCameraState state, CancellationToken cancellationToken) =>
         await _hub.InvokeAsync<bool>("SetState", state, cancellationToken).ConfigureAwait(false);
 
     public async ValueTask DisposeAsync()
     {
-        await _stopping.CancelAsync().ConfigureAwait(false);
-        if (_loop is not null)
+        Task? loop;
+        lock (_loopGate)
+        {
+            _stopping.Cancel();
+            loop = _loop;
+        }
+
+        if (loop is not null)
         {
             try
             {
-                await _loop.ConfigureAwait(false);
+                await loop.ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -112,6 +119,35 @@ public sealed class SignalrStateTransport : ISignalrStateTransport
     {
         ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
     };
+
+    /// The loop that ended is chained in rather than replaced, so dispose still waits for both.
+    private void Restart()
+    {
+        lock (_loopGate)
+        {
+            if (_stopping.IsCancellationRequested)
+            {
+                return;
+            }
+
+            Log("connection closed - reconnecting");
+            var previous = _loop ?? Task.CompletedTask;
+            var stopping = _stopping.Token;
+            _loop = Task.Run(async () =>
+            {
+                try
+                {
+                    await previous.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // The previous attempt was stopped; this one starts over regardless.
+                }
+
+                await ConnectAsync(stopping).ConfigureAwait(false);
+            });
+        }
+    }
 
     private async Task ConnectAsync(CancellationToken cancellationToken)
     {

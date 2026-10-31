@@ -482,6 +482,30 @@ public class GamepadTests
 
             _mixer.Received(1).ToggleKey(1);
         }
+
+        // A function still waiting on the switcher is told to stop, and the pad is not torn down
+        // under it until it has.
+        [Fact]
+        public async Task DisposingWaitsForASpecialFunctionStillRunning()
+        {
+            var answer = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var asked = CancellationToken.None;
+            _mixer.IsKeySetAsync(0, Arg.Any<CancellationToken>()).Returns(call =>
+            {
+                asked = call.Arg<CancellationToken>();
+                return answer.Task;
+            });
+            var pad = Build();
+            _device.PressFace(ButtonDirection.Up);
+
+            var disposing = pad.DisposeAsync().AsTask();
+
+            Assert.True(asked.IsCancellationRequested);
+            Assert.False(disposing.IsCompleted);
+            answer.SetResult(false);
+            await disposing;
+            _mixer.Received(1).RunMacro(23);
+        }
     }
 
     public class Transitions : GamepadTests
@@ -657,6 +681,12 @@ public class GamepadTests
                 {
                     ["iso"] = new KeySpecialFunctionConfiguration { Index = 1 },
                     ["lower"] = new KeySpecialFunctionConfiguration { Index = 9 },
+                    ["toggle"] = new MacroToggleSpecialFunctionConfiguration
+                    {
+                        IndexOn = 23,
+                        IndexOff = 24,
+                        Condition = new KeyConditionConfiguration { Key = 0 },
+                    },
                 },
             },
             _device,
@@ -665,7 +695,11 @@ public class GamepadTests
             _logger,
             new PadBindings
             {
-                Default = new Dictionary<ButtonDirection, string> { [ButtonDirection.Down] = "iso" },
+                Default = new Dictionary<ButtonDirection, string>
+                {
+                    [ButtonDirection.Down] = "iso",
+                    [ButtonDirection.Up] = "toggle",
+                },
                 Alt = new Dictionary<ButtonDirection, string> { [ButtonDirection.Down] = "lower" },
             });
     }

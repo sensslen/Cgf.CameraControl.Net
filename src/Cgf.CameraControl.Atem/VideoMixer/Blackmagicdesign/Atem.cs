@@ -65,12 +65,10 @@ public sealed class Atem : IVideoMixer
 
     public void RunMacro(int macro)
     {
-        if (!_connection.Connected)
+        if (_connection.Connected)
         {
-            return;
+            _connection.RunMacro(macro);
         }
-
-        _ = _connection.RunMacroAsync(macro);
     }
 
     public async Task<bool> IsKeySetAsync(int key, CancellationToken cancellationToken)
@@ -103,7 +101,7 @@ public sealed class Atem : IVideoMixer
             return;
         }
 
-        _ = _connection.SendAsync(command);
+        _connection.Send(command);
     }
 
     private void UpdateActiveInputs()

@@ -16,6 +16,7 @@ public partial class App : Application
     private MainViewModel? _model;
     private Task _startup = Task.CompletedTask;
     private Task? _closing;
+    private Task? _release;
     private bool _released;
 
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
@@ -53,7 +54,7 @@ public partial class App : Application
             // With nothing to run, the window would be a menu over an empty panel. Edit mode is what
             // it is for: the configuration that does not exist yet is made here.
             var startup = AppEnvironment.ConfigFile?.FullName ?? settings.ConfigPath;
-            _startup = startup is not null ? _model.LoadAsync(startup) : _model.BeginEditingAsync();
+            _startup = ObserveAsync("startup", startup is not null ? _model.LoadAsync(startup) : _model.BeginEditingAsync());
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -70,7 +71,20 @@ public partial class App : Application
         }
 
         e.Cancel = true;
-        _closing ??= CloseAsync(window);
+        _closing ??= ObserveAsync("closing", CloseAsync(window));
+    }
+
+    /// An event handler cannot await what it starts, so whatever it starts reports its own failure.
+    private async Task ObserveAsync(string what, Task task)
+    {
+        try
+        {
+            await task.ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            _host?.Logger.Error("Application", $"{what} failed: {ex.Message}");
+        }
     }
 
     private async Task CloseAsync(Window window)
@@ -82,15 +96,7 @@ public partial class App : Application
                 return;
             }
 
-            try
-            {
-                await _startup.ConfigureAwait(true);
-            }
-            catch (Exception ex)
-            {
-                _host?.Logger.Error("Application", $"startup failed: {ex.Message}");
-            }
-
+            await _startup.ConfigureAwait(true);
             await ReleaseAsync().ConfigureAwait(true);
             _released = true;
             window.Close();
@@ -101,7 +107,10 @@ public partial class App : Application
         }
     }
 
-    private async Task ReleaseAsync()
+    /// Once, whichever of the close or a forced exit gets here first, and both wait for that one.
+    private Task ReleaseAsync() => _release ??= ReleaseOnceAsync();
+
+    private async Task ReleaseOnceAsync()
     {
         _model?.Dispose();
         _model = null;

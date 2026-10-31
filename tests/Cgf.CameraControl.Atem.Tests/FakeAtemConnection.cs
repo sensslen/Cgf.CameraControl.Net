@@ -47,15 +47,7 @@ public sealed class FakeAtemConnection : IAtemConnection, IAtemConnectionFactory
 
     public Task StartupAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    public Task RunMacroAsync(int macro)
-    {
-        MacrosRun.Add(macro);
-        return Task.CompletedTask;
-    }
+    public void RunMacro(int macro) => MacrosRun.Add(macro);
 
-    public Task SendAsync(SerializedCommand command)
-    {
-        Sent.Add(command);
-        return Task.CompletedTask;
-    }
+    public void Send(SerializedCommand command) => Sent.Add(command);
 }

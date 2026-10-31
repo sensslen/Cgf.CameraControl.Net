@@ -1,5 +1,6 @@
 using System.Reactive;
 using System.Reactive.Subjects;
+using System.Threading.Channels;
 using AtemSharp;
 using AtemSharp.Commands;
 using AtemSharp.DependencyInjection;
@@ -31,11 +32,13 @@ public interface IAtemConnection
 
     IObservable<Unit> WhenStateChanged { get; }
 
-    Task RunMacroAsync(int macro);
+    /// Queued rather than awaited: the pad thread that asks must not wait on the switcher's ack, and
+    /// the queue is drained by a sender the connection awaits when it is disposed.
+    void RunMacro(int macro);
 
     Task StartupAsync(CancellationToken cancellationToken);
 
-    Task SendAsync(SerializedCommand command);
+    void Send(SerializedCommand command);
 }
 
 internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
@@ -51,6 +54,8 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
     private readonly Lock _stateLock = new();
     private readonly BehaviorSubject<bool> _connected = new(false);
     private readonly Subject<Unit> _stateChanged = new();
+    private readonly Channel<Outbound> _outbound = Channel.CreateUnbounded<Outbound>(new() { SingleReader = true });
+    private readonly Task _sending;
     private volatile IAtemSwitcher? _switcher;
     private Task? _startup;
     private bool _initialized;
@@ -62,6 +67,7 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
         _services = services;
         // InitCompleteCommand is internal to AtemSharp, but the parser exposes its protocol identity.
         _initCompleteType = services.CreateCommandParser().ParseCommand("InCm", [])?.GetType();
+        _sending = Task.Run(() => SendQueuedAsync(_stopping.Token));
     }
 
     private AtemState State { get; set; } = new();
@@ -82,20 +88,9 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
 
     /// Running a macro needs a Macro instance carrying the right id, and Macro.Id has an internal
     /// setter, so the switcher's own macro system is the only way to reach one.
-    public async Task RunMacroAsync(int macro)
-    {
-        try
-        {
-            if (Connected && _switcher?.Macros.FirstOrDefault(m => m.Id == macro) is { } found)
-            {
-                await found.Run().ConfigureAwait(false);
-            }
-        }
-        catch (Exception ex)
-        {
-            Error($"running macro {macro} failed - {ex.Message}");
-        }
-    }
+    public void RunMacro(int macro) => _outbound.Writer.TryWrite(new Outbound(
+        $"running macro {macro}",
+        switcher => switcher.Macros.FirstOrDefault(m => m.Id == macro)?.Run() ?? Task.CompletedTask));
 
     public Task StartupAsync(CancellationToken cancellationToken)
     {
@@ -107,21 +102,11 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
         return Task.CompletedTask;
     }
 
-    public async Task SendAsync(SerializedCommand command)
-    {
-        try
-        {
-            if (Connected && _switcher is { } switcher)
-            {
-                await switcher.SendCommandAsync(command).ConfigureAwait(false);
-            }
-        }
-        catch (Exception ex)
-        {
-            Error($"sending {command.GetType().Name} failed - {ex.Message}");
-        }
-    }
+    public void Send(SerializedCommand command) => _outbound.Writer.TryWrite(new Outbound(
+        $"sending {command.GetType().Name}",
+        switcher => switcher.SendCommandAsync(command)));
 
+    /// The startup loop goes first: disposing the switcher cancels the ack a queued send waits on.
     public async ValueTask DisposeAsync()
     {
         await _stopping.CancelAsync().ConfigureAwait(false);
@@ -129,6 +114,9 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
         {
             await _startup.ConfigureAwait(false);
         }
+
+        _outbound.Writer.TryComplete();
+        await _sending.ConfigureAwait(false);
 
         Report(false);
         _stopping.Dispose();
@@ -183,6 +171,33 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
             {
                 return;
             }
+        }
+    }
+
+    private async Task SendQueuedAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var outbound in _outbound.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (!Connected || _switcher is not { } switcher)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    await outbound.Run(switcher).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Error($"{outbound.Description} failed - {ex.Message}");
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Expected while shutting down: what is still queued has no switcher to go to.
         }
     }
 
@@ -242,6 +257,8 @@ internal sealed class AtemConnection : IAtemConnection, IAsyncDisposable
     private void Log(string message) => _logger.Log("Atem", $"({_ip}) {message}");
 
     private void Error(string message) => _logger.Error("Atem", $"({_ip}) {message}");
+
+    private sealed record Outbound(string Description, Func<IAtemSwitcher, Task> Run);
 }
 
 /// One connection per switcher address, shared by every mix effect block configured against it.
