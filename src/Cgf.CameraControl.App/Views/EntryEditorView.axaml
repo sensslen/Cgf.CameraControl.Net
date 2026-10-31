@@ -4,150 +4,179 @@
              xmlns:loc="using:Cgf.CameraControl.App.Localization"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="400"
+             mc:Ignorable="d" d:DesignWidth="620" d:DesignHeight="460"
              x:Class="Cgf.CameraControl.App.Views.EntryEditorView"
              x:DataType="edit:EntryDraft">
 
+  <UserControl.Resources>
+    <GridLength x:Key="SliderPreContentMargin">0</GridLength>
+    <GridLength x:Key="SliderPostContentMargin">0</GridLength>
+  </UserControl.Resources>
+
   <UserControl.Styles>
+    <Style Selector="Slider:horizontal /template/ Track#PART_Track">
+      <Setter Property="MinHeight" Value="{DynamicResource SliderHorizontalHeight}" />
+    </Style>
+    <Style Selector="Grid.field">
+      <Setter Property="Margin" Value="0,0,0,14" />
+    </Style>
     <Style Selector="TextBlock.caption">
-      <Setter Property="Opacity" Value="0.7" />
-      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontSize" Value="13" />
       <Setter Property="VerticalAlignment" Value="Center" />
-      <Setter Property="Width" Value="180" />
       <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="Margin" Value="0,0,12,0" />
     </Style>
     <Style Selector="TextBlock.wrong">
-      <Setter Property="Foreground" Value="#E74C3C" />
-      <Setter Property="FontSize" Value="11" />
-      <Setter Property="Margin" Value="192,2,0,0" />
+      <Setter Property="Foreground" Value="{DynamicResource SystemControlErrorTextForegroundBrush}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Margin" Value="0,4,0,0" />
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
-    <Style Selector="TextBox.value">
-      <Setter Property="Width" Value="220" />
+    <Style Selector="TextBox.value, AutoCompleteBox.value, ComboBox.value">
+      <Setter Property="Width" Value="280" />
       <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.remove">
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="AutomationProperties.Name" Value="{Binding [edit.delete]^, Source={x:Static loc:Localizer.Current}}" />
+      <Setter Property="ToolTip.Tip" Value="{Binding [edit.delete]^, Source={x:Static loc:Localizer.Current}}" />
     </Style>
   </UserControl.Styles>
 
-  <!-- One template per kind of field rather than one per configuration type: the types differ in
-       which fields they carry, not in how a number or a switch is edited. -->
   <UserControl.DataTemplates>
-
     <DataTemplate DataType="edit:TextField">
-      <StackPanel Margin="0,0,0,10">
-        <StackPanel Orientation="Horizontal">
-          <TextBlock Classes="caption" Text="{Binding Caption^}" />
-          <!-- A picker where something can be offered, a box where nothing can. Both take anything
-               typed, because a desk is often built away from the hardware it will drive. -->
-          <TextBox Classes="value" Text="{Binding Value}" PlaceholderText="{Binding Hint^}"
-                   IsVisible="{Binding !HasSuggestions}" />
-          <AutoCompleteBox Classes="value" Text="{Binding Value}" PlaceholderText="{Binding Hint^}"
-                           IsVisible="{Binding HasSuggestions}"
-                           ItemsSource="{Binding Suggestions}" MinimumPrefixLength="0"
-                           FilterMode="Contains" IsTextCompletionEnabled="False" />
-        </StackPanel>
-        <TextBlock Classes="wrong" Text="{Binding Error}"
+      <Grid Classes="field" ColumnDefinitions="180,12,*" RowDefinitions="Auto,Auto">
+        <TextBlock Classes="caption" Text="{Binding Caption^}" />
+        <TextBox Grid.Column="2" Classes="value" Text="{Binding Value}" PlaceholderText="{Binding Hint^}"
+                 AutomationProperties.Name="{Binding Caption^}" IsVisible="{Binding !HasSuggestions}" />
+        <AutoCompleteBox Grid.Column="2" Classes="value" Text="{Binding Value}" PlaceholderText="{Binding Hint^}"
+                         AutomationProperties.Name="{Binding Caption^}" IsVisible="{Binding HasSuggestions}"
+                         ItemsSource="{Binding Suggestions}" MinimumPrefixLength="0"
+                         FilterMode="Contains" IsTextCompletionEnabled="False" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Classes="wrong" Text="{Binding Error}"
+                   AutomationProperties.LiveSetting="Polite"
                    IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
-      </StackPanel>
+      </Grid>
     </DataTemplate>
 
     <DataTemplate DataType="edit:NumberField">
-      <StackPanel Margin="0,0,0,10">
-        <StackPanel Orientation="Horizontal">
-          <TextBlock Classes="caption" Text="{Binding Caption^}" />
-          <TextBox Classes="value" Width="120" Text="{Binding Value}" PlaceholderText="{Binding Hint^}" />
-        </StackPanel>
-        <TextBlock Classes="wrong" Text="{Binding Error}"
+      <Grid Classes="field" ColumnDefinitions="180,12,*" RowDefinitions="Auto,Auto">
+        <TextBlock Classes="caption" Text="{Binding Caption^}" />
+        <TextBox Grid.Column="2" Width="120" HorizontalAlignment="Left"
+                 Text="{Binding Value}" PlaceholderText="{Binding Hint^}" AutomationProperties.Name="{Binding Caption^}" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Classes="wrong" Text="{Binding Error}"
+                   AutomationProperties.LiveSetting="Polite"
                    IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
-      </StackPanel>
+      </Grid>
     </DataTemplate>
 
     <DataTemplate DataType="edit:FractionField">
-      <StackPanel Margin="0,0,0,10">
-        <StackPanel Orientation="Horizontal">
-          <TextBlock Classes="caption" Text="{Binding Caption^}" />
-          <TextBox Classes="value" Width="120" Text="{Binding Value}" />
-        </StackPanel>
-        <TextBlock Classes="wrong" Text="{Binding Error}"
+      <Grid Classes="field" ColumnDefinitions="180,12,*" RowDefinitions="Auto,Auto">
+        <TextBlock Classes="caption" Text="{Binding Caption^}" />
+        <TextBox Grid.Column="2" Width="120" HorizontalAlignment="Left"
+                 Text="{Binding Value}" AutomationProperties.Name="{Binding Caption^}" />
+        <TextBlock Grid.Row="1" Grid.Column="2" Classes="wrong" Text="{Binding Error}"
+                   AutomationProperties.LiveSetting="Polite"
                    IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
-      </StackPanel>
+      </Grid>
     </DataTemplate>
 
     <DataTemplate DataType="edit:PercentField">
-      <StackPanel Margin="0,0,0,10">
-        <StackPanel Orientation="Horizontal">
-          <TextBlock Classes="caption" Text="{Binding Caption^}" />
-          <Slider Width="140" Minimum="1" Maximum="100" TickFrequency="1"
+      <Grid Classes="field" ColumnDefinitions="180,12,*" RowDefinitions="Auto,Auto">
+        <TextBlock Classes="caption" Text="{Binding Caption^}" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <Slider Width="160" Minimum="1" Maximum="100" TickFrequency="1"
                   IsSnapToTickEnabled="True" Value="{Binding SliderValue, Mode=TwoWay}"
-                  VerticalAlignment="Center" />
-          <TextBox Width="64" Margin="8,0,0,0" Text="{Binding Value}" />
-          <TextBlock Text="%" Margin="4,0,0,0" VerticalAlignment="Center" />
+                  AutomationProperties.Name="{Binding Caption^}" VerticalAlignment="Center" />
+          <TextBox Width="64" Text="{Binding Value}" AutomationProperties.Name="{Binding Caption^}" />
+          <TextBlock Text="%" VerticalAlignment="Center" />
         </StackPanel>
-        <TextBlock Classes="wrong" Text="{Binding Error}"
+        <TextBlock Grid.Row="1" Grid.Column="2" Classes="wrong" Text="{Binding Error}"
+                   AutomationProperties.LiveSetting="Polite"
                    IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
-      </StackPanel>
+      </Grid>
     </DataTemplate>
 
     <DataTemplate DataType="edit:SwitchField">
-      <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+      <Grid Classes="field" ColumnDefinitions="180,12,*">
         <TextBlock Classes="caption" Text="{Binding Caption^}" />
-        <CheckBox IsChecked="{Binding Value}" VerticalAlignment="Center" />
-      </StackPanel>
+        <CheckBox Grid.Column="2" IsChecked="{Binding Value}" VerticalAlignment="Center"
+                  AutomationProperties.Name="{Binding Caption^}" />
+      </Grid>
     </DataTemplate>
 
     <DataTemplate DataType="edit:ChoiceField">
-      <StackPanel Margin="0,0,0,10">
-        <StackPanel Orientation="Horizontal">
-          <TextBlock Classes="caption" Text="{Binding Caption^}" />
-          <ComboBox Width="220" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedOption}">
-            <ComboBox.ItemTemplate>
-              <DataTemplate x:DataType="edit:ChoiceOption">
-                <TextBlock Text="{Binding Caption^}" />
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-        </StackPanel>
-        <TextBlock Classes="wrong" Text="{Binding Error}"
+      <Grid Classes="field" ColumnDefinitions="180,12,*" RowDefinitions="Auto,Auto">
+        <TextBlock Classes="caption" Text="{Binding Caption^}" />
+        <ComboBox Grid.Column="2" Classes="value" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedOption}"
+                  AutomationProperties.Name="{Binding Caption^}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="edit:ChoiceOption">
+              <TextBlock Text="{Binding Caption^}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Grid.Row="1" Grid.Column="2" Classes="wrong" Text="{Binding Error}"
+                   AutomationProperties.LiveSetting="Polite"
                    IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
-      </StackPanel>
+      </Grid>
     </DataTemplate>
 
-    <!-- Rows rather than a text box: what is being edited is a list of pairs, and a JSON object typed
-         by hand is a syntax error reported against the whole entry. -->
     <DataTemplate DataType="edit:MapField">
-      <StackPanel Margin="0,0,0,10">
-        <TextBlock Classes="caption" Width="NaN" Text="{Binding Caption^}" Margin="0,0,0,6" />
-        <Grid ColumnDefinitions="120,12,120" Margin="0,0,0,4">
-          <TextBlock Grid.Column="0" Classes="caption" Width="NaN" Text="{Binding LeftCaption^}" />
-          <TextBlock Grid.Column="2" Classes="caption" Width="NaN" Text="{Binding RightCaption^}" />
+      <StackPanel Margin="0,8,0,14" Spacing="6">
+        <TextBlock Classes="caption" FontWeight="SemiBold" Text="{Binding Caption^}" />
+        <Grid ColumnDefinitions="120,8,120,8,Auto">
+          <TextBlock Classes="caption" Text="{Binding LeftCaption^}" />
+          <TextBlock Grid.Column="2" Classes="caption" Text="{Binding RightCaption^}" />
         </Grid>
         <ItemsControl ItemsSource="{Binding Rows}">
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="edit:MapRow">
-              <Grid ColumnDefinitions="120,12,120,8,Auto" Margin="0,0,0,4">
-                <TextBox Grid.Column="0" Text="{Binding Key}" />
-                <TextBox Grid.Column="2" Text="{Binding Value}" />
-                <Button Grid.Column="4" Content="&#x2715;" Padding="8,2"
+              <Grid ColumnDefinitions="120,8,120,8,Auto" Margin="0,0,0,6">
+                <TextBox Text="{Binding Key}">
+                  <AutomationProperties.Name>
+                    <MultiBinding StringFormat="{}{0} {1}">
+                      <Binding Path="$parent[ItemsControl].((edit:MapField)DataContext).LeftCaption^" />
+                      <Binding Path="Position" />
+                    </MultiBinding>
+                  </AutomationProperties.Name>
+                </TextBox>
+                <TextBox Grid.Column="2" Text="{Binding Value}">
+                  <AutomationProperties.Name>
+                    <MultiBinding StringFormat="{}{0} {1}">
+                      <Binding Path="$parent[ItemsControl].((edit:MapField)DataContext).RightCaption^" />
+                      <Binding Path="Position" />
+                    </MultiBinding>
+                  </AutomationProperties.Name>
+                </TextBox>
+                <Button Grid.Column="4" Classes="remove" Content="&#x2715;"
                         Command="{Binding $parent[ItemsControl].((edit:MapField)DataContext).RemoveRowCommand}"
                         CommandParameter="{Binding}" />
               </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Button HorizontalAlignment="Left" Margin="0,4,0,0" Command="{Binding AddRowCommand}"
+        <Button HorizontalAlignment="Left" Command="{Binding AddRowCommand}"
                 Content="{Binding [edit.add]^, Source={x:Static loc:Localizer.Current}}" />
-        <TextBlock Classes="wrong" Margin="0,4,0,0" Text="{Binding Error}"
+        <TextBlock Classes="wrong" Text="{Binding Error}" AutomationProperties.LiveSetting="Polite"
                    IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
     </DataTemplate>
-
   </UserControl.DataTemplates>
 
-  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-    <StackPanel Margin="0,0,8,0">
-      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Margin="0,0,0,12" />
-      <ItemsControl ItemsSource="{Binding Fields}" />
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,20" Spacing="6">
+      <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
+      <TextBlock Classes="wrong" Text="{Binding Problem}" AutomationProperties.LiveSetting="Polite"
+                 IsVisible="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}" />
     </StackPanel>
-  </ScrollViewer>
-
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <ItemsControl Margin="0,0,12,0" ItemsSource="{Binding Fields}" />
+    </ScrollViewer>
+  </DockPanel>
 </UserControl>

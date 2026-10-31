@@ -8,22 +8,7 @@
 
     <Application.Styles>
         <FluentTheme />
-        <Style Selector="Button">
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
-        </Style>
-        <Style Selector="CheckBox">
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
-        </Style>
-        <Style Selector="ComboBox">
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
-        </Style>
-        <Style Selector="AutoCompleteBox">
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
-        </Style>
-        <Style Selector="TextBox">
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
-        </Style>
-        <Style Selector="ListBox">
+        <Style Selector="Button, CheckBox, ComboBox, AutoCompleteBox, TextBox, ListBox, Expander">
             <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
         </Style>
         <Style Selector="Menu">
@@ -34,9 +19,6 @@
              the presenter's padding and every separator showing through in a different colour. -->
         <Style Selector="MenuFlyoutPresenter">
             <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
-        </Style>
-        <Style Selector="Expander">
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
         </Style>
         <Style Selector="GridSplitter">
             <Setter Property="Background" Value="Transparent" />

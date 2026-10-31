@@ -114,7 +114,9 @@ Section "Install"
   File /r /x "*.pdb" /x "*.dbg" "${SOURCE}\*.*"
 
   CreateDirectory "$SMPROGRAMS\${APPNAME}"
-  CreateShortcut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk" "$INSTDIR\${EXENAME}"
+  CreateShortcut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk" "$INSTDIR\${EXENAME}" "" "$INSTDIR\${EXENAME}" 0
+  System::Call 'shell32::SHChangeNotify(i 0x00002000, i 0x0005, w "$INSTDIR\${EXENAME}", p 0)'
+  System::Call 'shell32::SHChangeNotify(i 0x00002000, i 0x0005, w "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk", p 0)'
 
   WriteRegStr HKLM "Software\CgfCameraControl" "InstallDir" "$INSTDIR"
   WriteUninstaller "$INSTDIR\uninstall.exe"
@@ -122,7 +124,7 @@ Section "Install"
   WriteRegStr HKLM "${UNINSTKEY}" "DisplayName" "${APPNAME}"
   WriteRegStr HKLM "${UNINSTKEY}" "DisplayVersion" "${VERSION}"
   WriteRegStr HKLM "${UNINSTKEY}" "Publisher" "${PUBLISHER}"
-  WriteRegStr HKLM "${UNINSTKEY}" "DisplayIcon" "$INSTDIR\${EXENAME}"
+  WriteRegStr HKLM "${UNINSTKEY}" "DisplayIcon" '$\"$INSTDIR\${EXENAME}$\",0'
   WriteRegStr HKLM "${UNINSTKEY}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKLM "${UNINSTKEY}" "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
   WriteRegStr HKLM "${UNINSTKEY}" "QuietUninstallString" "$\"$INSTDIR\uninstall.exe$\" /S"

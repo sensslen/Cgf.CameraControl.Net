@@ -141,6 +141,14 @@ jobs:
           & $nsis @switches packaging/windows/installer.nsi
           if (-not (Test-Path $out)) { throw "makensis produced no installer" }
 
+      - name: Verify executable and installer icons (Windows)
+        if: startsWith(matrix.rid, 'win-')
+        shell: pwsh
+        run: >
+          python packaging/icon/verify.py
+          --windows-exe publish/CgfCameraControl.exe
+          --windows-exe artifacts/CameraControl-${{ needs.version.outputs.full }}-${{ matrix.rid }}-setup.exe
+
       - name: Sign (Windows)
         if: ${{ startsWith(matrix.rid, 'win-') && env.WINDOWS_CERTIFICATE_BASE64 != '' }}
         env:

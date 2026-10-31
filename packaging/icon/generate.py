@@ -265,7 +265,9 @@ def main():
     for ico in [os.path.join(assets, "appicon.ico"), os.path.join(HERE, "installer.ico")]:
         images[256].save(ico, sizes=[(s, s) for s in ICO_SIZES],
                          append_images=[images[s] for s in ICO_SIZES if s != 256])
-    images[512].save(os.path.join(assets, "appicon.png"))
+    caption = draw(64, points=16)
+    caption.save(os.path.join(HERE, "appicon-caption.png"))
+    caption.save(os.path.join(assets, "appicon.png"))
     icns = os.path.join(HERE, "AppIcon.icns")
     write_icns(icns)
 
@@ -276,7 +278,8 @@ def main():
             assert check.getimage((size, size, 1)).tobytes() == draw(size, margin=MAC_MARGIN).tobytes(), \
                 f"the {size} point element decodes wrongly"
 
-    print(f"wrote icon.svg, {len(RASTERS)} rasters, appicon.ico, installer.ico, appicon.png and AppIcon.icns")
+    print(f"wrote icon.svg, {len(RASTERS)} rasters, appicon.ico, installer.ico, "
+          "appicon-caption.png, appicon.png and AppIcon.icns")
 
 
 if __name__ == "__main__":
