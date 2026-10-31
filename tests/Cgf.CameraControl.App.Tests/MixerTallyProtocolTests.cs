@@ -1,5 +1,6 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 using Cgf.CameraControl.Core.CameraConnection;
 using Cgf.CameraControl.Core.Configuration;
@@ -69,6 +70,74 @@ public class MixerTallyProtocolTests
             mixer.Cut();
             Assert.Equal(ViscaTally.Payload(protocol, mode == "preview-program" ? TallyState.Preview : TallyState.Off),
                 tallies[^1]);
+        }
+    }
+
+    public class CombinedViscaSignals
+    {
+        [Theory]
+        [InlineData(ViscaTallyMode.Avonic)]
+        [InlineData(ViscaTallyMode.PtzOptics)]
+        public async Task CameraProtocolAndDisplayedTallyFollowTheCombinedMixerState(ViscaTallyMode protocol)
+        {
+            var logger = Substitute.For<ILogger>();
+            using var replies = new Subject<byte[]>();
+            var transport = Substitute.For<IViscaTransport>();
+            transport.WhenConnectedChanged.Returns(Observable.Return(true));
+            transport.Received.Returns(replies);
+            var tallies = new List<byte[]>();
+            transport.When(t => t.Send(Arg.Any<byte[]>())).Do(call =>
+            {
+                var packet = call.Arg<byte[]>();
+                if (Enum.GetValues<TallyState>().Any(state =>
+                    packet.SequenceEqual(ViscaTally.Payload(protocol, state) ?? [])))
+                {
+                    tallies.Add(packet);
+                }
+
+                replies.OnNext([0x90, 0x51, 0xFF]);
+            });
+            await using var camera = new ObservedCamera(new ViscaOverIpCamera(
+                new ViscaOverIpCameraConfiguration { Ip = "127.0.0.1", TallyMode = protocol }, transport, logger));
+            var displayed = TallyState.Off;
+            using var display = camera.WhenTallyChanged.Subscribe(state => displayed = state);
+            await using var firstMixer = new Passthrough(logger);
+            await using var secondMixer = new Passthrough(logger);
+            await using var first = Interface(1, firstMixer);
+            await using var second = Interface(2, secondMixer);
+
+            firstMixer.ChangeInput(1);
+            firstMixer.Cut();
+            Assert.Equal(ViscaTally.Payload(protocol, TallyState.Program), tallies[^1]);
+            secondMixer.ChangeInput(1);
+            Assert.Equal(TallyState.Program, displayed);
+            Assert.Equal(ViscaTally.Payload(protocol, TallyState.Program), tallies[^1]);
+
+            firstMixer.ChangeInput(9);
+            firstMixer.Cut();
+            Assert.Equal(TallyState.Preview, displayed);
+            Assert.Equal(ViscaTally.Payload(protocol, TallyState.Preview), tallies[^1]);
+
+            firstMixer.ChangeInput(9);
+            secondMixer.ChangeInput(9);
+            Assert.Equal(TallyState.Off, displayed);
+            Assert.Equal(ViscaTally.Payload(protocol, TallyState.Off), tallies[^1]);
+
+            Gamepad Interface(int instance, IVideoMixer mixer) =>
+                new(
+                    new KeyboardConfiguration
+                    {
+                        VideoMixer = instance,
+                        CameraMap = new Dictionary<int, int> { [1] = 1 },
+                        ConnectionChange = new DirectConnectionChangeConfiguration
+                        {
+                            Default = new Dictionary<ButtonDirection, int>(),
+                        },
+                    },
+                    new ControlSurfaceDevice(instance),
+                    mixer,
+                    _ => camera,
+                    logger);
         }
     }
 }

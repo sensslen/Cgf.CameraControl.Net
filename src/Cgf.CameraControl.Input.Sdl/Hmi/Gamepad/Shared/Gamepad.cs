@@ -1,5 +1,6 @@
 ﻿using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
 using Cgf.CameraControl.Core.CameraConnection;
 using Cgf.CameraControl.Core.Hmi;
 using Cgf.CameraControl.Core.Logger;
@@ -11,6 +12,8 @@ namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 
 public sealed class Gamepad : IHmi
 {
+    private static readonly ConditionalWeakTable<ICameraConnection, Dictionary<Gamepad, TallyState>> CameraTallies = new();
+
     // Long enough to feel through a thumb resting on the pad, short enough not to blur into the next
     // one when an operator works a fast sequence of cuts.
     private static readonly TimeSpan TransitionPulse = TimeSpan.FromMilliseconds(120);
@@ -101,7 +104,7 @@ public sealed class Gamepad : IHmi
 
         _subscriptions.Add(device.TransitionRequested.Subscribe(RunTransition));
         _subscriptions.Add(mixer.WhenPreviewChanged.Synchronize(_steeringGate).Subscribe(OnMixerPreviewChanged));
-        _subscriptions.Add(mixer.WhenProgramChanged.Subscribe(OnMixerProgramChanged));
+        _subscriptions.Add(mixer.WhenProgramChanged.Synchronize(_steeringGate).Subscribe(OnMixerProgramChanged));
         _subscriptions.Add(mixer.WhenConnectedChanged.DistinctUntilChanged().Subscribe(OnMixerConnectionChanged));
 
         foreach (var camera in _cameras.Values.Distinct())
@@ -155,6 +158,10 @@ public sealed class Gamepad : IHmi
             _disposed = true;
             _subscriptions.Dispose();
             Stop(_selectedPreviewCamera);
+            foreach (var camera in _cameras.Values.Distinct())
+            {
+                RemoveTally(camera);
+            }
         }
         await _stopping.CancelAsync().ConfigureAwait(false);
         _stopping.Dispose();
@@ -313,6 +320,11 @@ public sealed class Gamepad : IHmi
 
     private void OnMixerProgramChanged(int program)
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         var onAir = _cameras.GetValueOrDefault(program);
         if (onAir == _selectedOnAirCamera)
         {
@@ -337,14 +349,42 @@ public sealed class Gamepad : IHmi
         }
     }
 
-    private void SetTally(ICameraConnection? camera, TallyState state) =>
-        camera?.SetTally(_mixer.TallyMode switch
+    private void SetTally(ICameraConnection? camera, TallyState state)
+    {
+        if (camera is null)
         {
-            MixerTallyMode.PreviewProgram => state,
-            MixerTallyMode.Program => state == TallyState.Program ? TallyState.Program : TallyState.Off,
-            MixerTallyMode.None => TallyState.Off,
-            _ => throw new InvalidOperationException($"Unknown mixer tally mode: {_mixer.TallyMode}"),
-        });
+            return;
+        }
+
+        var tallies = CameraTallies.GetOrCreateValue(camera);
+        lock (tallies)
+        {
+            tallies[this] = _mixer.TallyMode switch
+            {
+                MixerTallyMode.PreviewProgram => state,
+                MixerTallyMode.Program => state == TallyState.Program ? TallyState.Program : TallyState.Off,
+                MixerTallyMode.None => TallyState.Off,
+                _ => throw new InvalidOperationException($"Unknown mixer tally mode: {_mixer.TallyMode}"),
+            };
+            camera.SetTally(tallies.Values.Max());
+        }
+    }
+
+    private void RemoveTally(ICameraConnection camera)
+    {
+        if (!CameraTallies.TryGetValue(camera, out var tallies))
+        {
+            return;
+        }
+
+        lock (tallies)
+        {
+            if (tallies.Remove(this))
+            {
+                camera.SetTally(tallies.Values.DefaultIfEmpty(TallyState.Off).Max());
+            }
+        }
+    }
 
     private void OnMixerConnectionChanged(bool connected)
     {
