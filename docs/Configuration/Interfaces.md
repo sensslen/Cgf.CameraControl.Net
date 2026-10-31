@@ -109,6 +109,12 @@ in fainter lines.
 Every key it answers to is in the file. Nothing is bound that is not named here, and nothing named
 here is left off the panel, so the window and the file say the same thing.
 
+Keep the application window active and select the keyboard interface. Configured keys drive that
+interface even when a list, button or scroll area inside the window has focus. Unbound keys retain
+their normal navigation behavior. Switching interfaces, entering edit mode or leaving the window
+releases held keys and stops keyboard-driven movement. Keyboard controls are not global shortcuts
+and do not require macOS Input Monitoring permission.
+
 ![A keyboard interface: the input rows, cut and auto, the functions, the pan and tilt pad and the zoom and focus sliders](../images/interface-keyboard.png)
 
 The panel is a small mixer: a program row and a preview row of the same inputs, cut and auto between
