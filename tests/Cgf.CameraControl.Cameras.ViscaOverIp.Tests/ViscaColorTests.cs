@@ -76,13 +76,15 @@ public class ViscaColorTests : IAsyncDisposable
         {
             _camera.RefreshColor();
             _camera.Zoom(1);
-            for (var index = 0; index < 3; index++)
+            Assert.Equal(ViscaPacket.Zoom(8), _transport.Sent[^1]);
+            _transport.Acknowledge();
+            for (var index = 0; index < 4; index++)
             {
                 _time.Advance(TimeSpan.FromSeconds(5));
             }
             Assert.Null(_state);
             Assert.Equal(4, _transport.Sent.Count);
-            Assert.Equal(ViscaPacket.Zoom(8), _transport.Sent[^1]);
+            Assert.Equal(ViscaPacket.BlueGainInquiry(), _transport.Sent[^1]);
             _logger.Received().Error(Arg.Any<string>(), Arg.Is<string>(message =>
                 message.Contains("no answer to the white balance inquiry")));
         }
@@ -802,6 +804,83 @@ public class ViscaColorTests : IAsyncDisposable
             Assert.Equal(8, _transport.Sent.Count);
             _transport.Acknowledge(socket: 2);
             Assert.Equal(9, _transport.Sent.Count);
+        }
+
+        [Fact]
+        public void PendingInquiryCannotHoldBackAMovementStop()
+        {
+            Discover();
+            _camera.Pan(1);
+            _transport.Acknowledge();
+            _camera.RefreshColor();
+            Assert.Equal(ViscaPacket.WhiteBalanceInquiry(), _transport.Sent[^1]);
+            _camera.Pan(0);
+            Assert.Equal(ViscaPacket.PanTilt(0, 0), _transport.Sent[^1]);
+            _transport.Acknowledge();
+            _transport.Receive(0x90, 0x50, 5, 0xFF);
+            Assert.Equal(ViscaPacket.RedGainInquiry(), _transport.Sent[^1]);
+            _transport.Receive(0x90, 0x50, 0, 0, 8, 0, 0xFF);
+            _transport.Receive(0x90, 0x50, 0, 0, 8, 0, 0xFF);
+            Assert.Equal(new CameraColorState(true, 128, 128), _state);
+        }
+
+        [Fact]
+        public void AmbiguousSocketZeroRefusalResendsTheStopInFlight()
+        {
+            Discover();
+            _camera.Pan(1);
+            _transport.Acknowledge();
+            _camera.RefreshColor();
+            _camera.Pan(0);
+            var sent = _transport.Sent.Count;
+            _transport.Refuse(socket: 0, error: 0x03);
+            Assert.Equal(sent + 1, _transport.Sent.Count);
+            Assert.Equal(ViscaPacket.PanTilt(0, 0), _transport.Sent[^1]);
+            _transport.Acknowledge();
+            _transport.Receive(0x90, 0x50, 0, 0, 8, 0, 0xFF);
+            _transport.Receive(0x90, 0x50, 0, 0, 8, 0, 0xFF);
+            Assert.Equal(ViscaPacket.WhiteBalanceInquiry(), _transport.Sent[^1]);
+            _transport.Receive(0x90, 0x50, 5, 0xFF);
+            Assert.Equal(new CameraColorState(true, 128, 128), _state);
+        }
+
+        [Fact]
+        public void RefusalOnACommandSocketReleasesMovementAndKeepsTheInquiry()
+        {
+            Discover();
+            _camera.RefreshColor();
+            _camera.Pan(1);
+            _transport.Refuse(socket: 1, error: 0x41);
+            _camera.Pan(0);
+            Assert.Equal(ViscaPacket.PanTilt(0, 0), _transport.Sent[^1]);
+            _transport.Acknowledge();
+            DiscoverReplies();
+            Assert.Equal(new CameraColorState(true, 128, 128), _state);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void UnansweredGainIsDiscardedAndReadsCurrentSettings(bool blue)
+        {
+            Discover();
+            if (blue)
+            {
+                _camera.SetBlueGain(200);
+            }
+            else
+            {
+                _camera.SetRedGain(200);
+            }
+            _camera.SetManualWhiteBalance(false);
+            _time.Advance(TimeSpan.FromSeconds(5));
+            Assert.Null(_state);
+            Assert.Equal(ViscaPacket.WhiteBalanceInquiry(), _transport.Sent[^1]);
+            DiscoverReplies();
+            Assert.Equal(new CameraColorState(true, 128, 128), _state);
+            Assert.Equal(7, _transport.Sent.Count);
+            _logger.Received().Error(Arg.Any<string>(), Arg.Is<string>(message =>
+                message.Contains(blue ? "no answer to the blue gain command" : "no answer to the red gain command")));
         }
 
     }
