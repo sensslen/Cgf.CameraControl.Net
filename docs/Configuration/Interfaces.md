@@ -1,11 +1,8 @@
 # Interfaces
 
-Entries in `interfaces`. One interface is one set of hands: a mixer it drives, the cameras behind
-that mixer's inputs, and the controls that reach them.
-
-There are two kinds and they carry separate schemas. A `keys` block on a `gamepad`, or a `deadzone`
-on a `keyboard`, is a binding that will never fire, so it is an error rather than something quietly
-dropped. A desk that wants a pad and a mouse configures one of each against the same `videoMixer`.
+Each `interfaces` entry defines an operator's mixer, camera map and controls.
+`gamepad` and `keyboard` have separate schemas: `keys` on a gamepad or `deadzone` on a keyboard
+is an error. To share a mixer, configure separate interfaces with the same `videoMixer`.
 
 ## What both kinds carry
 
@@ -17,8 +14,8 @@ dropped. A desk that wants a pad and a mouse configures one of each against the 
 | `functions` | `{}` | named things a binding can run |
 | `enableChangingProgram` | `true` | whether this interface may put anything to air |
 
-`enableChangingProgram` set to `false` turns off cut, auto, and the program row on the keyboard
-panel. It is the switch for a desk that frames shots while somebody else cuts.
+`enableChangingProgram: false` disables cut, auto and the keyboard program row without disabling
+camera framing.
 
 ## `gamepad`
 
@@ -45,37 +42,38 @@ panel. It is the switch for a desk that frames shots while somebody else cuts.
 | `rumble` | `true` | whether the pad is allowed to buzz |
 | `pad` | `{}` | which named function each face button runs |
 
+Accepted type names are `gamepad`, `logitech/F310`, `logitech/F710` and `logitech/Rumblepad2`.
+All use the same SDL layout. HID accepts only `gamepad` and `logitech/F310`.
+A / B / X / Y run the `pad` functions bound to down / right / left / up.
+`serialNumber` is an exact filter. An absent serial leaves the interface unbound, never assigned
+to another operator's controller.
+
 ### Choosing a gamepad backend
 
-Existing configurations continue to use SDL. Set `"backend": "hid"` on a gamepad
-entry to use HidSharp instead. The HID backend currently supports Logitech F310
-pads in **D mode only**, requires a non-empty `serialNumber`, and has no rumble.
-It opens the exact HID device reporting that serial, so enumeration order, USB
-port changes and restarts do not change which pad drives which interface.
-Duplicate serial claims are rejected; absent devices remain disconnected and are
-retried until the matching pad appears. Unsupported report layouts are logged
-and never decoded as an F310.
+| Backend | Support |
+| --- | --- |
+| `sdl` | default; SDL controller mappings |
+| `hid` | HidSharp; Logitech F310 **D mode only**; non-empty `serialNumber` required; no rumble |
+
+HID opens the device by serial, independent of enumeration order, USB port or restart.
+Duplicate serial claims are rejected. Missing devices stay disconnected and retry until present.
+Unsupported report layouts are logged, not decoded.
 
 The F310 byte layout follows
 [`sensslen/node-gamepad`'s F310 definition](https://github.com/sensslen/node-gamepad/blob/master/src/controllers/logitech/gamepadf310.json).
-The two centre values, 127 and 128, remain neutral as in the original TypeScript
-camera controller.
+Axis values 127 and 128 are neutral.
 
-On macOS, SDL's IOKit backend currently omits both serial numbers and device paths,
-even when macOS exposes them. The HID backend works around that limitation without
-guessing which SDL device belongs to which operator. The application also disables
-SDL's Apple GameController backend on macOS so IOKit can detect generic D-mode HID
-pads. SDL suppresses an IOKit device when Apple's `supportsHIDDevice` says it is
-supported, to avoid duplicate controllers. On the tested Mac, that call returns
-true for both F310s while `GCController.controllers` is empty, leaving neither
-backend exposing them.
-On an F310, change the X/D switch **before plugging it in**; changing it while
-connected does not change the USB mode until the pad is replugged.
+On macOS, SDL IOKit omits serial numbers and device paths even when the OS exposes them.
+Use HID for serial-addressed F310s. The application disables SDL's Apple GameController backend
+so IOKit can detect generic D-mode devices. Otherwise, SDL suppresses IOKit devices for which
+Apple's `supportsHIDDevice` returns true. On the tested Mac, it returns true for both F310s while
+`GCController.controllers` is empty, leaving neither SDL backend exposing them.
 
-HidSharp supports Windows, macOS and Linux without a separately installed HIDAPI
-library. Linux may require a udev rule granting the user access to the pad's
-`hidraw` node. Only macOS F310 hardware has been exercised here. Do not configure
-the same physical pad through both backends at once.
+Change the F310 X/D switch **before plugging it in**. Replug after changing it while connected.
+
+HidSharp supports Windows, macOS and Linux without separate HIDAPI installation.
+Linux may need a udev rule granting access to the pad's `hidraw` node.
+HID hardware verification covers macOS F310s only. Never configure one pad through both backends.
 
 The left stick pans and tilts, the right stick zooms and focuses, the direction pad moves the
 preview selection through `connectionChange`, the right shoulder cuts and the right trigger autos.
@@ -98,37 +96,26 @@ A pad has four face buttons and no more. The way past four is the modifier sets:
 }
 ```
 
-A modifier only overrides the default where it has something bound for that button. The window's
-legend names each face button by the function it would run right now, so it follows the held
-modifier.
+A modifier overrides only its bound buttons; others use `default`.
 
-A pad interface is not driven from the window. The drawing shows what the pad is doing; it is not a
-control to click. Each control carries the symbol printed on a pad (the four face symbols, the
-d-pad arrows, L1/L2/R1/R2), and the legend beside it lists the bound ones under the same symbol
-with what pressing them does right now. A direction whose input is on preview or program is tinted
-in that bus's colour, a trigger fills as it is pulled, and controls nothing is bound to are drawn
-in fainter lines.
+The gamepad drawing is read-only. Symbols match the physical pad: face symbols, d-pad arrows and
+L1/L2/R1/R2. Its legend follows the active modifier. Preview/program directions use their bus
+colors, triggers fill with travel, and unbound controls are faded.
 
 ![A gamepad interface, with R1, R2, triangle and right held and L2 half pulled](../images/interface-gamepad.png)
 
 ## `keyboard`
 
-Every key it answers to is in the file. Nothing is bound that is not named here, and nothing named
-here is left off the panel, so the window and the file say the same thing.
-
-Keep the application window active and select the keyboard interface. Configured keys drive that
-interface even when a list, button or scroll area inside the window has focus. Unbound keys retain
-their normal navigation behavior. Switching interfaces, entering edit mode or leaving the window
-releases held keys and stops keyboard-driven movement. Keyboard controls are not global shortcuts
-and do not require macOS Input Monitoring permission.
+Keep the window active and select the keyboard interface. Configured keys work even when a list,
+button or scroll area has focus; unbound keys retain normal navigation.
+Switching interfaces, entering edit mode or leaving the window releases held keys and stops
+movement. These are not global shortcuts and need no macOS Input Monitoring permission.
 
 ![A keyboard interface: the input rows, cut and auto, the functions, the pan and tilt pad and the zoom and focus sliders](../images/interface-keyboard.png)
 
-The panel is a small mixer: a program row and a preview row of the same inputs, cut and auto between
-them, and every configured function to the right. Each button names the key that also fires it, and
-lights while that key is held. Below them the mouse takes the sticks' place: a pad for pan and tilt,
-and a slider each for zoom and focus. Drag and let go, and each springs back to the middle and stops
-the camera.
+The panel has program/preview input rows, cut/auto between them and configured functions to the
+right. Buttons show their bound keys and light while held. Mouse controls provide pan/tilt and
+zoom/focus sliders; releasing a drag recenters the control and stops movement.
 
 ```json
 {
@@ -163,19 +150,13 @@ the camera.
 | `function` | a key to the name of a function in `functions` |
 | `cut`, `auto` | the transition keys |
 
-Every entry is optional. An axis with one end bound moves one way only; an axis with neither is not
-reachable from the keyboard at all, and the pad on screen still is.
-
-`input` is what a pad cannot do. A direction pad offers four directions; a number row offers as many
-inputs as there are keys.
-
-Modifiers are a pad thing. A keyboard binds every key it has directly, so there is no second set for
-a modifier to pick between.
+All keys are optional; only bound actions appear as buttons. One bound axis end allows movement
+in that direction; mouse controls work even with no axis keys. `input` selects inputs directly,
+beyond the gamepad's four directions. Keyboard bindings have no modifier sets.
 
 ## Functions
 
-Named once, bound by name. The name is what the window writes on the button and next to the face on
-the wireframe, so it is worth naming for what it does rather than for what it is.
+Functions are bound by name. Names label keyboard buttons and gamepad controls.
 
 ```json
 "functions": {
@@ -202,13 +183,11 @@ A `macroToggle` condition is either `{ "type": "key", "key": n }`, which asks wh
 `n` is set, or `{ "type": "aux_selection", "aux": n, "selection": m }`, which asks whether auxiliary
 `n` is showing input `m`.
 
-A binding that names a function which is not in `functions` fails at load and the message lists the
-names that are, because caught there it points at a line, and caught at run time it is a button that
-silently does nothing in the middle of a service.
+An undefined function binding fails at load with the available names.
 
 ## `connectionChange`
 
-How a direction moves the preview selection. Two schemes.
+Two preview-selection schemes:
 
 ```json
 "connectionChange": {
@@ -233,8 +212,7 @@ absent falls back to `default`.
 }
 ```
 
-`directional` steps from the current input to a neighbour, which is how a row of cameras is walked
-along. A selection with no entry falls back to the lowest numbered one.
+`directional` steps to a neighbor. A selection with no entry falls back to the lowest numbered one.
 
 ## Key names
 

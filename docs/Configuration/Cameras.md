@@ -9,14 +9,16 @@ camera's `instance`.
 | `Websocket.PtzLanc` | the websocket LANC controller firmware | `ip` |
 | `Signalr.PtzLanc` | the SignalR LANC controller service | `connectionUrl`, `connectionPort` |
 
-All three take `panTiltInvert`, which flips pan and tilt for a camera mounted upside down. It never
-touches zoom or focus.
+## Shared settings
 
-All three also take `panTiltSpeedPercent`, a whole percentage from `1` to `100` (default `100`
-when omitted). It scales pan and tilt speeds without affecting zoom, focus, or the existing response
-curve. Adjust it in the configuration editor using the linked slider and text box; it is not a
-live control on the operating surface. For example, `"panTiltSpeedPercent": 50` halves the requested
-pan and tilt speeds. Hardware speed steps still apply; VISCA cannot move below speed 1.
+| Key | Default | Means |
+| --- | --- | --- |
+| `panTiltInvert` | `false` | reverse pan and tilt for mounting or controller wiring |
+| `panTiltSpeedPercent` | `100` | whole percentage from `1` to `100`; scales pan/tilt speed |
+
+Neither affects zoom or focus. Speed scaling preserves the response curve; `50` halves requested
+speed, subject to hardware steps. VISCA cannot move below speed 1.
+Edit the percentage through the linked slider and text box, not the operating controls.
 
 ## `viscaoverip`
 
@@ -35,33 +37,26 @@ pan and tilt speeds. Hardware speed steps still apply; VISCA cannot move below s
 | --- | --- | --- |
 | `ip` | required | the camera's address |
 | `port` | `52381` | the UDP port it listens on |
-| `panTiltInvert` | `false` | flip pan and tilt |
 | `tallyMode` | `none` | which vendor's tally payload the camera understands |
 
-Packets go out as raw VISCA with no Sony VISCA-over-IP header, so a camera that insists on the header
-will not answer. Such a camera usually also listens on a raw port, often 1259, which is what to set
-`port` to.
+Packets use raw VISCA without Sony VISCA-over-IP headers. Header-only ports do not work; use a
+raw port if available, often `1259`.
 
-Presence is asked rather than assumed. UDP opens as readily at an empty address as at a camera, so
-the version inquiry goes out every three seconds and the camera counts as connected while it is
-still answering something. A camera that stops answering for ten seconds goes dark in the window.
+A version inquiry runs every three seconds. Connection requires replies, not just an open UDP
+socket; ten seconds without a reply marks the camera disconnected.
 
 ### `tallyMode`
 
-Nothing in the VISCA specification covers a tally lamp, so the payloads are vendor specific and only
-interchangeable by accident. A camera sent the wrong vendor's payload does something unrelated
-rather than nothing.
+VISCA tally is vendor-specific. A wrong payload can execute an unrelated command.
 
 | Mode | Lamps | Bytes |
 | --- | --- | --- |
 | `none` | none | nothing is sent |
-| `avonic` | red and green | `81 01 7E 01 0A 00 0p 0q FF` |
-| `ptzoptics` | one | `81 0A 02 02 0p FF` |
+| [`avonic`](https://support.avonic.com/support/solutions/articles/80001153827-visca) | red and green | `81 01 7E 01 0A 00 0p 0q FF` |
+| [`ptzoptics`](https://f.hubspotusercontent20.net/hubfs/418770/PTZOptics%20Documentation/Misc/PTZOptics%20VISCA%20over%20IP%20Commands.pdf) | one | `81 0A 02 02 0p FF` |
 
-`avonic` reaches Avonic and CineTreak cameras, which take the same three packets. `ptzoptics` has a
-lamp rather than a colour, so preview leaves it dark. Sony's own cameras are not covered: they spend
-a command per lamp and put one out that is not told to stay lit, which a single payload cannot
-express. [Camera compatibility](../CameraCompatibility.md) records what has been on hardware.
+`avonic` supports Avonic and CineTreak. `ptzoptics` lights only on program, not preview.
+Sony tally is unsupported. See [camera compatibility](../CameraCompatibility.md) for tested cameras.
 
 ## `Websocket.PtzLanc`
 
@@ -72,7 +67,6 @@ express. [Camera compatibility](../CameraCompatibility.md) records what has been
 | Key | Default | Means |
 | --- | --- | --- |
 | `ip` | required | the controller's address |
-| `panTiltInvert` | `false` | flip pan and tilt |
 | `showTallyLight` | `true` | drive the controller's tally lamp |
 
 ## `Signalr.PtzLanc`
@@ -85,9 +79,7 @@ express. [Camera compatibility](../CameraCompatibility.md) records what has been
 | --- | --- | --- |
 | `connectionUrl` | required | the service's address |
 | `connectionPort` | required | the serial port the service drives the LANC adapter on, such as `COM6` |
-| `panTiltInvert` | `false` | flip pan and tilt |
 
-On shutdown or configuration reload, the SignalR camera sends a zero movement state and waits for
-acknowledgement before closing its connection. It retries a rejected stop within a one-second
-shutdown deadline. If the controller is offline or does not acknowledge the stop, the application
-logs an error and closes the connection; it cannot guarantee that an unreachable camera stopped.
+Shutdown and reload send zero movement, retry rejected stops for up to one second, and wait for
+acknowledgement before closing. Missing acknowledgement logs an error; an unreachable camera's
+stop cannot be guaranteed.
