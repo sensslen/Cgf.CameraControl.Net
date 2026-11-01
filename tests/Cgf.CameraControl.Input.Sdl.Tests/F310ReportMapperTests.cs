@@ -15,7 +15,7 @@ public class F310ReportMapperTests
         using var subscription = mapper.State.Subscribe(states.Add);
         var reports = new F310ReportMapper(mapper);
         reports.Apply([0, 0, 255, 255, 0, 8, 0, 0, 0]);
-        Assert.Equal(new StickPosition(1, 1), states[^1].LeftStick);
+        Assert.Equal(new StickPosition(-1, -1), states[^1].LeftStick);
         Assert.Equal(new StickPosition(-1, 1), states[^1].RightStick);
         reports.Apply([0, 128, 128, 128, 128, 8, 0, 0, 0]);
         Assert.Equal(default, states[^1].LeftStick);
