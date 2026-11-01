@@ -1,8 +1,9 @@
 # <img src="packaging/icon/icon-128.png" alt="" width="48" align="center" /> Camera Control
 
-Drive Blackmagic ATEM switchers and PTZ cameras from a game controller.
+> [!WARNING]
+> **Beta software.** Configuration and user-facing behavior may change incompatibly between releases.
 
-**Beta:** configuration and user-facing behavior may change incompatibly between releases.
+Drive Blackmagic ATEM switchers and PTZ cameras from a game controller.
 
 ![Main window with preview and program state](docs/images/window.png)
 
