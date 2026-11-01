@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using Cgf.CameraControl.App.ViewModels;
 
 namespace Cgf.CameraControl.App.Views;
@@ -22,6 +23,8 @@ public partial class MainWindow : Window
     };
 
     private readonly InterfaceKeyboard _keyboard = new();
+    private bool _colorPanelOpen;
+    private Flyout? _colorFlyout;
 
     public MainWindow()
     {
@@ -94,13 +97,72 @@ public partial class MainWindow : Window
             return;
         }
 
-        _keyboard.Target = model.SelectedInterface;
+        _keyboard.Target = _colorPanelOpen ? null : model.SelectedInterface;
         model.PropertyChanged += (_, changed) =>
         {
             if (changed.PropertyName == nameof(MainViewModel.SelectedInterface))
             {
-                _keyboard.Target = model.SelectedInterface;
+                _keyboard.Target = _colorPanelOpen ? null : model.SelectedInterface;
             }
         };
+    }
+
+    private void ColorCorrectionOpening(object? sender, EventArgs e)
+    {
+        _colorPanelOpen = true;
+        _keyboard.Target = null;
+    }
+
+    private void ColorCorrectionOpened(object? sender, EventArgs e)
+    {
+        if (sender is Flyout flyout)
+        {
+            _colorFlyout = flyout;
+            if (flyout.Popup.Child is { } presenter)
+            {
+                presenter.LayoutUpdated += UpdateColorPointer;
+                UpdateColorPointer(presenter, EventArgs.Empty);
+            }
+
+            if (flyout.Content is Control { DataContext: CameraViewModel model })
+            {
+                model.RefreshColor();
+            }
+        }
+    }
+
+    private void UpdateColorPointer(object? sender, EventArgs e)
+    {
+        if (_colorFlyout is not { Target: { } target, Popup.Child: { } presenter }
+            || presenter.Bounds.Height < 36)
+        {
+            return;
+        }
+
+        var center = presenter.PointToClient(target.PointToScreen(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2)));
+        var pointLeft = center.X < presenter.Bounds.Width / 2;
+        var top = Math.Clamp(center.Y, 18, presenter.Bounds.Height - 18) - 10;
+        foreach (var pointer in presenter.GetVisualDescendants().OfType<Panel>()
+                     .Where(panel => panel.Name is "LeftPointer" or "RightPointer"))
+        {
+            pointer.IsVisible = (pointer.Name == "LeftPointer") == pointLeft;
+            Canvas.SetLeft(pointer, pointLeft ? 0 : presenter.Bounds.Width - 11);
+            Canvas.SetTop(pointer, top);
+        }
+    }
+
+    private void ColorCorrectionClosed(object? sender, EventArgs e)
+    {
+        if (_colorFlyout?.Popup.Child is { } presenter)
+        {
+            presenter.LayoutUpdated -= UpdateColorPointer;
+        }
+
+        _colorFlyout = null;
+        _colorPanelOpen = false;
+        if (DataContext is MainViewModel model)
+        {
+            _keyboard.Target = model.SelectedInterface;
+        }
     }
 }

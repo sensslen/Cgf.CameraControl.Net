@@ -76,6 +76,16 @@ See [camera configuration](docs/Configuration/Cameras.md) for connection fields,
 
 See [camera compatibility](docs/CameraCompatibility.md) for tested cameras.
 
+### Color correction
+
+Supported VISCA cameras show a color-wheel button in the **Cameras** pane. Click it for one-push
+white balance and manual red/blue gain corrections.
+
+![VISCA color-correction popover with its pointer and camera button](docs/images/camera-color-popover.png)
+
+See [color correction](docs/ColorCorrection.md) for controls, screenshots and troubleshooting,
+and [camera compatibility](docs/CameraCompatibility.md) for hardware verification.
+
 ### Controller bindings
 
 ![Gamepad controls and their configured bindings](docs/images/interface-gamepad.png)

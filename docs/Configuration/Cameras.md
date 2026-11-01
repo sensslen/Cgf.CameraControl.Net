@@ -45,6 +45,11 @@ raw port if available, often `1259`.
 A version inquiry runs every three seconds. Connection requires replies, not just an open UDP
 socket; ten seconds without a reply marks the camera disconnected.
 
+### Color correction
+
+Color correction needs no configuration flag and is independent of `tallyMode`.
+See [color correction](../ColorCorrection.md) for support detection, controls and troubleshooting.
+
 ### `tallyMode`
 
 VISCA tally is vendor-specific. A wrong payload can execute an unrelated command.

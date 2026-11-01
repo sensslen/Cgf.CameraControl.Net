@@ -117,6 +117,14 @@
     "program": "Programa",
     "preview": "Previo"
   },
+  "color": {
+    "title": "Corrección de color",
+    "onePush": "Balance de blancos con una pulsación",
+    "manual": "Balance de blancos manual",
+    "redGain": "Ganancia de rojo",
+    "blueGain": "Ganancia de azul",
+    "hint": "Apunte la cámara a una referencia blanca para el balance de blancos con una pulsación. Active el balance de blancos manual para ajustar el rojo y el azul."
+  },
   "pad": {
     "input": "Entrada {0}",
     "alt": "Mantener pulsado para alt",

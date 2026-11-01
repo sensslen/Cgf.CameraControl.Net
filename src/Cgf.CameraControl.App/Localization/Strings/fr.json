@@ -117,6 +117,14 @@
     "program": "Programme",
     "preview": "Aperçu"
   },
+  "color": {
+    "title": "Correction des couleurs",
+    "onePush": "Balance des blancs en une pression",
+    "manual": "Balance des blancs manuelle",
+    "redGain": "Gain rouge",
+    "blueGain": "Gain bleu",
+    "hint": "Dirigez la caméra vers une référence blanche pour la balance des blancs en une pression. Activez la balance des blancs manuelle pour ajuster le rouge et le bleu."
+  },
   "pad": {
     "input": "Entrée {0}",
     "alt": "Maintenir pour alt",

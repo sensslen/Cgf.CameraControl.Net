@@ -8,6 +8,12 @@ public enum ViscaCategory
     Zoom,
     Focus,
     Tally,
+    ColorAction,
+    RedGain,
+    BlueGain,
+    WhiteBalanceInquiry,
+    RedGainInquiry,
+    BlueGainInquiry,
 }
 
 /// How the camera answered.
@@ -71,6 +77,49 @@ public static class ViscaPacket
     /// 8x 01 04 08 pp FF: 00 stop, 2p far, 3p near, over speed steps 1 to LensSpeeds.
     public static byte[] Focus(int speed) => Lens(0x08, speed);
 
+    public static byte[] WhiteBalance(bool manual) => WhiteBalanceMode(manual ? (byte)0x05 : (byte)0x00);
+
+    public static byte[] OnePushWhiteBalanceMode() => WhiteBalanceMode(0x03);
+
+    public static byte[] OnePushWhiteBalanceTrigger() => [Header, Command, CategoryCamera, 0x10, 0x05, Terminator];
+
+    public static byte[] RedGain(int value) => ColorGain(0x43, value);
+
+    public static byte[] BlueGain(int value) => ColorGain(0x44, value);
+
+    public static byte[] WhiteBalanceInquiry() => [Header, 0x09, CategoryCamera, 0x35, Terminator];
+
+    public static byte[] RedGainInquiry() => [Header, 0x09, CategoryCamera, 0x43, Terminator];
+
+    public static byte[] BlueGainInquiry() => [Header, 0x09, CategoryCamera, 0x44, Terminator];
+
+    public static bool IsColorInquiry(ViscaCategory category) =>
+        category is ViscaCategory.WhiteBalanceInquiry or ViscaCategory.RedGainInquiry or ViscaCategory.BlueGainInquiry;
+
+    public static bool TryReadColor(ViscaCategory category, byte[] packet, out int value)
+    {
+        value = 0;
+        if (packet.Length < 4 || packet[0] != 0x90 || packet[1] != 0x50 || packet[^1] != Terminator)
+        {
+            return false;
+        }
+
+        if (category == ViscaCategory.WhiteBalanceInquiry && packet.Length == 4 && packet[2] <= 0x07)
+        {
+            value = packet[2];
+            return true;
+        }
+
+        if (category is ViscaCategory.RedGainInquiry or ViscaCategory.BlueGainInquiry
+            && packet.Length == 7 && packet[2] == 0 && packet[3] == 0 && packet[4] <= 0x0F && packet[5] <= 0x0F)
+        {
+            value = (packet[4] << 4) | packet[5];
+            return true;
+        }
+
+        return false;
+    }
+
     /// An inquiry is answered with a completion that carries the answer after it, so length is what
     /// separates "the command in buffer y has run" from "here is the camera's version". Reading the
     /// second as the first would open the command gate for a command nobody has answered for.
@@ -128,6 +177,15 @@ public static class ViscaPacket
             : (byte)((speed > 0 ? 0x20 : 0x30) | (magnitude - 1));
 
         return [Header, Command, CategoryCamera, operation, instruction, Terminator];
+    }
+
+    private static byte[] WhiteBalanceMode(byte mode) => [Header, Command, CategoryCamera, 0x35, mode, Terminator];
+
+    private static byte[] ColorGain(byte operation, int value)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 255);
+        return [Header, Command, CategoryCamera, operation, 0x00, 0x00, (byte)(value >> 4), (byte)(value & 0x0F), Terminator];
     }
 
     private static byte Direction(int speed, byte negative, byte positive) =>

@@ -65,6 +65,36 @@
   </NativeMenu.Menu>
 
   <Window.Resources>
+    <ControlTheme x:Key="CameraColorPopover" TargetType="FlyoutPresenter"
+                  BasedOn="{StaticResource {x:Type FlyoutPresenter}}">
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Grid FlowDirection="LeftToRight">
+            <Border Margin="10,0" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{TemplateBinding CornerRadius}" BoxShadow="0 4 16 0 #40000000">
+              <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
+                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  Margin="{TemplateBinding Padding}"
+                                  HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+              </ScrollViewer>
+            </Border>
+            <Canvas IsHitTestVisible="False">
+              <Panel Name="LeftPointer" Width="11" Height="20" IsVisible="False">
+                <Path Data="M11,0 L0,10 L11,20 Z" Fill="{TemplateBinding Background}" />
+                <Path Data="M11,0 L0,10 L11,20" Stroke="{TemplateBinding BorderBrush}" StrokeThickness="1" />
+              </Panel>
+              <Panel Name="RightPointer" Width="11" Height="20" IsVisible="False">
+                <Path Data="M0,0 L11,10 L0,20 Z" Fill="{TemplateBinding Background}" />
+                <Path Data="M0,0 L11,10 L0,20" Stroke="{TemplateBinding BorderBrush}" StrokeThickness="1" />
+              </Panel>
+            </Canvas>
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+
     <DataTemplate x:Key="MixerTile" x:DataType="vm:MixerViewModel">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,2" ToolTip.Tip="{Binding ConnectionString}">
         <Border Grid.Column="0" Classes="lamp" Classes.connected="{Binding IsConnected}" />
@@ -83,12 +113,34 @@
     <!-- One line per camera, so a full rig fits in a glance; the full address stays in the tooltip
          when the line has to cut it short. -->
     <DataTemplate x:Key="CameraTile" x:DataType="vm:CameraViewModel">
-      <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2" ToolTip.Tip="{Binding ConnectionString}">
+      <Grid ColumnDefinitions="Auto,*,Auto,38" Margin="0,2" ToolTip.Tip="{Binding ConnectionString}">
         <Border Grid.Column="0" Classes="lamp" Classes.connected="{Binding IsConnected}" />
         <TextBlock Grid.Column="1" Text="{Binding ConnectionString}" TextTrimming="CharacterEllipsis"
                    VerticalAlignment="Center" />
         <TextBlock Grid.Column="2" Classes="detail" Margin="8,0,0,0" VerticalAlignment="Center"
                    Text="{Binding MovementText}" />
+        <Button Grid.Column="3" Name="ColorCorrectionButton" Margin="8,0,0,0" Padding="5"
+                IsVisible="{Binding SupportsColorCorrection}" IsEnabled="{Binding IsConnected}"
+                AutomationProperties.Name="{Binding [color.title]^, Source={x:Static loc:Localizer.Current}}"
+                ToolTip.Tip="{Binding [color.title]^, Source={x:Static loc:Localizer.Current}}">
+          <Button.Flyout>
+            <Flyout Placement="Left" ShowMode="Standard"
+                    FlyoutPresenterTheme="{StaticResource CameraColorPopover}"
+                    Opening="ColorCorrectionOpening" Opened="ColorCorrectionOpened" Closed="ColorCorrectionClosed">
+              <views:CameraColorView DataContext="{Binding}" />
+            </Flyout>
+          </Button.Flyout>
+          <Panel Width="18" Height="18">
+            <Path Data="M9,9 L9,0 A9,9 0 0 1 16.794,4.5 Z" Fill="#EF5350" />
+            <Path Data="M9,9 L16.794,4.5 A9,9 0 0 1 16.794,13.5 Z" Fill="#FFCA28" />
+            <Path Data="M9,9 L16.794,13.5 A9,9 0 0 1 9,18 Z" Fill="#66BB6A" />
+            <Path Data="M9,9 L9,18 A9,9 0 0 1 1.206,13.5 Z" Fill="#26C6DA" />
+            <Path Data="M9,9 L1.206,13.5 A9,9 0 0 1 1.206,4.5 Z" Fill="#42A5F5" />
+            <Path Data="M9,9 L1.206,4.5 A9,9 0 0 1 9,0 Z" Fill="#AB47BC" />
+            <Ellipse Width="6" Height="6" HorizontalAlignment="Center" VerticalAlignment="Center"
+                     Fill="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+          </Panel>
+        </Button>
       </Grid>
     </DataTemplate>
 

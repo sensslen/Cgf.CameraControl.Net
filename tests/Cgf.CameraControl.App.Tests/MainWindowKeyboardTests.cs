@@ -1,4 +1,5 @@
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -9,6 +10,7 @@ using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.ViewModels;
 using Cgf.CameraControl.App.Views;
 using Cgf.CameraControl.Core.Configuration;
+using Cgf.CameraControl.Core.CameraConnection;
 using Cgf.CameraControl.Core.Logger;
 using Cgf.CameraControl.Core.VideoMixer;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
@@ -27,6 +29,44 @@ public class MainWindowKeyboardTests
 
     public class FocusRouting : MainWindowKeyboardTests
     {
+        [Fact]
+        public async Task ColorPanelReleasesHeldMovementAndResumesKeyboardAfterClosing()
+        {
+            await WithWindowAsync((window, model, _, device, _) =>
+            {
+                var camera = Substitute.For<ICameraConnection, ICameraColorControl>();
+                var color = Assert.IsAssignableFrom<ICameraColorControl>(camera);
+                camera.ConnectionString.Returns("visca://camera");
+                camera.WhenConnectedChanged.Returns(Observable.Return(true));
+                using var state = new BehaviorSubject<CameraColorState?>(new(true, 128, 128));
+                color.WhenColorChanged.Returns(state);
+                using var cameraModel = new CameraViewModel(new ObservedCamera(camera));
+                model.Cameras.Add(cameraModel);
+                model.AreDevicesExpanded = true;
+                Dispatcher.UIThread.RunJobs();
+                var button = window.GetVisualDescendants().OfType<Button>()
+                    .Single(control => control.Name == "ColorCorrectionButton");
+                var movements = new List<StickPosition>();
+                using var subscription = device.LeftStick.Subscribe(movements.Add);
+                window.KeyPress(Key.W, RawInputModifiers.None, PhysicalKey.W, "w");
+                var flyout = Assert.IsType<Flyout>(button.Flyout);
+                flyout.ShowAt(button);
+                Dispatcher.UIThread.RunJobs();
+                window.KeyPress(Key.Right, RawInputModifiers.None, PhysicalKey.ArrowRight, null);
+                window.KeyRelease(Key.Right, RawInputModifiers.None, PhysicalKey.ArrowRight, null);
+                Assert.Equal([new StickPosition(0, 1), new StickPosition(0, 0)], movements);
+                color.Received(2).RefreshColor();
+                flyout.Hide();
+                Dispatcher.UIThread.RunJobs();
+                window.KeyPress(Key.W, RawInputModifiers.None, PhysicalKey.W, "w");
+                window.KeyRelease(Key.W, RawInputModifiers.None, PhysicalKey.W, "w");
+                Assert.Equal([
+                    new StickPosition(0, 1), new StickPosition(0, 0),
+                    new StickPosition(0, 1), new StickPosition(0, 0),
+                ], movements);
+            });
+        }
+
         [Theory]
         [InlineData("list")]
         [InlineData("button")]
