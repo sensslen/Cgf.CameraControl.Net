@@ -199,6 +199,12 @@ public class CameraColorTests
                     connection.OnNext(true);
                     Dispatcher.UIThread.RunJobs();
                 }
+                else
+                {
+                    ReadColor(replies, 120, 140);
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.False(model.CanCorrectColor);
+                }
                 ReadColor(replies, 100, 160);
                 Dispatcher.UIThread.RunJobs();
                 Assert.True(model.CanAdjustGains);
@@ -330,12 +336,12 @@ public class CameraColorTests
                 Assert.Equal(2, pointers.Length);
                 var pointer = Assert.Single(pointers, panel => panel.IsVisible);
                 var target = button.PointToScreen(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2));
-                var origin = presenter.PointToScreen(default);
-                var pointLeft = target.X < origin.X + presenter.Bounds.Width / 2;
+                var center = presenter.PointToScreen(new Point(presenter.Bounds.Width / 2, 0));
+                var pointLeft = target.X < center.X;
                 Assert.Equal(pointLeft ? "LeftPointer" : "RightPointer", pointer.Name);
                 var tip = pointer.PointToScreen(new Point(pointLeft ? 0 : 11, 10));
                 Assert.InRange(Math.Abs(tip.Y - target.Y), 0, 1);
-                var edge = button.PointToScreen(new Point(pointLeft ? 0 : button.Bounds.Width, button.Bounds.Height / 2));
+                var edge = button.PointToScreen(new Point(pointLeft ? button.Bounds.Width : 0, button.Bounds.Height / 2));
                 var halfWidth = Math.Abs(edge.X - target.X);
                 Assert.InRange(Math.Abs(tip.X - target.X), halfWidth, halfWidth + 20);
                 window.MouseDown(new Point(30, 180), MouseButton.Left);

@@ -32,7 +32,8 @@ Game controllers remain active.
 ## One-push white balance
 
 1. Point the camera at a white reference under the lighting you will use.
-2. Click **One-push white balance**. The application selects one-push mode and sends its trigger.
+2. Click **One-push white balance**. The application selects one-push mode, waits for completion,
+   then sends its trigger.
 3. Wait for the camera to complete the command and for the settings to reload.
 
 One-push measures white balance once. It does not enable continuous automatic white balance.
@@ -46,15 +47,19 @@ from **0 to 255**. The number beside it shows the selected value.
 
 ![Color-correction popover with one-push white balance, manual red and blue gain sliders, and a pointer to its camera button](images/camera-color-popover.png)
 
-Changes are sent immediately. There is no Apply or Save button.
+Changes queue immediately. Each color command waits for the previous one to complete;
+movement controls remain active. There is no Apply or Save button.
 Turning manual white balance off restores automatic white balance, which can change the balance
 again as the lighting changes.
 
-The panel reads settings when opened, after white-balance completion, and after a refused gain
-command. If an acknowledged white-balance command has no completion after five seconds, the
-application reads current settings without replaying the action. Controls are disabled during
-readback; gain sliders require manual white balance. If settings become unavailable during an
-adjustment, the panel disables the affected controls and rereads the camera.
+The panel reads settings when opened, after white-balance completion, and after a refused color
+command. Readback waits for pending color commands. A refresh requested during readback starts
+a fresh read afterward; the obsolete results stay hidden.
+If an acknowledged color command has no completion after five seconds, the application drops
+pending corrections and reads current settings without replaying the action.
+Controls are disabled until readback finishes; gain sliders require manual white balance.
+If settings become unavailable during an adjustment, the panel disables the affected controls
+and rereads the camera.
 These settings belong to the camera, not the configuration file. Whether they survive a camera
 restart depends on the camera.
 
@@ -69,5 +74,5 @@ Transient inquiry refusals are retried; unanswered inquiries time out. Movement 
 priority over queued color commands.
 
 Raw VISCA replies have no request identifier. A delayed reply can be mistaken for a newer inquiry
-of the same shape. Close and reopen the popover to read settings again if values look stale or
-after a failed operation.
+of the same shape or a command on a reused socket. Close and reopen the popover to read settings
+again if values look stale or after a failed operation.
