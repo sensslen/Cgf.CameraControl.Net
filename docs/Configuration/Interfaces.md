@@ -44,6 +44,7 @@ camera framing.
 
 Accepted type names are `gamepad`, `logitech/F310`, `logitech/F710` and `logitech/Rumblepad2`.
 All use the same SDL layout. HID accepts only `gamepad` and `logitech/F310`.
+A / B / X / Y run the `pad` functions bound to down / right / left / up.
 `serialNumber` is an exact filter. An absent serial leaves the interface unbound, never assigned
 to another operator's controller.
 
@@ -78,8 +79,7 @@ The left stick pans and tilts, the right stick zooms and focuses, the direction 
 preview selection through `connectionChange`, the right shoulder cuts and the right trigger autos.
 The left shoulder holds `alt` and the left trigger holds `altLower`.
 
-A / B / X / Y run the `pad` functions bound to down / right / left / up.
-Modifier sets provide additional face-button bindings:
+A pad has four face buttons and no more. The way past four is the modifier sets:
 
 ```json
 "pad": {
