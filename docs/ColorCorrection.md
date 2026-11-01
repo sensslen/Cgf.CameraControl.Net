@@ -1,7 +1,7 @@
 # VISCA color correction
 
 Adjust a camera's white balance from the Cameras pane without changing the configuration.
-The screenshots show the actual application with simulated camera data, not a hardware test.
+The screenshots show the application with simulated camera data.
 
 ## Supported cameras
 
@@ -12,7 +12,9 @@ The application checks support by reading white-balance mode, red gain and blue 
 The color-wheel button appears only after all three inquiries return valid settings.
 The LANC camera types do not offer these controls.
 
-See [camera compatibility](CameraCompatibility.md) for protocol sources and hardware verification.
+See [camera compatibility](CameraCompatibility.md) for tested cameras and the
+[VISCA command reference](https://support.avonic.com/support/solutions/articles/80001153827-visca)
+for white-balance and gain commands.
 
 ## Open the popover
 
@@ -54,10 +56,6 @@ application reads current settings without replaying the action. Controls are di
 readback; gain sliders require manual white balance.
 These settings belong to the camera, not the configuration file. Whether they survive a camera
 restart depends on the camera.
-
-The popover follows the application's light or dark theme.
-
-![The same camera-correction popover in the dark theme](images/camera-color-popover-dark.png)
 
 ## If controls are missing or unavailable
 
