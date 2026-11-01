@@ -113,7 +113,7 @@
     <!-- One line per camera, so a full rig fits in a glance; the full address stays in the tooltip
          when the line has to cut it short. -->
     <DataTemplate x:Key="CameraTile" x:DataType="vm:CameraViewModel">
-      <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,2" ToolTip.Tip="{Binding ConnectionString}">
+      <Grid ColumnDefinitions="Auto,*,Auto,38" Margin="0,2" ToolTip.Tip="{Binding ConnectionString}">
         <Border Grid.Column="0" Classes="lamp" Classes.connected="{Binding IsConnected}" />
         <TextBlock Grid.Column="1" Text="{Binding ConnectionString}" TextTrimming="CharacterEllipsis"
                    VerticalAlignment="Center" />

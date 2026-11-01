@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -78,6 +79,46 @@ public class CameraColorTests
                 main.Cameras.Add(model);
                 Dispatcher.UIThread.RunJobs();
                 Assert.False(FindWheel(window, model).IsVisible);
+            });
+        }
+    }
+
+    public class Layout : CameraColorTests
+    {
+        [Theory]
+        [InlineData(FlowDirection.LeftToRight, false)]
+        [InlineData(FlowDirection.LeftToRight, true)]
+        [InlineData(FlowDirection.RightToLeft, false)]
+        [InlineData(FlowDirection.RightToLeft, true)]
+        public async Task MovementStatusStaysAlignedWhenTheWheelAppearsOrDisappears(FlowDirection direction, bool dark)
+        {
+            await WithWindow((window, model, _, state) =>
+            {
+                window.FlowDirection = direction;
+                window.RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light;
+                var main = Assert.IsType<MainViewModel>(window.DataContext);
+                var camera = Substitute.For<ICameraConnection>();
+                camera.ConnectionString.Returns("lanc://a-camera-with-a-longer-address");
+                camera.WhenConnectedChanged.Returns(Observable.Return(true));
+                using var unsupported = new CameraViewModel(new ObservedCamera(camera));
+                main.Cameras.Add(unsupported);
+                Dispatcher.UIThread.RunJobs();
+                var initialX = MovementX(window, model);
+                Assert.Equal(initialX, MovementX(window, unsupported), 3);
+                Assert.False(FindWheel(window, model).IsVisible);
+                Assert.False(FindWheel(window, unsupported).IsVisible);
+
+                state.OnNext(new(true, 120, 140));
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(FindWheel(window, model).IsVisible);
+                Assert.Equal(initialX, MovementX(window, model), 3);
+                Assert.Equal(initialX, MovementX(window, unsupported), 3);
+
+                model.IsConnected = false;
+                Dispatcher.UIThread.RunJobs();
+                Assert.False(FindWheel(window, model).IsVisible);
+                Assert.Equal(initialX, MovementX(window, model), 3);
+                Assert.Equal(initialX, MovementX(window, unsupported), 3);
             });
         }
     }
@@ -230,6 +271,14 @@ public class CameraColorTests
     private static Button FindWheel(MainWindow window, CameraViewModel model) =>
         window.GetVisualDescendants().OfType<Button>().Single(button =>
             button.Name == "ColorCorrectionButton" && ReferenceEquals(button.DataContext, model));
+
+    private static double MovementX(MainWindow window, CameraViewModel model)
+    {
+        var row = Assert.IsType<Grid>(FindWheel(window, model).Parent);
+        var status = row.Children.OfType<TextBlock>().Single(text => Grid.GetColumn(text) == 2);
+        Assert.True(status.Bounds.Width > 0);
+        return Assert.IsType<Point>(status.TranslatePoint(default, window)).X;
+    }
 
     private static void ReadColor(Subject<byte[]> replies, int red, int blue)
     {

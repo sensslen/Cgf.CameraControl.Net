@@ -19,6 +19,7 @@ These new controls have not yet been verified on that camera. See
 ## Open the popover
 
 Expand **Cameras**, then click the color wheel beside the camera you want to adjust.
+Rows without color correction keep an empty wheel slot so camera movement status stays aligned.
 The address in the popover identifies the camera receiving the commands. Its pointer aims at
 that camera's button, including when the popover changes sides or shifts to fit the screen.
 
