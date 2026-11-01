@@ -12,7 +12,7 @@ picks what is built and an `instance` that everything else refers to it by.
 ```
 
 - **[The file](Root.md)** — the three lists, `type` and `instance`, and what happens when an entry is wrong.
-- **[Cameras](Cameras.md)** covers `cams`, camera connections, tally and live color correction.
+- **[Cameras](Cameras.md)** — `cams`, one entry per camera, and the tally payloads.
 - **[Video mixers](VideoMixers.md)** — `videoMixers`, the ATEM and the passthrough.
 - **[Interfaces](Interfaces.md)** — `interfaces`, the gamepad and the keyboard, their functions and every key name.
 

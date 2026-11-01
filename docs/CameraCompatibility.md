@@ -10,15 +10,16 @@ you, and say what you actually exercised rather than what you expect to work.
 | --- | --- | --- | --- |
 | [CineTreak CT-PT31K](https://cinetreak.com/product/ct-pt31k/) | `viscaoverip` | `avonic` | pan, tilt, zoom, focus, tally |
 
-## Implemented from documentation, no camera seen
-
-The `Websocket.PtzLanc` and `Signalr.PtzLanc` types drive homegrown LANC hardware rather than a
-camera off a shelf, so they are out of scope here. The VISCA payloads below are implemented from
-documentation.
+## Color correction
 
 Color correction is unverified on the CT-PT31K. Its
 [manual](https://cinetreak.com/download/ct-pt31k-user-manual/) lists automatic, manual and one-push
 white balance. See [color correction](ColorCorrection.md) for support detection and controls.
+
+## Implemented from documentation, no camera seen
+
+The `Websocket.PtzLanc` and `Signalr.PtzLanc` types drive homegrown LANC hardware rather than a
+camera off a shelf, so they are out of scope here. What is left is the VISCA tally payloads.
 
 | Payload | Documented by | Notes |
 | --- | --- | --- |
