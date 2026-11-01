@@ -81,13 +81,9 @@ The left stick pans and tilts, the right stick zooms and focuses, the direction 
 preview selection through `connectionChange`, the right shoulder cuts and the right trigger autos.
 The left shoulder holds `alt` and the left trigger holds `altLower`.
 
-With `panTiltInvert` off, moving the left stick right pans right and moving it up tilts up,
-matching the keyboard and mouse controls. This applies to both SDL and HID gamepads.
-Zoom and focus directions are unchanged.
-
-The corrected mapping reverses gamepad pan and tilt compared with earlier versions. If you enabled
-[`panTiltInvert`](Cameras.md) only to compensate for reversed gamepad controls, turn it off.
-Keep it enabled when the camera's mounting or LANC motor wiring requires inversion.
+With [`panTiltInvert`](Cameras.md) off, left-stick right pans right and up tilts up on both SDL
+and HID gamepads, matching keyboard and mouse controls. Inversion compensates for mounting or
+LANC motor wiring and does not affect zoom or focus.
 VISCA and the [websocket controller firmware](https://github.com/sensslen/Cgf.CameraControl.Camera/blob/9738b0361ce79d916e9f4ea0f0dece9abf47a543/src/State/State.cpp)
 both interpret positive pan as right and positive tilt as up. Cameras that still move in opposite
 directions need their per-camera inversion settings, camera flip settings, or controller wiring checked.
