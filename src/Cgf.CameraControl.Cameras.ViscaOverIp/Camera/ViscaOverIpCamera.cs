@@ -248,19 +248,14 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
 
     /// VISCA cameras reject commands when both buffers are full. ACK allows movement to advance,
     /// but color commands wait for completion so later modes cannot change earlier corrections.
+    /// Sending inside the gate keeps the recorded order of the inquiry and the command in flight the
+    /// order they reach the camera, which is what attributes a refusal on socket 0.
     private void Pump()
     {
-        while (true)
+        lock (_gate)
         {
-            byte[] packet;
-            bool inquiry;
-            lock (_gate)
+            while (_inFlight is null && _connected && _queue.Count != 0)
             {
-                if (_inFlight is not null || !_connected || _queue.Count == 0)
-                {
-                    return;
-                }
-
                 var index = _inquiry is not null || _sockets.Values.Any(command => IsColorCorrection(command.Category))
                     ? _queue.FindIndex(command => !IsColorCategory(command.Category))
                     : 0;
@@ -275,24 +270,18 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                     _accepted.Remove(ViscaCategory.RedGain);
                     _accepted.Remove(ViscaCategory.BlueGain);
                 }
-                packet = command.Packet;
-                inquiry = ViscaPacket.IsColorInquiry(command.Category);
-                if (inquiry)
+                if (ViscaPacket.IsColorInquiry(command.Category))
                 {
                     _inquiry = command with { SentAt = _time.GetTimestamp() };
+                    _inquiryExpiry.Change(CommandTimeout, Timeout.InfiniteTimeSpan);
                 }
                 else
                 {
                     _sentAt = _time.GetTimestamp();
                     _inFlight = command with { SentAt = _sentAt };
+                    _expiry.Change(CommandTimeout, Timeout.InfiniteTimeSpan);
                 }
-            }
-
-            (inquiry ? _inquiryExpiry : _expiry).Change(CommandTimeout, Timeout.InfiniteTimeSpan);
-            _transport.Send(packet);
-            if (!inquiry)
-            {
-                return;
+                _transport.Send(command.Packet);
             }
         }
     }
@@ -576,6 +565,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
     {
         Command buffered;
         var inquiry = false;
+        var ambiguousStop = false;
         lock (_gate)
         {
             if (!_sockets.Remove(socket, out buffered))
@@ -585,9 +575,10 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                     return ViscaCategory.ColorAction;
                 }
                 buffered = default;
-                // Replies come back in the order the requests went out, and a pending inquiry
-                // left before anything now in flight.
-                inquiry = _inquiry is not null;
+                // Inquiries use socket 0 and left before anything now in flight. A lost inquiry
+                // reply makes that guess unsafe, so a stop in flight is resent with it.
+                inquiry = socket == 0 && _inquiry is not null;
+                ambiguousStop = inquiry && resend && _inFlight is { } stop && IsMovementStop(stop.Category, stop.Packet);
                 if (!inquiry && !resend && _inFlight is { } refused && IsColorCorrection(refused.Category))
                 {
                     DiscardColorCommands();
@@ -626,7 +617,16 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
 
         if (buffered.Packet is null)
         {
-            return (inquiry ? ReleaseInquiry(resend) : Release(resend))?.Category;
+            if (!inquiry)
+            {
+                return Release(resend)?.Category;
+            }
+            var refused = ReleaseInquiry(resend);
+            if (ambiguousStop)
+            {
+                Release(resend: true);
+            }
+            return refused?.Category;
         }
         Pump();
         return buffered.Category;

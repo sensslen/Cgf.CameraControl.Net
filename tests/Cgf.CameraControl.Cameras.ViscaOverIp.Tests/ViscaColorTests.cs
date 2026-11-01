@@ -824,6 +824,40 @@ public class ViscaColorTests : IAsyncDisposable
             Assert.Equal(new CameraColorState(true, 128, 128), _state);
         }
 
+        [Fact]
+        public void AmbiguousSocketZeroRefusalResendsTheStopInFlight()
+        {
+            Discover();
+            _camera.Pan(1);
+            _transport.Acknowledge();
+            _camera.RefreshColor();
+            _camera.Pan(0);
+            var sent = _transport.Sent.Count;
+            _transport.Refuse(socket: 0, error: 0x03);
+            Assert.Equal(sent + 1, _transport.Sent.Count);
+            Assert.Equal(ViscaPacket.PanTilt(0, 0), _transport.Sent[^1]);
+            _transport.Acknowledge();
+            _transport.Receive(0x90, 0x50, 0, 0, 8, 0, 0xFF);
+            _transport.Receive(0x90, 0x50, 0, 0, 8, 0, 0xFF);
+            Assert.Equal(ViscaPacket.WhiteBalanceInquiry(), _transport.Sent[^1]);
+            _transport.Receive(0x90, 0x50, 5, 0xFF);
+            Assert.Equal(new CameraColorState(true, 128, 128), _state);
+        }
+
+        [Fact]
+        public void RefusalOnACommandSocketReleasesMovementAndKeepsTheInquiry()
+        {
+            Discover();
+            _camera.RefreshColor();
+            _camera.Pan(1);
+            _transport.Refuse(socket: 1, error: 0x41);
+            _camera.Pan(0);
+            Assert.Equal(ViscaPacket.PanTilt(0, 0), _transport.Sent[^1]);
+            _transport.Acknowledge();
+            DiscoverReplies();
+            Assert.Equal(new CameraColorState(true, 128, 128), _state);
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
