@@ -83,6 +83,176 @@ public class CameraColorTests
         }
     }
 
+    public class AvailabilityRaces : CameraColorTests
+    {
+        [Theory]
+        [InlineData("onePush")]
+        [InlineData("manual")]
+        [InlineData("red")]
+        [InlineData("blue")]
+        public async Task StateInvalidatedDuringCommandDisablesPanelAndRestartsReadback(string action)
+        {
+            await WithColorModel((model, color, state) =>
+            {
+                state.OnNext(new(true, 120, 140));
+                Dispatcher.UIThread.RunJobs();
+                color.When(control => Apply(control, action)).Do(_ =>
+                {
+                    state.OnNext(null);
+                    throw new InvalidOperationException("The camera has not reported support for color correction.");
+                });
+                Apply(model, action);
+                Assert.False(model.CanCorrectColor);
+                color.Received(2).RefreshColor();
+                Dispatcher.UIThread.RunJobs();
+                Assert.False(model.CanCorrectColor);
+            });
+        }
+
+        [Fact]
+        public async Task UnexpectedCommandFailureIsNotSwallowed()
+        {
+            await WithColorModel((model, color, state) =>
+            {
+                state.OnNext(new(true, 120, 140));
+                Dispatcher.UIThread.RunJobs();
+                color.When(control => control.SetRedGain(200))
+                    .Do(_ => throw new InvalidOperationException("Unexpected failure."));
+                Assert.Throws<InvalidOperationException>(() => model.RedGain = 200);
+            });
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ManualModeChangedDuringGainCommandResynchronizesItsCheckbox(bool blue)
+        {
+            await WithColorModel((model, color, state) =>
+            {
+                state.OnNext(new(true, 120, 140));
+                Dispatcher.UIThread.RunJobs();
+                var action = blue ? "blue" : "red";
+                color.When(control => Apply(control, action)).Do(_ =>
+                {
+                    state.OnNext(new(false, 120, 140));
+                    throw new InvalidOperationException("Color gains require manual white balance.");
+                });
+                Apply(model, action);
+                Assert.False(model.IsManualWhiteBalance);
+                Assert.False(model.CanAdjustGains);
+                color.Received(2).RefreshColor();
+            });
+        }
+
+        [Theory]
+        [InlineData("onePush", false)]
+        [InlineData("manual", false)]
+        [InlineData("red", false)]
+        [InlineData("blue", false)]
+        [InlineData("onePush", true)]
+        [InlineData("manual", true)]
+        [InlineData("red", true)]
+        [InlineData("blue", true)]
+        public async Task RealViscaAvailabilityChangesResynchronizeStaleControls(string action, bool disconnected)
+        {
+            var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(CameraColorTests).Assembly);
+            await session.Dispatch(async () =>
+            {
+                using var replies = new Subject<byte[]>();
+                using var connection = new BehaviorSubject<bool>(true);
+                var transport = Substitute.For<IViscaTransport>();
+                transport.WhenConnectedChanged.Returns(connection);
+                transport.Received.Returns(replies);
+                await using var camera = new ViscaOverIpCamera(new() { Ip = "127.0.0.1" },
+                    transport, Substitute.For<ILogger>());
+                using var model = new CameraViewModel(new ObservedCamera(camera));
+                Dispatcher.UIThread.RunJobs();
+                ReadColor(replies, 120, 140);
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(model.CanAdjustGains);
+                if (disconnected)
+                {
+                    connection.OnNext(false);
+                }
+                else
+                {
+                    camera.RefreshColor();
+                }
+                Assert.True(model.CanAdjustGains);
+                Apply(model, action);
+                Assert.False(model.CanCorrectColor);
+                transport.DidNotReceive().Send(Arg.Is<byte[]>(packet => packet[1] == 0x01));
+                if (disconnected)
+                {
+                    connection.OnNext(true);
+                    Dispatcher.UIThread.RunJobs();
+                }
+                ReadColor(replies, 100, 160);
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(model.CanAdjustGains);
+                Assert.Equal(100, model.RedGain);
+                Assert.Equal(160, model.BlueGain);
+                return true;
+            }, TestContext.Current.CancellationToken);
+        }
+
+        private static void Apply(CameraViewModel model, string action)
+        {
+            switch (action)
+            {
+                case "onePush":
+                    model.OnePushWhiteBalanceCommand.Execute(null);
+                    break;
+                case "manual":
+                    model.IsManualWhiteBalance = false;
+                    break;
+                case "red":
+                    model.RedGain = 200;
+                    break;
+                case "blue":
+                    model.BlueGain = 200;
+                    break;
+            }
+        }
+
+        private static void Apply(ICameraColorControl color, string action)
+        {
+            switch (action)
+            {
+                case "onePush":
+                    color.OnePushWhiteBalance();
+                    break;
+                case "manual":
+                    color.SetManualWhiteBalance(false);
+                    break;
+                case "red":
+                    color.SetRedGain(200);
+                    break;
+                case "blue":
+                    color.SetBlueGain(200);
+                    break;
+            }
+        }
+
+        private static Task WithColorModel(
+            Action<CameraViewModel, ICameraColorControl, BehaviorSubject<CameraColorState?>> check)
+        {
+            var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(CameraColorTests).Assembly);
+            return session.Dispatch(() =>
+            {
+                var camera = Substitute.For<ICameraConnection, ICameraColorControl>();
+                var color = Assert.IsAssignableFrom<ICameraColorControl>(camera);
+                camera.WhenConnectedChanged.Returns(Observable.Return(true));
+                using var state = new BehaviorSubject<CameraColorState?>(null);
+                color.WhenColorChanged.Returns(state);
+                using var model = new CameraViewModel(new ObservedCamera(camera));
+                Dispatcher.UIThread.RunJobs();
+                check(model, color, state);
+                Dispatcher.UIThread.RunJobs();
+            }, TestContext.Current.CancellationToken);
+        }
+    }
+
     public class Layout : CameraColorTests
     {
         [Theory]

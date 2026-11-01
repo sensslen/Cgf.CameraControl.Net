@@ -1,4 +1,5 @@
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.Core.CameraConnection;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -10,6 +11,7 @@ public sealed partial class CameraViewModel : ViewModelBase, IDisposable
 {
     private readonly CompositeDisposable _subscriptions = [];
     private readonly ICameraColorControl? _colorControl;
+    private CameraColorState? _latestColor;
     private bool _updatingColor;
     private bool _disposed;
 
@@ -20,7 +22,9 @@ public sealed partial class CameraViewModel : ViewModelBase, IDisposable
 
         if (_colorControl is { } color)
         {
-            _subscriptions.Add(color.WhenColorChanged.Bind(UpdateColor));
+            _subscriptions.Add(color.WhenColorChanged
+                .Do(state => Volatile.Write(ref _latestColor, state))
+                .Bind(UpdateColor));
         }
 
         _subscriptions.Add(camera.WhenConnectedChanged.Bind(connected =>
@@ -72,7 +76,7 @@ public sealed partial class CameraViewModel : ViewModelBase, IDisposable
     public bool CanAdjustGains => CanCorrectColor && IsManualWhiteBalance;
 
     [RelayCommand(CanExecute = nameof(CanCorrectColor))]
-    private void OnePushWhiteBalance() => _colorControl?.OnePushWhiteBalance();
+    private void OnePushWhiteBalance() => ApplyColorChange(color => color.OnePushWhiteBalance());
 
     public void RefreshColor() => _colorControl?.RefreshColor();
 
@@ -88,7 +92,7 @@ public sealed partial class CameraViewModel : ViewModelBase, IDisposable
     {
         if (!_updatingColor && CanCorrectColor)
         {
-            _colorControl?.SetManualWhiteBalance(value);
+            ApplyColorChange(color => color.SetManualWhiteBalance(value));
         }
     }
 
@@ -96,7 +100,7 @@ public sealed partial class CameraViewModel : ViewModelBase, IDisposable
     {
         if (!_updatingColor && CanAdjustGains)
         {
-            _colorControl?.SetRedGain(value);
+            ApplyColorChange(color => color.SetRedGain(value), requiresManual: true);
         }
     }
 
@@ -104,7 +108,26 @@ public sealed partial class CameraViewModel : ViewModelBase, IDisposable
     {
         if (!_updatingColor && CanAdjustGains)
         {
-            _colorControl?.SetBlueGain(value);
+            ApplyColorChange(color => color.SetBlueGain(value), requiresManual: true);
+        }
+    }
+
+    private void ApplyColorChange(Action<ICameraColorControl> apply, bool requiresManual = false)
+    {
+        if (_colorControl is not { } color || _disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            apply(color);
+        }
+        catch (InvalidOperationException) when (Volatile.Read(ref _latestColor) is not { } state
+            || requiresManual && !state.IsManual)
+        {
+            UpdateColor(Volatile.Read(ref _latestColor));
+            color.RefreshColor();
         }
     }
 

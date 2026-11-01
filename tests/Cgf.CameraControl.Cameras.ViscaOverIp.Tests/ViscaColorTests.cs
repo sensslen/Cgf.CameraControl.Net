@@ -355,6 +355,216 @@ public class ViscaColorTests : IAsyncDisposable
         }
     }
 
+    public class ReviewRecovery : ViscaColorTests
+    {
+        [Fact]
+        public void BufferedWhiteBalanceRetriesWaitForMovementStops()
+        {
+            Discover();
+            _camera.SetManualWhiteBalance(false);
+            _transport.Acknowledge(socket: 1);
+            _camera.Focus(1);
+            _camera.SetManualWhiteBalance(true);
+            _camera.Pan(0);
+            _transport.Refuse(socket: 1, error: 0x03);
+            _transport.Acknowledge(socket: 2);
+            Assert.Equal(ViscaPacket.PanTilt(0, 0), _transport.Sent[^1]);
+            _transport.Acknowledge(socket: 1);
+            Assert.Equal(ViscaPacket.WhiteBalance(false), _transport.Sent[^1]);
+            _transport.Acknowledge(socket: 2);
+            Assert.Equal(ViscaPacket.WhiteBalance(true), _transport.Sent[^1]);
+        }
+
+        [Fact]
+        public void RetriedMovementStopStaysAheadOfCorrections()
+        {
+            Discover();
+            _camera.Pan(1);
+            _camera.SetRedGain(200);
+            _camera.Zoom(0);
+            _transport.Acknowledge();
+            _transport.Refuse(socket: 0, error: 0x03);
+            Assert.Equal(ViscaPacket.Zoom(0), _transport.Sent[^1]);
+            _transport.Acknowledge();
+            Assert.Equal(ViscaPacket.RedGain(200), _transport.Sent[^1]);
+        }
+
+        [Theory]
+        [InlineData(ViscaCategory.PanTilt, 0x03)]
+        [InlineData(ViscaCategory.Zoom, 0x03)]
+        [InlineData(ViscaCategory.Focus, 0x03)]
+        [InlineData(ViscaCategory.PanTilt, 0x05)]
+        [InlineData(ViscaCategory.Zoom, 0x05)]
+        [InlineData(ViscaCategory.Focus, 0x05)]
+        public void WhiteBalanceRetriesWaitForMovementStops(ViscaCategory category, byte error)
+        {
+            Discover();
+            _camera.OnePushWhiteBalance();
+            switch (category)
+            {
+                case ViscaCategory.PanTilt:
+                    _camera.Pan(0);
+                    break;
+                case ViscaCategory.Zoom:
+                    _camera.Zoom(0);
+                    break;
+                case ViscaCategory.Focus:
+                    _camera.Focus(0);
+                    break;
+            }
+            _transport.Refuse(socket: 0, error: error);
+            Assert.Equal(category switch
+            {
+                ViscaCategory.PanTilt => ViscaPacket.PanTilt(0, 0),
+                ViscaCategory.Zoom => ViscaPacket.Zoom(0),
+                _ => ViscaPacket.Focus(0),
+            }, _transport.Sent[^1]);
+            _transport.Acknowledge();
+            Assert.Equal(ViscaPacket.OnePushWhiteBalanceMode(), _transport.Sent[^1]);
+            _transport.Acknowledge();
+            Assert.Equal(ViscaPacket.OnePushWhiteBalanceTrigger(), _transport.Sent[^1]);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void LateExpiredSocketRepliesCannotReleaseMovement(bool refused)
+        {
+            Discover();
+            _camera.OnePushWhiteBalance();
+            _transport.Acknowledge(socket: 1);
+            _transport.Complete(socket: 1);
+            _transport.Acknowledge(socket: 2);
+            _time.Advance(TimeSpan.FromSeconds(5));
+            DiscoverReplies();
+            _camera.Pan(1);
+            _camera.Zoom(1);
+            var sent = _transport.Sent.Count;
+            if (refused)
+            {
+                _transport.Refuse(socket: 2, error: 0x41);
+            }
+            else
+            {
+                _transport.Complete(socket: 2);
+            }
+            Assert.Equal(sent, _transport.Sent.Count);
+            Assert.Equal(ViscaPacket.PanTilt(24, 0), _transport.Sent[^1]);
+            _time.Advance(TimeSpan.FromSeconds(5));
+            Assert.Equal(ViscaPacket.Zoom(8), _transport.Sent[^1]);
+            _transport.Acknowledge();
+            Assert.Equal(ViscaPacket.PanTilt(24, 0), _transport.Sent[^1]);
+            _logger.Received().Error(Arg.Any<string>(), Arg.Is<string>(message =>
+                message.Contains("no answer to the pan and tilt command")));
+        }
+
+        [Fact]
+        public void ReusedExpiredSocketTracksItsNewWhiteBalanceCommand()
+        {
+            Discover();
+            _camera.SetManualWhiteBalance(false);
+            _transport.Acknowledge(socket: 2);
+            _time.Advance(TimeSpan.FromSeconds(5));
+            DiscoverReplies();
+            _camera.SetManualWhiteBalance(true);
+            _transport.Acknowledge(socket: 2);
+            _transport.Complete(socket: 2);
+            Assert.Null(_state);
+            Assert.Equal(ViscaPacket.WhiteBalanceInquiry(), _transport.Sent[^1]);
+        }
+
+        [Theory]
+        [InlineData(false, 100)]
+        [InlineData(false, 200)]
+        [InlineData(true, 100)]
+        [InlineData(true, 200)]
+        public void GainsCoalesceOnlyWithinWhiteBalanceActionBarriers(bool blue, int finalValue)
+        {
+            Discover();
+            _camera.Pan(1);
+            SetGain(100);
+            _camera.OnePushWhiteBalance();
+            _camera.SetManualWhiteBalance(true);
+            SetGain(150);
+            SetGain(finalValue);
+            for (var index = 0; index < 5; index++)
+            {
+                _transport.Acknowledge();
+            }
+            Assert.Equal(9, _transport.Sent.Count);
+            Assert.Equal(GainPacket(100), _transport.Sent[4]);
+            Assert.Equal(ViscaPacket.OnePushWhiteBalanceMode(), _transport.Sent[5]);
+            Assert.Equal(ViscaPacket.OnePushWhiteBalanceTrigger(), _transport.Sent[6]);
+            Assert.Equal(ViscaPacket.WhiteBalance(true), _transport.Sent[7]);
+            Assert.Equal(GainPacket(finalValue), _transport.Sent[8]);
+
+            void SetGain(int value)
+            {
+                if (blue)
+                {
+                    _camera.SetBlueGain(value);
+                }
+                else
+                {
+                    _camera.SetRedGain(value);
+                }
+            }
+
+            byte[] GainPacket(int value) => blue ? ViscaPacket.BlueGain(value) : ViscaPacket.RedGain(value);
+        }
+
+        [Theory]
+        [InlineData(false, 0)]
+        [InlineData(false, 1)]
+        [InlineData(false, 2)]
+        [InlineData(true, 0)]
+        [InlineData(true, 1)]
+        [InlineData(true, 2)]
+        public void RefusedBufferedGainPreservesEveryStageOfActiveReadback(bool blue, int inquiry)
+        {
+            Discover();
+            if (blue)
+            {
+                _camera.SetBlueGain(200);
+            }
+            else
+            {
+                _camera.SetRedGain(200);
+            }
+            _transport.Acknowledge();
+            _camera.RefreshColor();
+            if (inquiry > 0)
+            {
+                _transport.Receive(0x90, 0x50, 5, 0xFF);
+            }
+            if (inquiry > 1)
+            {
+                _transport.Receive(0x90, 0x50, 0, 0, 8, 0, 0xFF);
+            }
+            _transport.Refuse(socket: 1, error: 0x41);
+            Assert.Null(_state);
+            if (inquiry == 0)
+            {
+                _transport.Receive(0x90, 0x50, 5, 0xFF);
+            }
+            if (inquiry < 2)
+            {
+                _transport.Receive(0x90, 0x50, 0, 0, 8, 0, 0xFF);
+            }
+            _transport.Receive(0x90, 0x50, 0, 0, 8, 0, 0xFF);
+            Assert.Equal(new CameraColorState(true, 128, 128), _state);
+            Assert.Equal(7, _transport.Sent.Count);
+        }
+
+        private void DiscoverReplies()
+        {
+            _transport.Receive(0x90, 0x50, 5, 0xFF);
+            _transport.Receive(0x90, 0x50, 0, 0, 8, 0, 0xFF);
+            _transport.Receive(0x90, 0x50, 0, 0, 8, 0, 0xFF);
+            Assert.NotNull(_state);
+        }
+    }
+
     private void Discover()
     {
         _camera.RefreshColor();

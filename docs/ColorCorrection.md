@@ -53,7 +53,8 @@ again as the lighting changes.
 The panel reads settings when opened, after white-balance completion, and after a refused gain
 command. If an acknowledged white-balance command has no completion after five seconds, the
 application reads current settings without replaying the action. Controls are disabled during
-readback; gain sliders require manual white balance.
+readback; gain sliders require manual white balance. If settings become unavailable during an
+adjustment, the panel disables the affected controls and rereads the camera.
 These settings belong to the camera, not the configuration file. Whether they survive a camera
 restart depends on the camera.
 
