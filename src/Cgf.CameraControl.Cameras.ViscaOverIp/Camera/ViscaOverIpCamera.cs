@@ -15,6 +15,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
     private readonly Lock _gate = new();
     private readonly TimeProvider _time;
     private readonly ITimer _expiry;
+    private readonly ITimer _colorCompletionExpiry;
     private readonly List<ViscaCategory> _order = [];
     private readonly Dictionary<ViscaCategory, byte[]> _queued = [];
     private readonly Dictionary<int, Command> _sockets = [];
@@ -44,6 +45,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         _logger = logger;
         _time = time ?? TimeProvider.System;
         _expiry = _time.CreateTimer(_ => Expire(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        _colorCompletionExpiry = _time.CreateTimer(_ => ExpireColorCompletion(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         _replies = transport.Received.Subscribe(OnReceived);
         _connection = transport.WhenConnectedChanged.Subscribe(OnConnectionChanged);
         transport.Start();
@@ -160,6 +162,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         _replies.Dispose();
         _connection.Dispose();
         _expiry.Dispose();
+        _colorCompletionExpiry.Dispose();
         await _transport.DisposeAsync().ConfigureAwait(false);
         _color.Dispose();
     }
@@ -192,7 +195,21 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
 
             if (!_queued.ContainsKey(category))
             {
-                _order.Add(category);
+                if (IsMovementStop(category, packet))
+                {
+                    var colorIndex = _order.FindIndex(IsColorCategory);
+                    _order.Insert(colorIndex < 0 ? _order.Count : colorIndex, category);
+                }
+                else
+                {
+                    _order.Add(category);
+                }
+            }
+            else if (IsMovementStop(category, packet))
+            {
+                _order.Remove(category);
+                var colorIndex = _order.FindIndex(IsColorCategory);
+                _order.Insert(colorIndex < 0 ? _order.Count : colorIndex, category);
             }
 
             _queued[category] = packet;
@@ -226,8 +243,8 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                 packet = _queued[category];
                 _queued.Remove(category);
             }
-            _inFlight = new Command(category, packet);
             _sentAt = _time.GetTimestamp();
+            _inFlight = new Command(category, packet, _sentAt);
         }
 
         _expiry.Change(CommandTimeout, Timeout.InfiniteTimeSpan);
@@ -260,7 +277,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                         DiscardColorCommands();
                         _color.OnNext(null);
                     }
-                    else
+                    else if (!expired || !ViscaPacket.IsColorInquiry(command.Category))
                     {
                         Requeue(command);
                     }
@@ -279,11 +296,6 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
     /// Called with _gate held. A newer packet for the same axis already says where it should be.
     private void Requeue(Command command)
     {
-        if (ViscaPacket.IsColorInquiry(command.Category))
-        {
-            return;
-        }
-
         if (command.Category == ViscaCategory.ColorAction)
         {
             _colorActions.AddFirst(command.Packet);
@@ -307,6 +319,30 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
             _logger.Error(
                 "ViscaOverIpCamera",
                 $"({_config.Ip}) no answer to {Name(lost.Category)} within {CommandTimeout.TotalSeconds:0} seconds");
+        }
+    }
+
+    private void ExpireColorCompletion()
+    {
+        lock (_gate)
+        {
+            var lost = _sockets.Where(entry => NeedsColorReadback(entry.Value)
+                && _time.GetElapsedTime(entry.Value.SentAt) >= CommandTimeout).ToArray();
+            foreach (var entry in lost)
+            {
+                _sockets.Remove(entry.Key);
+            }
+
+            if (lost.Length != 0)
+            {
+                _logger.Error("ViscaOverIpCamera", $"({_config.Ip}) no completion for the white balance command; reading current settings");
+                RefreshColor();
+            }
+
+            if (!_sockets.Values.Any(NeedsColorReadback))
+            {
+                _colorCompletionExpiry.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            }
         }
     }
 
@@ -352,6 +388,10 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                         lock (_gate)
                         {
                             _sockets[socket] = accepted;
+                            if (NeedsColorReadback(accepted))
+                            {
+                                _colorCompletionExpiry.Change(CommandTimeout, CommandTimeout);
+                            }
                         }
                     }
 
@@ -381,8 +421,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                         completed = Release(resend: false);
                     }
 
-                    if (completed is { Category: ViscaCategory.ColorAction, Packet: [0x81, 0x01, 0x04, 0x10, 0x05, 0xFF] }
-                        or { Category: ViscaCategory.ColorAction, Packet: [0x81, 0x01, 0x04, 0x35, 0x00 or 0x05, 0xFF] })
+                    if (completed is { } colorCommand && NeedsColorReadback(colorCommand))
                     {
                         RefreshColor();
                     }
@@ -453,6 +492,11 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                     DiscardColorCommands();
                     _color.OnNext(null);
                 }
+                else if (!resend && _inFlight is { Category: ViscaCategory.RedGain or ViscaCategory.BlueGain })
+                {
+                    DiscardColorCommands();
+                    _color.OnNext(null);
+                }
             }
             else if (buffered.Category == ViscaCategory.ColorAction)
             {
@@ -473,13 +517,27 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                 _accepted.Remove(buffered.Category);
                 Requeue(buffered);
             }
+            else if (!resend && buffered.Category is ViscaCategory.RedGain or ViscaCategory.BlueGain)
+            {
+                DiscardColorCommands();
+                _color.OnNext(null);
+            }
         }
 
         if (buffered.Packet is null)
         {
-            return Release(resend)?.Category;
+            var refused = Release(resend)?.Category;
+            if (!resend && refused is ViscaCategory.RedGain or ViscaCategory.BlueGain)
+            {
+                RefreshColor();
+            }
+            return refused;
         }
 
+        if (!resend && buffered.Category is ViscaCategory.RedGain or ViscaCategory.BlueGain)
+        {
+            RefreshColor();
+        }
         Pump();
         return buffered.Category;
     }
@@ -506,6 +564,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                 }
 
                 _sockets.Clear();
+                _colorCompletionExpiry.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
                 // A camera that went away may come back having forgotten everything, so nothing it
                 // was told before still counts as sent.
@@ -551,5 +610,13 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
     private static int Scale(double value, double maximum) =>
         (int)Math.Round(Math.Clamp(value, -1, 1) * maximum);
 
-    private readonly record struct Command(ViscaCategory Category, byte[] Packet);
+    private static bool NeedsColorReadback(Command command) =>
+        command is { Category: ViscaCategory.ColorAction, Packet: [0x81, 0x01, 0x04, 0x10, 0x05, 0xFF] }
+            or { Category: ViscaCategory.ColorAction, Packet: [0x81, 0x01, 0x04, 0x35, 0x00 or 0x05, 0xFF] };
+
+    private static bool IsMovementStop(ViscaCategory category, byte[] packet) =>
+        category == ViscaCategory.PanTilt && packet[6] == 0x03 && packet[7] == 0x03
+        || category is ViscaCategory.Zoom or ViscaCategory.Focus && packet[4] == 0;
+
+    private readonly record struct Command(ViscaCategory Category, byte[] Packet, long SentAt);
 }

@@ -12,9 +12,7 @@ The application checks support by reading white-balance mode, red gain and blue 
 The color-wheel button appears only after all three inquiries return valid settings.
 The LANC camera types do not offer these controls.
 
-The CineTreak CT-PT31K lists automatic, manual and one-push white balance in its manual.
-These new controls have not yet been verified on that camera. See
-[camera compatibility](CameraCompatibility.md) for the commands and hardware verification status.
+See [camera compatibility](CameraCompatibility.md) for protocol sources and hardware verification.
 
 ## Open the popover
 
@@ -50,8 +48,10 @@ Changes are sent immediately. There is no Apply or Save button.
 Turning manual white balance off restores automatic white balance, which can change the balance
 again as the lighting changes.
 
-The panel reads settings when opened and after white-balance changes. Controls are disabled while
-those readings are pending; gain sliders also require manual white balance.
+The panel reads settings when opened, after white-balance completion, and after a refused gain
+command. If an acknowledged white-balance command has no completion after five seconds, the
+application reads current settings without replaying the action. Controls are disabled during
+readback; gain sliders require manual white balance.
 These settings belong to the camera, not the configuration file. Whether they survive a camera
 restart depends on the camera.
 
@@ -66,4 +66,9 @@ inquiries. A connected camera can still lack color correction.
 
 Select **ViscaOverIpCamera** in the log to see refused commands, unsupported inquiries and
 timeouts. A timed-out white-balance action is not automatically replayed.
-Close and reopen the popover to read settings again after a failed operation.
+Transient inquiry refusals are retried; unanswered inquiries time out. Movement stops take
+priority over queued color commands.
+
+Raw VISCA replies have no request identifier. A delayed reply can be mistaken for a newer inquiry
+of the same shape. Close and reopen the popover to read settings again if values look stale or
+after a failed operation.

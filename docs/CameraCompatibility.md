@@ -16,11 +16,9 @@ The `Websocket.PtzLanc` and `Signalr.PtzLanc` types drive homegrown LANC hardwar
 camera off a shelf, so they are out of scope here. The VISCA payloads below are implemented from
 documentation.
 
-Color correction is also implemented from the VISCA command documentation, but has not yet been
-verified on the CT-PT31K. Its [manual](https://cinetreak.com/download/ct-pt31k-user-manual/)
-lists automatic, manual and one-push white balance. The panel becomes available only when the
-camera answers white-balance mode, red gain and blue gain inquiries.
-The [color-correction guide](ColorCorrection.md) shows how to use the controls.
+Color correction is unverified on the CT-PT31K. Its
+[manual](https://cinetreak.com/download/ct-pt31k-user-manual/) lists automatic, manual and one-push
+white balance. See [color correction](ColorCorrection.md) for support detection and controls.
 
 | Payload | Documented by | Notes |
 | --- | --- | --- |

@@ -48,13 +48,8 @@ still answering something. A camera that stops answering for ten seconds goes da
 
 ### Color correction
 
-No configuration flag is needed. Once a VISCA camera answers white-balance mode and red/blue gain
-inquiries, a color-wheel button appears beside it in the Cameras pane. Click it for one-push white
-balance and manual red/blue gain adjustments. These live settings are sent to the camera rather
-than saved in this configuration.
-
-See [color correction](../ColorCorrection.md) for the illustrated guide, supported commands,
-and troubleshooting. `tallyMode` does not affect availability.
+Color correction needs no configuration flag and is independent of `tallyMode`.
+See [color correction](../ColorCorrection.md) for support detection, controls and troubleshooting.
 
 ### `tallyMode`
 
