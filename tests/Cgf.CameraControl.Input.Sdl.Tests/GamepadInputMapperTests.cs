@@ -13,9 +13,6 @@ public class GamepadInputMapperTests
 
     public class Sticks : GamepadInputMapperTests
     {
-        // The pad this replaces interpolated raw HID through a table that inverted three of the four
-        // axes. SDL reports a signed range with Y positive downward, which is the same inversion on
-        // everything except tilt.
         [Fact]
         public void PushingLeftPansLeft()
         {
@@ -23,17 +20,29 @@ public class GamepadInputMapperTests
 
             _mapper.Axis(SDL.GamepadAxis.LeftX, -Max);
 
-            Assert.Equal(1, positions.Single().X);
+            Assert.Equal(-1, positions.Single().X);
         }
 
         [Fact]
-        public void PullingBackTiltsUp()
+        public void PushingUpTiltsUp()
         {
             var positions = Record(_mapper.LeftStick);
 
             _mapper.Axis(SDL.GamepadAxis.LeftY, -Max);
 
-            Assert.Equal(-1, positions.Single().Y);
+            Assert.Equal(1, positions.Single().Y);
+        }
+
+        [Theory]
+        [InlineData(SDL.GamepadAxis.LeftX, 1, 0)]
+        [InlineData(SDL.GamepadAxis.LeftY, 0, -1)]
+        public void PushingRightOrDownUsesTheOppositeDirection(SDL.GamepadAxis axis, double pan, double tilt)
+        {
+            var positions = Record(_mapper.LeftStick);
+
+            _mapper.Axis(axis, Max);
+
+            Assert.Equal(new StickPosition(pan, tilt), positions.Single());
         }
 
         [Fact]
@@ -64,7 +73,7 @@ public class GamepadInputMapperTests
             _mapper.Axis(SDL.GamepadAxis.LeftX, -Max);
             _mapper.Axis(SDL.GamepadAxis.LeftY, Max);
 
-            Assert.Equal(new StickPosition(1, 1), positions.Last());
+            Assert.Equal(new StickPosition(-1, -1), positions.Last());
         }
 
         // SDL repeats the current value on some drivers, and every emission is a websocket frame to
@@ -104,7 +113,7 @@ public class GamepadInputMapperTests
 
             _gated.Axis(SDL.GamepadAxis.LeftX, (short)-(Max * 3 / 4));
 
-            Assert.Equal(0.5, positions.Single().X, 3);
+            Assert.Equal(-0.5, positions.Single().X, 3);
         }
 
         [Fact]
@@ -114,7 +123,7 @@ public class GamepadInputMapperTests
 
             _gated.Axis(SDL.GamepadAxis.LeftX, -Max);
 
-            Assert.Equal(1, positions.Single().X);
+            Assert.Equal(-1, positions.Single().X);
         }
     }
 

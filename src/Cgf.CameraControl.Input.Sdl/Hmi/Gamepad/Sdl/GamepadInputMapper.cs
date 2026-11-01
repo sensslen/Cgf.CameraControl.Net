@@ -53,10 +53,10 @@ public sealed class GamepadInputMapper : IDisposable
         switch (axis)
         {
             case SDL.GamepadAxis.LeftX:
-                SetLeft(_left with { X = -Stick(raw) });
+                SetLeft(_left with { X = Stick(raw) });
                 break;
             case SDL.GamepadAxis.LeftY:
-                SetLeft(_left with { Y = Stick(raw) });
+                SetLeft(_left with { Y = -Stick(raw) });
                 break;
             case SDL.GamepadAxis.RightX:
                 SetRight(_right with { X = -Stick(raw) });

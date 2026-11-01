@@ -24,7 +24,7 @@ public class HidGamepadDeviceTests
         var connections = 0;
         using var movement = device.LeftStick.Subscribe(position =>
         {
-            if (position.X == 1)
+            if (position.X == -1)
             {
                 moved.TrySetResult();
             }
@@ -61,7 +61,7 @@ public class HidGamepadDeviceTests
         var moved = Signal();
         using var movement = device.LeftStick.Subscribe(position =>
         {
-            if (position.X == 1)
+            if (position.X == -1)
             {
                 moved.TrySetResult();
             }
@@ -86,7 +86,7 @@ public class HidGamepadDeviceTests
         var thrown = false;
         using var movement = device.LeftStick.Subscribe(position =>
         {
-            if (position.X != 1)
+            if (position.X != -1)
             {
                 return;
             }
@@ -118,7 +118,7 @@ public class HidGamepadDeviceTests
         var thrown = false;
         using var drawing = device.State.Subscribe(state =>
         {
-            if (state.LeftStick.X == 1 && !thrown)
+            if (state.LeftStick.X == -1 && !thrown)
             {
                 thrown = true;
                 throw new InvalidOperationException("drawing gone");
@@ -126,7 +126,7 @@ public class HidGamepadDeviceTests
         });
         using var movement = device.LeftStick.Subscribe(position =>
         {
-            if (position.X == 1)
+            if (position.X == -1)
             {
                 moved.TrySetResult();
             }

@@ -111,10 +111,8 @@ public partial class GamepadWireframe : UserControl
         }
     }
 
-    /// Camera-space pan/focus increase leftward, tilt increases downward, and zoom
-    /// increases upward. Screen coordinates increase rightward and downward.
     public static Point StickOffset(StickPosition at, bool isLeftStick) =>
-        new(-at.X * Travel, (isLeftStick ? at.Y : -at.Y) * Travel);
+        new((isLeftStick ? at.X : -at.X) * Travel, -at.Y * Travel);
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {

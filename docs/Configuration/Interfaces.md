@@ -81,6 +81,13 @@ The left stick pans and tilts, the right stick zooms and focuses, the direction 
 preview selection through `connectionChange`, the right shoulder cuts and the right trigger autos.
 The left shoulder holds `alt` and the left trigger holds `altLower`.
 
+With [`panTiltInvert`](Cameras.md) off, left-stick right pans right and up tilts up on both SDL
+and HID gamepads, matching keyboard and mouse controls. Inversion compensates for mounting or
+LANC motor wiring and does not affect zoom or focus.
+VISCA and the [websocket controller firmware](https://github.com/sensslen/Cgf.CameraControl.Camera/blob/9738b0361ce79d916e9f4ea0f0dece9abf47a543/src/State/State.cpp)
+both interpret positive pan as right and positive tilt as up. Cameras that still move in opposite
+directions need their per-camera inversion settings, camera flip settings, or controller wiring checked.
+
 A pad has four face buttons and no more. The way past four is the modifier sets:
 
 ```json
