@@ -46,6 +46,16 @@ Presence is asked rather than assumed. UDP opens as readily at an empty address 
 the version inquiry goes out every three seconds and the camera counts as connected while it is
 still answering something. A camera that stops answering for ten seconds goes dark in the window.
 
+### Color correction
+
+No configuration flag is needed. Once a VISCA camera answers white-balance mode and red/blue gain
+inquiries, a color-wheel button appears beside it in the Cameras pane. Click it for one-push white
+balance and manual red/blue gain adjustments. These live settings are sent to the camera rather
+than saved in this configuration.
+
+See [color correction](../ColorCorrection.md) for the illustrated guide, supported commands,
+and troubleshooting. `tallyMode` does not affect availability.
+
 ### `tallyMode`
 
 Nothing in the VISCA specification covers a tally lamp, so the payloads are vendor specific and only

@@ -138,6 +138,22 @@ does something unrelated rather than nothing.
 [Camera compatibility](docs/CameraCompatibility.md) lists the cameras this has actually been run
 against and what a VISCA camera has to accept to work at all.
 
+### Color correction
+
+Supported VISCA cameras show a color-wheel button in the **Cameras** pane. Click it for one-push
+white balance and manual red/blue gain corrections. The popover points back to the camera's button
+and closes when you click outside it or press Escape.
+
+![VISCA color-correction popover with its pointer and camera button](docs/images/camera-color-popover.png)
+
+Point the camera at a white reference before one-push. Enable **Manual white balance** to adjust
+the gains; turning it off restores automatic white balance. Changes apply immediately to the
+camera, not the configuration file. Keyboard camera controls pause while the popover is open.
+
+[Color correction](docs/ColorCorrection.md) covers setup, adjustments, light and dark screenshots,
+and troubleshooting. The screenshots use simulated cameras; color correction on the CineTreak
+CT-PT31K still needs hardware verification.
+
 ### Controller bindings
 
 | Control | Does |

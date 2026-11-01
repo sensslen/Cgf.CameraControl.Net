@@ -117,6 +117,14 @@
     "program": "Program",
     "preview": "Preview"
   },
+  "color": {
+    "title": "Color correction",
+    "onePush": "One-push white balance",
+    "manual": "Manual white balance",
+    "redGain": "Red gain",
+    "blueGain": "Blue gain",
+    "hint": "Point the camera at a white reference for one-push white balance. Enable manual white balance to adjust red and blue."
+  },
   "pad": {
     "input": "Input {0}",
     "alt": "Hold for alt",

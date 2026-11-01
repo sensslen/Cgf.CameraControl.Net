@@ -24,6 +24,8 @@ public sealed class ObservedCamera(ICameraConnection inner) : ICameraConnection
 
     public IObservable<TallyState> WhenTallyChanged => _tally;
 
+    public ICameraColorControl? ColorControl => inner as ICameraColorControl;
+
     public void Pan(double value)
     {
         _movement.OnNext(_movement.Value with { Pan = value });

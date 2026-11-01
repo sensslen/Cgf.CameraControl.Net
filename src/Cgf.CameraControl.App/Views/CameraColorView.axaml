@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Cgf.CameraControl.App.ViewModels"
+             xmlns:loc="using:Cgf.CameraControl.App.Localization"
+             x:Class="Cgf.CameraControl.App.Views.CameraColorView"
+             x:DataType="vm:CameraViewModel">
+  <StackPanel Width="300" Spacing="12" IsEnabled="{Binding CanCorrectColor}"
+              FlowDirection="{Binding FlowDirection^, Source={x:Static loc:Localizer.Current}}">
+    <TextBlock FontWeight="SemiBold"
+               Text="{Binding [color.title]^, Source={x:Static loc:Localizer.Current}}" />
+    <TextBlock Text="{Binding ConnectionString}" TextTrimming="CharacterEllipsis" FontSize="12" />
+    <Button Name="OnePush" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+            Command="{Binding OnePushWhiteBalanceCommand}"
+            Content="{Binding [color.onePush]^, Source={x:Static loc:Localizer.Current}}" />
+    <CheckBox Name="ManualWhiteBalance" IsChecked="{Binding IsManualWhiteBalance, Mode=TwoWay}"
+              Content="{Binding [color.manual]^, Source={x:Static loc:Localizer.Current}}" />
+    <TextBlock FontSize="12" TextWrapping="Wrap"
+               Text="{Binding [color.hint]^, Source={x:Static loc:Localizer.Current}}" />
+    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" IsEnabled="{Binding CanAdjustGains}">
+      <TextBlock Text="{Binding [color.redGain]^, Source={x:Static loc:Localizer.Current}}" />
+      <TextBlock Grid.Column="1" Text="{Binding RedGain}" />
+      <Slider Name="RedGainSlider" Grid.Row="1" Grid.ColumnSpan="2" Minimum="0" Maximum="255"
+              TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding RedGain, Mode=TwoWay}"
+              AutomationProperties.Name="{Binding [color.redGain]^, Source={x:Static loc:Localizer.Current}}" />
+    </Grid>
+    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" IsEnabled="{Binding CanAdjustGains}">
+      <TextBlock Text="{Binding [color.blueGain]^, Source={x:Static loc:Localizer.Current}}" />
+      <TextBlock Grid.Column="1" Text="{Binding BlueGain}" />
+      <Slider Name="BlueGainSlider" Grid.Row="1" Grid.ColumnSpan="2" Minimum="0" Maximum="255"
+              TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding BlueGain, Mode=TwoWay}"
+              AutomationProperties.Name="{Binding [color.blueGain]^, Source={x:Static loc:Localizer.Current}}" />
+    </Grid>
+  </StackPanel>
+</UserControl>

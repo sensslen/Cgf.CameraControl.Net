@@ -117,6 +117,14 @@
     "program": "Programm",
     "preview": "Vorschau"
   },
+  "color": {
+    "title": "Farbkorrektur",
+    "onePush": "Einmaliger Weißabgleich",
+    "manual": "Manueller Weißabgleich",
+    "redGain": "Rotverstärkung",
+    "blueGain": "Blauverstärkung",
+    "hint": "Richte die Kamera für den einmaligen Weißabgleich auf eine weiße Referenz. Aktiviere den manuellen Weißabgleich, um Rot und Blau anzupassen."
+  },
   "pad": {
     "input": "Eingang {0}",
     "alt": "Halten für alt",

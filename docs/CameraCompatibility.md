@@ -13,12 +13,20 @@ you, and say what you actually exercised rather than what you expect to work.
 ## Implemented from documentation, no camera seen
 
 The `Websocket.PtzLanc` and `Signalr.PtzLanc` types drive homegrown LANC hardware rather than a
-camera off a shelf, so they are out of scope here. What is left is the VISCA tally payloads.
+camera off a shelf, so they are out of scope here. The VISCA payloads below are implemented from
+documentation.
+
+Color correction is also implemented from the VISCA command documentation, but has not yet been
+verified on the CT-PT31K. Its [manual](https://cinetreak.com/download/ct-pt31k-user-manual/)
+lists automatic, manual and one-push white balance. The panel becomes available only when the
+camera answers white-balance mode, red gain and blue gain inquiries.
+The [color-correction guide](ColorCorrection.md) shows how to use the controls.
 
 | Payload | Documented by | Notes |
 | --- | --- | --- |
 | `tallyMode: avonic` | [Avonic CM7x support article](https://support.avonic.com/support/solutions/articles/80001153827-visca) | the same three packets the CT-PT31K answers to |
 | `tallyMode: ptzoptics` | [PTZOptics VISCA over IP commands](https://f.hubspotusercontent20.net/hubfs/418770/PTZOptics%20Documentation/Misc/PTZOptics%20VISCA%20over%20IP%20Commands.pdf) | one lamp, so preview leaves it dark |
+| White balance and red/blue gain | [Avonic VISCA command and inquiry list](https://support.avonic.com/support/solutions/articles/80001153827-visca) | mode `35`, one-push trigger `10 05`, direct gains `43` and `44`, range `00` to `FF` |
 
 Sony's own cameras have no `tallyMode`. Per the
 [Sony VISCA command list v4](https://pro.sony/s3/2022/09/03065933/VISCA_Command_List_v4.pdf), Sony

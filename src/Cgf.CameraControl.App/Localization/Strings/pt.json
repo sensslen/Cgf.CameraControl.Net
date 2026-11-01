@@ -117,6 +117,14 @@
     "program": "Programa",
     "preview": "Prévia"
   },
+  "color": {
+    "title": "Correção de cor",
+    "onePush": "Balanço de branco com um toque",
+    "manual": "Balanço de branco manual",
+    "redGain": "Ganho de vermelho",
+    "blueGain": "Ganho de azul",
+    "hint": "Aponte a câmera para uma referência branca para o balanço de branco com um toque. Ative o balanço de branco manual para ajustar o vermelho e o azul."
+  },
   "pad": {
     "input": "Entrada {0}",
     "alt": "Segure para alt",
