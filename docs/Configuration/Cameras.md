@@ -52,11 +52,11 @@ VISCA tally is vendor-specific. A wrong payload can execute an unrelated command
 | Mode | Lamps | Bytes |
 | --- | --- | --- |
 | `none` | none | nothing is sent |
-| `avonic` | red and green | `81 01 7E 01 0A 00 0p 0q FF` |
-| `ptzoptics` | one | `81 0A 02 02 0p FF` |
+| [`avonic`](https://support.avonic.com/support/solutions/articles/80001153827-visca) | red and green | `81 01 7E 01 0A 00 0p 0q FF` |
+| [`ptzoptics`](https://f.hubspotusercontent20.net/hubfs/418770/PTZOptics%20Documentation/Misc/PTZOptics%20VISCA%20over%20IP%20Commands.pdf) | one | `81 0A 02 02 0p FF` |
 
 `avonic` supports Avonic and CineTreak. `ptzoptics` lights only on program, not preview.
-See [camera compatibility](../CameraCompatibility.md) for verification, sources and Sony limits.
+Sony tally is unsupported. See [camera compatibility](../CameraCompatibility.md) for tested cameras.
 
 ## `Websocket.PtzLanc`
 
