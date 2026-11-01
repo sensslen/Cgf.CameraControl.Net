@@ -145,16 +145,12 @@ public sealed class ViscaUdpTransport(string host, int port, ILogger logger) : I
         finally
         {
             await linked.CancelAsync().ConfigureAwait(false);
-            foreach (var task in new[] { sending, probing })
+            try
             {
-                try
-                {
-                    await task.ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Expected once the receive side has ended.
-                }
+                await Task.WhenAll(sending, probing).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (linked.IsCancellationRequested)
+            {
             }
         }
     }

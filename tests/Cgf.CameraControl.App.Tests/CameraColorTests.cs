@@ -21,6 +21,18 @@ namespace Cgf.CameraControl.App.Tests;
 [Collection("Avalonia UI")]
 public class CameraColorTests
 {
+    public class Dispatching : CameraColorTests
+    {
+        [Fact]
+        public async Task WindowTestFailureReachesTheRunner()
+        {
+            var expected = new InvalidOperationException("Failure inside the dispatched test.");
+            var actual = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                WithWindow((_, _, _, _) => throw expected));
+            Assert.Same(expected, actual);
+        }
+    }
+
     public class Capability : CameraColorTests
     {
         [Fact]
@@ -323,7 +335,9 @@ public class CameraColorTests
                 Assert.Equal(pointLeft ? "LeftPointer" : "RightPointer", pointer.Name);
                 var tip = pointer.PointToScreen(new Point(pointLeft ? 0 : 11, 10));
                 Assert.InRange(Math.Abs(tip.Y - target.Y), 0, 1);
-                Assert.InRange(Math.Abs(tip.X - target.X), button.Bounds.Width / 2, button.Bounds.Width / 2 + 20);
+                var edge = button.PointToScreen(new Point(pointLeft ? 0 : button.Bounds.Width, button.Bounds.Height / 2));
+                var halfWidth = Math.Abs(edge.X - target.X);
+                Assert.InRange(Math.Abs(tip.X - target.X), halfWidth, halfWidth + 20);
                 window.MouseDown(new Point(30, 180), MouseButton.Left);
                 window.MouseUp(new Point(30, 180), MouseButton.Left);
                 Dispatcher.UIThread.RunJobs();
@@ -375,6 +389,7 @@ public class CameraColorTests
                     window.Close();
                     Dispatcher.UIThread.RunJobs();
                 }
+                return true;
             }, TestContext.Current.CancellationToken);
         }
 
@@ -429,7 +444,7 @@ public class CameraColorTests
                 Dispatcher.UIThread.RunJobs();
                 color.Received(1).SetRedGain(110);
                 color.Received(1).SetBlueGain(150);
-                var onePush = panel.GetVisualDescendants().OfType<Button>().Single();
+                var onePush = panel.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "OnePush");
                 var popup = Assert.IsAssignableFrom<TopLevel>(TopLevel.GetTopLevel(onePush));
                 Click(popup, onePush);
                 color.Received(1).OnePushWhiteBalance();
@@ -493,6 +508,7 @@ public class CameraColorTests
                 window.Close();
                 Dispatcher.UIThread.RunJobs();
             }
+            return true;
         }, TestContext.Current.CancellationToken);
     }
 }
