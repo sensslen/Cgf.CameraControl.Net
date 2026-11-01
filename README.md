@@ -2,30 +2,23 @@
 
 Drive Blackmagic ATEM switchers and PTZ cameras from a game controller.
 
-One operator steers whichever camera is on preview, changes the preview selection, cuts, toggles
-keyers and runs macros, without taking their eyes off the stage.
+**Beta:** configuration and user-facing behavior may change incompatibly between releases.
 
 ![Main window with preview and program state](docs/images/window.png)
 
 The screenshots use a passthrough mixer and simulated controllers and cameras.
 
 This is a .NET port of [Cgf.CameraControl.Main](https://github.com/sensslen/Cgf.CameraControl.Main),
-which is TypeScript and headless. It reads the same configuration files.
+the headless TypeScript implementation.
 
 ## What it does
 
-- **Steers the preview camera.** The left stick pans and tilts, the right stick zooms and focuses.
-  Change preview and the previous camera is stopped rather than left drifting.
-- **Runs the switcher.** Cut, auto, keyer toggles, macros, and a macro toggle that picks one of two
-  macros from the live state of a keyer or an auxiliary output.
-- **Lights the tally.** Cameras that carry a tally light follow the preview and program buses.
-- **Shows what is happening.** Select an interface and the window draws it: a pad with the symbols
-  printed on it, lit as they are pressed, and a legend of what each one does right now. Mixers and
-  cameras sit underneath with one lamp each, and a log you can filter by component.
-- **Runs without a controller.** A keyboard interface is a small mixer panel: a program and a preview
-  row of the inputs, cut and auto, every configured function, a mouse pad for pan and tilt and two
-  sliders for zoom and focus. Every key is configurable.
-- **Rumbles** on a transition, when one of your cameras goes on air, and when a connection drops.
+- Steers the preview camera and stops it when preview changes.
+- Runs cut, auto, keyer toggles and macros, including conditional macro toggles.
+- Combines camera tally from preview and program buses.
+- Shows live controller bindings, connection lamps and a component-filtered log.
+- Provides configurable keyboard and mouse controls.
+- Rumbles on transitions, cameras going on air and lost connections.
 
 ## Install
 
@@ -37,152 +30,66 @@ which is TypeScript and headless. It reads the same configuration files.
 
 Every binary is NativeAOT compiled, so there is no .NET runtime to install.
 
-Releases are signed where the project has certificates for it. Without them a Windows installer shows
-a SmartScreen warning, and a macOS build is ad-hoc signed rather than notarized, so macOS asks before
-opening it: **System Settings → Privacy & Security → Open Anyway**, or clear the download flag once
-with `xattr -dr com.apple.quarantine "/Applications/Camera Control.app"`. Every release that went out
-that way says so in its notes.
+Release notes identify unsigned Windows or ad-hoc-signed, unnotarized macOS builds. Windows may
+show SmartScreen. On macOS, use **System Settings → Privacy & Security → Open Anyway**, or
+`xattr -dr com.apple.quarantine "/Applications/Camera Control.app"`.
 
 ## Configure
 
-Point the application at a `config.json` with **File → Import**, and it reopens the same file next
-time. There is a working example in [samples/offline.json](samples/offline.json) that needs no
-hardware: it uses a passthrough mixer, so a controller and the interface bindings can be checked on
-a laptop.
+Open `config.json` with **File → Import**. The application reopens that file on startup.
+See the [configuration reference](docs/Configuration/README.md) for fields and validation.
 
-```json
-{
-  "cams": [
-    { "type": "Websocket.PtzLanc", "instance": 1, "ip": "10.0.0.11", "showTallyLight": false }
-  ],
-  "videoMixers": [
-    { "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.240", "mixEffectBlock": 0 }
-  ],
-  "interfaces": [
-    {
-      "type": "gamepad",
-      "instance": 1,
-      "videoMixer": 1,
-      "connectionChange": { "type": "direct", "default": { "up": 1, "right": 2, "down": 3, "left": 4 } },
-      "functions": { "wide": { "type": "key", "index": 1 } },
-      "pad": { "default": { "down": "wide" } },
-      "cameraMap": { "1": 1 }
-    }
-  ]
-}
-```
-
-A problem with one entry is reported against that entry and the rest still load, so a typo in one
-camera does not take the desk down with it.
-
-ATEM mixers and their interfaces appear even while the switcher is offline. Open the **Mixers**
-drawer to see each configured mix-effect block: yellow means disconnected or still initializing,
-and green means connected. Blocks using the same address share one connection. Connection attempts
-run in the background, reconnect automatically, and stop when the configuration is unloaded.
-The **Atem** log reports connection attempts, failures, and changes in connection status.
-
-Every key of every entry is described in [docs/Configuration](docs/Configuration/README.md).
-[samples/two-operators.json](samples/two-operators.json) puts a pad and two keyboards on one mixer.
+| Sample | Purpose |
+| --- | --- |
+| [offline.json](samples/offline.json) | check the interface with a passthrough mixer, without a switcher |
+| [two-operators.json](samples/two-operators.json) | a gamepad and two keyboards sharing one mixer |
 
 ### Editing the configuration
 
-**File → Edit configuration** turns the window into an editor for the file it has open. Starting the
-application with no configuration turns it on by itself, because a window with nothing in it but a
-menu is not an answer to having nothing configured.
+Open **File → Edit configuration**. The editor also opens on startup without a configuration.
 
 ![Camera editor with compact pan and tilt speed trim](docs/images/edit-mode.png)
 
-Nothing is connected while the mode is on. The cameras and the mixers are torn down, so a pad left in
-a pocket cannot move a camera while its bindings are being changed, and a half-written address cannot
-be dialled.
+Cameras and mixers disconnect during editing.
 
-The left column becomes the whole file: interfaces, cameras and video mixers, each with an add at the
-foot of it. Add asks for the type first and then the fields that type carries, and a cancelled add
-leaves nothing behind. Deleting says what still names the entry: a camera goes out of the maps that
-named it, and a video mixer leaves the interfaces that drove it to be pointed somewhere else.
+| Action | Behavior |
+| --- | --- |
+| Add | choose a type, then its fields; cancel creates no entry |
+| Delete camera | show references and remove the camera from their maps |
+| Delete mixer | show references; affected interfaces need another mixer |
+| Edit | title and validation summary stay above the scrolling form; errors appear under inputs |
+| Pan/tilt speed | linked slider and percentage box |
+| Controller serial | suggestions also accept unlisted controllers |
+| Done → Save | rewrite the file, preserve fields outside the form, discard JSON comments and load the saved file |
+| Done → Discard | reload the file from disk |
 
-The selected entry's title and validation summary stay above the scrolling form. Field errors sit
-under their inputs. Pan and tilt speed has a compact slider and percentage box; either edits the same
-value. Serial-number suggestions still accept an unlisted controller. The editor follows the system
-light or dark theme and the selected language's reading direction.
-
-**Done** asks whether to save. Saving rewrites the whole file, the entries that were edited from the
-form and everything else from the JSON it was read as, and then loads what it wrote, so what the desk
-runs is what is on the disk. Comments in the file do not survive, because the loader has always
-skipped them. Discarding reloads the file as it is.
-
-A save is refused, with the reasons listed above the panel, while the file names something it does
-not define: two entries claiming one instance, a required field left empty, a `cameraMap` naming a
-camera that is not configured, an interface naming a mixer that is not configured, or a binding
-naming a function the interface has not got. A direction selecting a mixer input with no camera
-behind it is not one of those, because that is an ordinary desk.
-
-The functions and the bindings themselves are not edited here yet: an interface's entry keeps them
-exactly as they were written. Clicking a control on the drawing to bind it is the next piece of work.
+Duplicate instances, missing required fields and undefined camera, mixer or function references
+block saving. Selecting a mixer input without a mapped camera is valid.
+Functions and bindings are preserved as JSON, not edited in the form. The editor follows the
+system theme and selected language's reading direction.
 
 ### Cameras
 
-| `type` | Talks to | Needs |
-| --- | --- | --- |
-| `Websocket.PtzLanc` | the websocket LANC controller firmware | `ip` |
-| `Signalr.PtzLanc` | the SignalR LANC controller service | `connectionUrl`, `connectionPort` |
-| `viscaoverip` | a VISCA camera over UDP | `ip`, and `port` if it is not 52381 |
-
-All three take `panTiltInvert`. A VISCA camera also takes `tallyMode`, naming the vendor whose tally
-payload it understands: `avonic`, `ptzoptics`, or `none`, which is the default. `avonic` carries a
-red and a green lamp, and CineTreak cameras answer to it too; `ptzoptics` has one lamp, so preview
-leaves it dark.
-Nothing in the VISCA specification covers a tally lamp, so a camera sent the wrong vendor's payload
-does something unrelated rather than nothing.
+Supports VISCA over UDP and websocket/SignalR LANC controllers.
+See [camera configuration](docs/Configuration/Cameras.md) for connection fields, speed and tally.
 
 [Camera compatibility](docs/CameraCompatibility.md) lists the cameras this has actually been run
 against and what a VISCA camera has to accept to work at all.
 
 ### Controller bindings
 
-| Control | Does |
-| --- | --- |
-| Left stick | pan and tilt |
-| Right stick | zoom and focus |
-| D-pad | change the preview selection |
-| A / B / X / Y | the function `pad` binds to down / right / left / up |
-| Right shoulder | cut |
-| Right trigger | auto |
-| Left shoulder | hold for the `alt` bindings |
-| Left trigger | hold for the `altLower` bindings |
-
 ![Gamepad controls and their configured bindings](docs/images/interface-gamepad.png)
 
-SDL normalises every controller to this one layout, so `gamepad` is the only interface type that
-matters. The old `logitech/F310`, `logitech/F710` and `logitech/Rumblepad2` strings still load, but
-they are labels now rather than behaviour.
-
-SDL remains the default backend. For serial-addressed Logitech F310 pads on macOS,
-set `"backend": "hid"` on the gamepad entry; this reads the exact device through
-HidSharp rather than relying on SDL's enumeration order. It requires `serialNumber`
-and D mode (replug after changing the switch), and does not support rumble.
+See [gamepad bindings](docs/Configuration/Interfaces.md#gamepad) for controls and live indicators.
+SDL uses one normalized layout.
 See [choosing a gamepad backend](docs/Configuration/Interfaces.md#choosing-a-gamepad-backend).
 
 ### The keyboard panel
 
 ![A keyboard interface](docs/images/interface-keyboard.png)
 
-An interface of type `keyboard` is driven from the window. It is laid out like a mixer: the inputs
-twice, once to put on program and once on preview, cut and auto between the rows, and every function
-from `functions` to the right. Each button names the key that also fires it and lights while that
-key is held. Below them the mouse takes the sticks' place: a pad for pan and tilt, and a slider each
-for zoom and focus. Drag and let go, and each springs back to the middle and stops the camera.
-
-Nothing about the keys is fixed. Pan, tilt, zoom, focus, the selection steps, the inputs, the
-functions, cut and auto are each bound in `keys`, and only what is bound appears on the panel.
-[docs/Configuration/Interfaces.md](docs/Configuration/Interfaces.md) has every key name.
-
-A desk that wants a pad and a keyboard on the same mixer configures one interface of each kind
-against the same `videoMixer`.
-
-Two controllers on one machine are told apart by `serialNumber`. That is an absolute filter, never a
-preference: an interface whose serial is not present stays unbound and says so, because putting an
-operator on somebody else's mixer is worse than binding nothing.
+See [keyboard controls](docs/Configuration/Interfaces.md#keyboard) for the panel, mouse behavior,
+key names and focus requirements. Configure separate interfaces to share a mixer between operators.
 
 ### Languages
 
@@ -192,7 +99,7 @@ reviewed by a native speaker.
 
 ## Build
 
-Needs the .NET 10 SDK. Nothing else.
+Requires the .NET 10 SDK.
 
 ```bash
 dotnet build
@@ -208,26 +115,23 @@ for suite in tests/*/bin/Debug/net10.0/*.Tests; do "$suite"; done
 
 ### Application icons
 
-`packaging/icon/generate.py` generates the shared artwork. Regeneration needs Pillow; verification
-uses only Python's standard library:
+SVG and raster artwork share one generator. Generation needs Pillow; verification uses only
+Python's standard library:
 
 ```bash
+python packaging/icon/generate.py
 python packaging/icon/verify.py
 python -m unittest discover -s packaging/icon -p "test_*.py"
 ```
 
-On Windows, add `--windows-exe <path>` for each published executable or installer. Verification
-compares every embedded icon size against the application ICO, not just whether an icon exists.
-PNG image data and classic ICNS RGB streams are decoded; the caption glyph is compared with its
-generated reference in `packaging/icon/appicon-caption.png`.
-CI checks the assets and assignments; Windows releases also check the NativeAOT binary and installer.
+Add `--windows-exe <path>` for each Windows executable or installer. Verification compares all
+embedded sizes with the ICO, decodes PNG and classic ICNS RGB, and compares the caption glyph with
+`packaging/icon/appicon-caption.png`. CI checks assets and assignments; Windows releases check
+the NativeAOT binary and installer.
 
 The title bar uses a high-DPI raster of the small glyph. Windows executables, shortcuts, uninstall
 metadata and dialog windows use the ICO. macOS bundles use `AppIcon.icns`; the Linux window class
 matches the desktop file and Flatpak icon identity.
-
-Windows 0.4.3 predates executable icon embedding. Upgrade from that version to get the application
-icon in Explorer and shortcuts.
 
 ### Layout
 
@@ -247,57 +151,37 @@ without a display or a controller.
 
 ### The `--aot-probe` switch
 
-Two things in this application fail under trimming *without failing the build*: AtemSharp finds its
-command types by reflecting over its own assembly, and the translations are embedded resources
-because NativeAOT does not load satellite assemblies. Either one can leave a binary that starts,
-connects, and quietly does the wrong thing.
-
-`CgfCameraControl --aot-probe` decodes a real ATEM command, serializes a SignalR camera update
-through the real hub protocol, and resolves every language, then exits non-zero if any of them has
-stopped working. The release workflow runs it against every published binary before anything is
-uploaded.
+AtemSharp reflects over command types, and NativeAOT translations use embedded resources rather
+than satellite assemblies. Trimming can break either without a build failure.
+`CgfCameraControl --aot-probe` checks ATEM command decoding, SignalR state serialization through
+the hub protocol and every language. It exits non-zero on failure. Releases run it on every binary
+before upload.
 
 ### Third-party licences
 
-**Help → Third-party licences** lists every package the application ships. Opening a row shows what
-it is under and the full text of that licence: what the package published for itself where it
-published anything, and the text of the SPDX identifier it declared otherwise. Both are compiled into
-the binary by `Cgf.CameraControl.Licenses.Generator`, so showing them costs nothing at run time and
-they cannot drift from what is actually shipped. The artwork the window draws is listed the same way,
-from a hand-written report beside the package one. A licence with no text fails the build rather than
-leaving an empty page.
+**Help → Third-party licences** lists shipped packages and artwork. Rows show full licence text,
+using the package's published text or its declared SPDX licence. `Cgf.CameraControl.Licenses.Generator`
+embeds texts and reports, with no runtime fetching. Artwork uses a separate hand-written report.
+Missing text or a missing package report fails the build.
 
-The licence texts are committed. The package report is not: it names the exact versions restored, so
-every build generates it first, and a build without one fails rather than crediting nobody. Write it,
-and refresh the texts after changing a package reference:
+Texts are committed; each build generates its package report from restored versions.
+After changing a package reference, refresh it with:
 
 ```bash
 dotnet tool restore
 python packaging/licenses/fetch-texts.py
 ```
 
-`--report-only` writes just the report, which is what the workflows run, leaving the committed texts
-alone. `--runtime win-x64` narrows it to the packages that runtime identifier resolves something
-from, so a published binary credits what it ships rather than the union of four platforms. The
-natives of the other three resolve an empty placeholder, and reading that off the restore is what
-replaces a list of package names per platform. Each release build passes its own identifier. The
-texts stay committed whole, because a build compiles in only the ones its own report names.
+| Option | Effect |
+| --- | --- |
+| `--report-only` | generate the report without changing committed texts; used by workflows |
+| `--runtime win-x64` | include packages with assets for that runtime; each release supplies its identifier |
 
-CI reports the whole graph instead, so every package is checked against the licences the project
-accepts. That check is what guards a dependency bump: nuget-license refuses a licence not on the
-list, so a new package under something unexpected fails CI even where this run does not build. The
-script also ignores what builds the binary rather than travelling in it: the diagnostics support
-package ships in Debug alone, and the NativeAOT compiler and the trimmer carry the host's runtime
-identifier in their package id, so a report naming them would differ between a developer machine
-and CI.
-
-### The icon
-
-Generated, not drawn by hand, so the SVG and every raster come from the same numbers:
-
-```bash
-python packaging/icon/generate.py
-```
+Other platforms' native packages resolve empty placeholders and are excluded. Each binary embeds
+only texts named by its report.
+CI checks the whole dependency graph with nuget-license's allowed-licence list.
+Reports exclude Debug-only diagnostics and build tools, including the host-specific NativeAOT
+compiler and trimmer, so build-machine packages do not enter shipped credits.
 
 ## Licence
 

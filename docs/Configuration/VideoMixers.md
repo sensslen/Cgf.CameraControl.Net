@@ -10,8 +10,7 @@ number in that interface's `cameraMap` and `keys.input` is one of this mixer's i
 
 ## Tally signals
 
-Both mixer types accept `tallyMode`. It controls the signals sent to every camera mapped by an
-interface using that mixer, independently of the camera's tally protocol.
+Both accept `tallyMode`, independently of the camera's tally protocol.
 
 | Editor option | `tallyMode` | This mixer's contribution |
 | --- | --- | --- |
@@ -19,27 +18,20 @@ interface using that mixer, independently of the camera's tally protocol.
 | Program only | `program` | program only; off for preview cameras |
 | Disabled | `none` | off for all mapped cameras |
 
-For example, `"tallyMode": "program"` on an ATEM mixer contributes a lit tally only for its
-on-air camera. Disabling tally sends off updates rather than ignoring changes.
-Program-only and disabled tally initialize this mixer's contribution to off when the interface
-starts. Preview selection and camera steering are unchanged.
+Program-only and disabled tally initialize to off. Disabled tally sends off updates, not silence.
+Neither changes preview selection or steering.
 
-When interfaces using different mixers map the same camera instance, the camera combines their
-contributions after applying each mixer's `tallyMode`. **Program wins over preview, and preview wins
-over off**, regardless of which mixer updated last. A disabled mixer cannot turn off a camera that
-another mixer has on program or preview.
+Shared cameras combine contributions after each mixer's mode is applied:
+**program > preview > off**, independent of update order. A camera on program in one mixer and
+preview in another shows program, then preview when the first mixer selects another camera.
+It turns off when all contributions are off. Removing an interface withdraws only its contribution,
+including when interfaces share a mixer.
 
-For example, a camera on program in mixer 1 and preview in mixer 2 displays program. When mixer 1
-selects another camera, it falls back to mixer 2's preview. It turns off only when no interface
-contributes program or preview. Removing an interface withdraws only its own contribution, including
-when several interfaces share the same mixer.
+Set **Tally signals** in the mixer editor. The camera also needs a supported
+[tally protocol](Cameras.md#tallymode); no camera protocol means no tally commands.
 
-Set **Tally signals** in the mixer's editor. Keep the camera's `tallyMode` set to its supported
-protocol, such as `avonic` or `ptzoptics` for VISCA. A camera configured with no tally protocol
-cannot receive tally commands, regardless of the mixer's setting.
-
-Invalid stored tally values leave the editor selection empty and block saving until a supported
-option is selected. Valid values are matched without regard to case and are not rewritten on opening.
+Invalid values leave the editor selection empty and block saving. Valid values are case-insensitive
+and unchanged on opening.
 
 ![Mixer editor configured for program-only tally](../images/mixer-tally.png)
 
@@ -54,9 +46,12 @@ option is selected. Valid values are matched without regard to case and are not 
 | `ip` | the switcher's address |
 | `mixEffectBlock` | which M/E to drive, counted from zero |
 
-Preview, program, cut and auto all go to the switcher, and it is the switcher that says what is
-live. The tally an interface sets on its cameras follows what the switcher reports rather than what
-the operator last pressed.
+Preview, program, cut and auto use switcher state; tally follows its reports, not button presses.
+
+Mixers and interfaces appear while offline. The **Mixers** drawer shows each configured M/E:
+yellow is disconnected or initializing, green is connected. M/Es at one address share a connection.
+Background connection attempts reconnect automatically and stop on configuration unload.
+The **Atem** log records attempts, failures and connection changes.
 
 ## `passthrough/default`
 
@@ -64,6 +59,5 @@ the operator last pressed.
 { "type": "passthrough/default", "instance": 1 }
 ```
 
-No switcher. It remembers what was selected and reports it back, so cameras, tally and the whole
-interface work with nothing but cameras on the network. This is what to configure when the point is
-to point cameras rather than to cut between them, and what the samples use so they run anywhere.
+Stores and reports selections without a switcher. Interfaces, camera steering and tally work with
+network cameras alone; samples use it to avoid requiring ATEM hardware.

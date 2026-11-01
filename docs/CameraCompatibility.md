@@ -1,8 +1,7 @@
 # Camera compatibility
 
-Which cameras have been driven by this application, and how far the driving went. A camera absent
-from this page is not known to be broken, only untested. Add a row when you have one in front of
-you, and say what you actually exercised rather than what you expect to work.
+Unlisted cameras are untested, not necessarily incompatible. Record only features exercised on
+hardware.
 
 ## Verified on hardware
 
@@ -12,8 +11,8 @@ you, and say what you actually exercised rather than what you expect to work.
 
 ## Implemented from documentation, no camera seen
 
-The `Websocket.PtzLanc` and `Signalr.PtzLanc` types drive homegrown LANC hardware rather than a
-camera off a shelf, so they are out of scope here. What is left is the VISCA tally payloads.
+Homegrown websocket and SignalR LANC controllers are outside this camera list.
+The following VISCA payloads have documentation sources:
 
 | Payload | Documented by | Notes |
 | --- | --- | --- |
@@ -23,5 +22,5 @@ camera off a shelf, so they are out of scope here. What is left is the VISCA tal
 Sony's own cameras have no `tallyMode`. Per the
 [Sony VISCA command list v4](https://pro.sony/s3/2022/09/03065933/VISCA_Command_List_v4.pdf), Sony
 spends a command per lamp, `8x 01 7E 01 0A 00 0p FF` for red and `8x 01 7E 04 1A 00 0p FF` for
-green, and puts out a lamp that is not told to stay lit every 15 seconds. The re-send that would keep
-it lit was not built without a camera to check it against.
+green. Lamps expire after 15 seconds without refresh. Periodic refresh is not implemented and
+Sony tally has not been verified on hardware.
