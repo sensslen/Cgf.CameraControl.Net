@@ -65,16 +65,15 @@ Cameras and mixers disconnect during editing.
 
 Duplicate instances, missing required fields and undefined camera, mixer or function references
 block saving. Selecting a mixer input without a mapped camera is valid.
-Functions and bindings are preserved as JSON, not edited in the form. The editor follows the
-system theme and selected language's reading direction.
+Functions and bindings are preserved as JSON, not edited in the form.
+The editor follows the selected language's reading direction.
 
 ### Cameras
 
 Supports VISCA over UDP and websocket/SignalR LANC controllers.
 See [camera configuration](docs/Configuration/Cameras.md) for connection fields, speed and tally.
 
-[Camera compatibility](docs/CameraCompatibility.md) lists the cameras this has actually been run
-against and what a VISCA camera has to accept to work at all.
+See [camera compatibility](docs/CameraCompatibility.md) for tested cameras.
 
 ### Controller bindings
 
