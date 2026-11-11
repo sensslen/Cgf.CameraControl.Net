@@ -109,7 +109,7 @@ reviewed by a native speaker.
 
 ## Build
 
-Requires the .NET 10 SDK.
+Requires the .NET 11 SDK.
 
 ```bash
 dotnet build

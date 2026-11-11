@@ -65,12 +65,18 @@ jobs:
         shell: bash
         run: |
           failed=0
-          for suite in tests/*/bin/Release/net11.0/*.Tests tests/*/bin/Release/net10.0/*.Tests.exe; do
+          ran=0
+          for suite in tests/*/bin/Release/net11.0/*.Tests tests/*/bin/Release/net11.0/*.Tests.exe; do
             [ -f "$suite" ] || continue
+            ran=$((ran + 1))
             echo "::group::$(basename "$suite")"
             "$suite" || failed=1
             echo "::endgroup::"
           done
+          if [ "$ran" -eq 0 ]; then
+            echo "::error::No test suites found"
+            exit 1
+          fi
           exit $failed
 
   # Trimming drops what reflection reaches for without a word, so a build that passes every test
