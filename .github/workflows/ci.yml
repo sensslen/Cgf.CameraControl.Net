@@ -19,7 +19,7 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 11.0.x
 
       # The images disagree on whether python is called python or python3.
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
@@ -65,7 +65,7 @@ jobs:
         shell: bash
         run: |
           failed=0
-          for suite in tests/*/bin/Release/net10.0/*.Tests tests/*/bin/Release/net10.0/*.Tests.exe; do
+          for suite in tests/*/bin/Release/net11.0/*.Tests tests/*/bin/Release/net10.0/*.Tests.exe; do
             [ -f "$suite" ] || continue
             echo "::group::$(basename "$suite")"
             "$suite" || failed=1
@@ -84,7 +84,7 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 11.0.x
 
       - name: Licence report
         run: |
