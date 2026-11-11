@@ -109,7 +109,7 @@ reviewed by a native speaker.
 
 ## Build
 
-Requires the .NET 10 SDK.
+Requires the .NET 11 SDK.
 
 ```bash
 dotnet build
@@ -120,7 +120,7 @@ The test projects are Microsoft.Testing.Platform executables, so run them direct
 through `dotnet test`:
 
 ```bash
-for suite in tests/*/bin/Debug/net10.0/*.Tests; do "$suite"; done
+for suite in tests/*/bin/Debug/net11.0/*.Tests; do "$suite"; done
 ```
 
 ### Application icons
