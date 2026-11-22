@@ -61,12 +61,13 @@ Cameras and mixers disconnect during editing.
 | Edit | title and validation summary stay above the scrolling form; errors appear under inputs |
 | Pan/tilt speed | linked slider and percentage box |
 | Controller serial | suggestions also accept unlisted controllers |
-| Done → Save | rewrite the file, preserve fields outside the form, discard JSON comments and load the saved file |
+| Done → Save | rewrite the file, leave out values equal to their defaults, discard JSON comments and load the saved file |
 | Done → Discard | reload the file from disk |
 
 Duplicate instances, missing required fields and undefined camera, mixer or function references
 block saving. Selecting a mixer input without a mapped camera is valid.
-Functions and bindings are preserved as JSON, not edited in the form.
+Functions and bindings are kept as loaded, not edited in the form.
+[Invalid entries](docs/Configuration/Root.md#when-an-entry-is-wrong) have no form.
 The editor follows the selected language's reading direction.
 
 ### Cameras

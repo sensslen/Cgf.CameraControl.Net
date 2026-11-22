@@ -14,7 +14,7 @@ The top level accepts three lists:
 
 | Key | Means |
 | --- | --- |
-| `type` | which builder claims the entry, and therefore which other keys it accepts |
+| `type` | which builder claims the entry, and therefore which other keys it accepts; matched without regard to case, anywhere in the entry |
 | `instance` | a positive number the rest of the file refers to this entry by |
 
 `instance` is unique within its list. Cameras and mixers may share a number.
@@ -40,5 +40,8 @@ viscaoverip[7].port: expected a number in ]0 .. 65535], found 70000
 ```
 
 Unknown properties are errors.
+
+The editor lists an invalid entry with its error and without fields. It does not block saving and is
+saved unchanged.
 
 Loaded cameras and mixers appear in the window even if no interface references them.
