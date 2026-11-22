@@ -1,5 +1,4 @@
 using Cgf.CameraControl.Cameras.WebsocketPtzLanc.Camera;
-using Cgf.CameraControl.Core.Configuration;
 
 namespace Cgf.CameraControl.Cameras.WebsocketPtzLanc.Tests;
 
@@ -24,8 +23,7 @@ public class WebsocketPtzLancCameraConfigurationTests
     [InlineData("null")]
     [InlineData("\"50\"")]
     public void RejectsInvalidPanTiltSpeed(string value) =>
-        Assert.Throws<ConfigValidationException>(() =>
-            Read($$"""{ "type": "Websocket.PtzLanc", "instance": 1, "ip": "10.0.0.1", "panTiltSpeedPercent": {{value}} }"""));
+        Rejected($$"""{ "type": "Websocket.PtzLanc", "instance": 1, "ip": "10.0.0.1", "panTiltSpeedPercent": {{value}} }""");
 
     [Fact]
     public void ReadsTheShippedShape()
@@ -52,13 +50,10 @@ public class WebsocketPtzLancCameraConfigurationTests
     [Fact]
     public void RequiresIp()
     {
-        Assert.Throws<ConfigValidationException>(() => Read("""{ "type": "Websocket.PtzLanc", "instance": 1 }"""));
+        Rejected("""{ "type": "Websocket.PtzLanc", "instance": 1 }""");
     }
 
-    private static WebsocketPtzLancCameraConfiguration Read(string json)
-    {
-        var config = ConfigLoader.Load($$"""{ "cams": [ {{json}} ] }""", out _);
-        return Assert.Single(config.Cams)
-            .Deserialize(WebsocketPtzLancCameraConfigurationContext.Default.WebsocketPtzLancCameraConfiguration);
-    }
+    private static WebsocketPtzLancCameraConfiguration Read(string json) => TestSchema.Read<WebsocketPtzLancCameraConfiguration>("cams", json);
+
+    private static string Rejected(string json) => TestSchema.Rejected("cams", json);
 }

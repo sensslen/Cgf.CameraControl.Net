@@ -14,23 +14,28 @@ public sealed class GamepadBuilder(
     VideoMixerFactory mixers,
     CameraConnectionFactory cameras,
     ILogger logger,
-    HidGamepadSystem? hid = null) : IBuilder<IHmi>
+    HidGamepadSystem? hid = null) : IBuilder<IHmi, InterfaceConfiguration>
 {
     /// The legacy names still select gamepad interfaces. HID decoding is explicitly opt-in;
     /// existing configurations retain SDL's controller mappings.
     public IReadOnlyCollection<string> SupportedTypes =>
-        ["gamepad", "logitech/F310", "logitech/F710", "logitech/Rumblepad2"];
+        [
+            GamepadConfiguration.TypeName,
+            LogitechF310Configuration.TypeName,
+            LogitechF710Configuration.TypeName,
+            LogitechRumblepad2Configuration.TypeName,
+        ];
 
-    public async Task<IHmi> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken)
+    public async Task<IHmi> BuildAsync(InterfaceConfiguration entry, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var config = entry.Deserialize(InterfaceConfigurationContext.Default.GamepadConfiguration);
+        var config = (GamepadConfiguration)entry;
         var mixer = mixers.Get(config.VideoMixer)
                     ?? throw new ConfigValidationException(
                         $"{entry}.videoMixer",
                         $"no video mixer is configured with instance {config.VideoMixer}");
 
-        InterfaceValidation.Bindings(entry, config);
+        InterfaceValidation.Bindings(config);
 
         IGamepadDevice device;
         if (config.Backend == GamepadBackend.Hid)

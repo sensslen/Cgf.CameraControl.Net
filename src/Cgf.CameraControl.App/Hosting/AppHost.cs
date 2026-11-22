@@ -29,6 +29,21 @@ public sealed class AppHost : IAsyncDisposable
     private readonly List<ObservedCamera> _cameras = [];
     private readonly List<ControlSurfaceDevice> _surfaces = [];
 
+    /// Which record each type string reads as. Every type a builder below claims is registered here
+    /// in the same order, and a builder without a registration, or a registration without a builder,
+    /// fails the AppHost tests.
+    public static ConfigurationSchema Schema { get; } = new ConfigurationSchema(ConfigurationContext.Default)
+        .Camera<WebsocketPtzLancCameraConfiguration>(WebsocketPtzLancCameraConfiguration.TypeName)
+        .Camera<SignalrPtzLancCameraConfiguration>(SignalrPtzLancCameraConfiguration.TypeName)
+        .Camera<ViscaOverIpCameraConfiguration>(ViscaOverIpCameraConfiguration.TypeName)
+        .VideoMixer<AtemConfiguration>(AtemConfiguration.TypeName)
+        .VideoMixer<PassthroughConfiguration>(PassthroughConfiguration.TypeName)
+        .Interface<GamepadConfiguration>(GamepadConfiguration.TypeName)
+        .Interface<LogitechF310Configuration>(LogitechF310Configuration.TypeName)
+        .Interface<LogitechF710Configuration>(LogitechF710Configuration.TypeName)
+        .Interface<LogitechRumblepad2Configuration>(LogitechRumblepad2Configuration.TypeName)
+        .Interface<KeyboardConfiguration>(KeyboardConfiguration.TypeName);
+
     public AppHost()
     {
         Gamepads = new SdlGamepadSystem(Logger);
@@ -70,7 +85,7 @@ public sealed class AppHost : IAsyncDisposable
         IReadOnlyList<string> fileIssues;
         try
         {
-            config = ConfigLoader.LoadFile(path, out fileIssues);
+            config = ConfigLoader.LoadFile(path, Schema, out fileIssues);
         }
         catch (Exception ex) when (ex is ConfigFormatException or IOException or UnauthorizedAccessException)
         {
@@ -117,7 +132,7 @@ public sealed class AppHost : IAsyncDisposable
     {
         try
         {
-            ConfigWriter.WriteFile(path, config);
+            ConfigWriter.WriteFile(path, config, Schema);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

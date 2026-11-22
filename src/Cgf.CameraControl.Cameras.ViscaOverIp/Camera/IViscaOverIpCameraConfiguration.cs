@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.Configuration.Converters;
 
 namespace Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
@@ -26,12 +27,14 @@ public enum ViscaTallyMode
 /// red and 8x 01 7E 04 1A 00 0p FF for green, and extinguishes a lamp that is not told to stay on
 /// every 15 seconds, so it is a mode with a shape none of these payloads have. No Lumens document
 /// carries a tally command at all.
-/// On the `get; set;` and [JsonRequired] conventions, see WebsocketPtzLancCameraConfiguration.
-public sealed record ViscaOverIpCameraConfiguration
+/// On the `get; set;` and [JsonRequired] conventions, see EntryConfiguration.
+public sealed record ViscaOverIpCameraConfiguration() : CameraConfiguration(TypeName)
 {
+    public const string TypeName = "viscaoverip";
+
     [JsonRequired]
     [JsonConverter(typeof(HostConverter))]
-    public string Ip { get; set; } = null!;
+    public string Ip { get; set; } = string.Empty;
 
     [JsonConverter(typeof(PortConverter))]
     public int Port { get; set; } = 52381;
@@ -43,9 +46,3 @@ public sealed record ViscaOverIpCameraConfiguration
 
     public ViscaTallyMode TallyMode { get; set; } = ViscaTallyMode.None;
 }
-
-[JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    UseStringEnumConverter = true)]
-[JsonSerializable(typeof(ViscaOverIpCameraConfiguration))]
-public sealed partial class ViscaOverIpCameraConfigurationContext : JsonSerializerContext;

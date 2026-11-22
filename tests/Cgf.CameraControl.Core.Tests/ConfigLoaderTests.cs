@@ -1,32 +1,34 @@
 using Cgf.CameraControl.Core.Configuration;
+using Cgf.CameraControl.Core.VideoMixer;
+using Cgf.CameraControl.Core.VideoMixer.Passthrough;
 
 namespace Cgf.CameraControl.Core.Tests;
 
 public class ConfigLoaderTests
 {
     [Fact]
-    public void ReadsEverySection()
+    public void ReadsEverySectionIntoItsRecords()
     {
-        var config = ConfigLoader.Load(
+        var config = TestSchema.Load(
             """
             {
-              "cams": [ { "type": "Websocket.PtzLanc", "instance": 1, "ip": "10.0.0.1" } ],
-              "videoMixers": [ { "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.2", "mixEffectBlock": 0 } ],
-              "interfaces": [ { "type": "logitech/F310", "instance": 1, "videoMixer": 1 } ]
+              "cams": [ { "type": "Lens.Camera", "instance": 1, "ip": "10.0.0.1" } ],
+              "videoMixers": [ { "type": "passthrough/default", "instance": 1, "tallyMode": "program" } ],
+              "interfaces": [ { "type": "pad", "instance": 1, "videoMixer": 1 } ]
             }
             """,
             out var issues);
 
         Assert.Empty(issues);
-        Assert.Equal("Websocket.PtzLanc", Assert.Single(config.Cams).Type);
-        Assert.Equal("blackmagicdesign/atem", Assert.Single(config.VideoMixers).Type);
-        Assert.Equal("logitech/F310", Assert.Single(config.Interfaces).Type);
+        Assert.Equal("10.0.0.1", Assert.IsType<LensCamera>(Assert.Single(config.Cams)).Ip);
+        Assert.Equal(MixerTallyMode.Program, Assert.IsType<PassthroughConfiguration>(Assert.Single(config.VideoMixers)).TallyMode);
+        Assert.Equal("pad", Assert.IsType<Pad>(Assert.Single(config.Interfaces)).Type);
     }
 
     [Fact]
     public void MissingSectionsAreEmptyRatherThanFatal()
     {
-        var config = ConfigLoader.Load("""{ "cams": [] }""", out var issues);
+        var config = TestSchema.Load("""{ "cams": [] }""", out var issues);
 
         Assert.Empty(issues);
         Assert.Empty(config.Cams);
@@ -35,83 +37,110 @@ public class ConfigLoaderTests
     }
 
     [Fact]
-    public void KeepsTheUnknownPropertiesTheBuilderWillNeed()
+    public void AbsentPropertiesTakeTheRecordsDefaults()
     {
-        var config = ConfigLoader.Load(
-            """{ "cams": [ { "type": "Websocket.PtzLanc", "instance": 4, "ip": "10.0.0.9", "showTallyLight": false } ] }""",
-            out _);
+        var camera = Assert.IsType<LensCamera>(Assert.Single(
+            TestSchema.Load("""{ "cams": [ { "type": "Lens.Camera", "instance": 4, "ip": "10.0.0.9" } ] }""", out _).Cams));
 
-        var raw = Assert.Single(config.Cams).Raw;
-        Assert.Equal("10.0.0.9", raw.GetProperty("ip").GetString());
-        Assert.False(raw.GetProperty("showTallyLight").GetBoolean());
+        Assert.Equal(4, camera.Instance);
+        Assert.Equal(52381, camera.Port);
+        Assert.True(camera.ShowTallyLight);
+    }
+
+    /// A type string is matched without regard to case, and `type` does not have to come first.
+    [Theory]
+    [InlineData("""{ "type": "lens.camera", "instance": 1, "ip": "10.0.0.1" }""")]
+    [InlineData("""{ "type": "LENS.CAMERA", "instance": 1, "ip": "10.0.0.1" }""")]
+    [InlineData("""{ "instance": 1, "ip": "10.0.0.1", "type": "Lens.Camera" }""")]
+    [InlineData("""{ "ip": "10.0.0.1", "type": "lens.Camera", "instance": 1 }""")]
+    public void TheTypeIsFoundWhereverAndHoweverItIsWritten(string entry)
+    {
+        var camera = Assert.Single(TestSchema.Load($$"""{ "cams": [ {{entry}} ] }""", out var issues).Cams);
+
+        Assert.Empty(issues);
+        Assert.Equal("Lens.Camera", Assert.IsType<LensCamera>(camera).Type);
     }
 
     [Theory]
     [InlineData("""{ "cams": [ { "type": "x" } ] }""", "instance")]
     [InlineData("""{ "cams": [ { "instance": 1 } ] }""", "type")]
     [InlineData("""{ "cams": [ 42 ] }""", "must be an object")]
-    [InlineData("""{ "cams": { } }""", "must be an array")]
-    public void ReportsABadEntryWithoutLosingTheRest(string json, string expected)
+    [InlineData("""{ "cams": [ { "type": "Cgf.PtzCamera", "instance": 1 } ] }""", "Cgf.PtzCamera")]
+    [InlineData("""{ "cams": [ { "type": "Lens.Camera", "instance": 1, "ip": "10.0.0.1", "port": 70000 } ] }""", "Lens.Camera[1].port")]
+    [InlineData("""{ "cams": [ { "type": "Lens.Camera", "instance": 1, "ip": "10.0.0.1", "lens": "wide" } ] }""", "lens")]
+    public void KeepsABadEntryAsInvalidAndReportsIt(string json, string expected)
     {
-        var config = ConfigLoader.Load(json, out var issues);
+        var config = TestSchema.Load(json, out var issues);
 
         Assert.Contains(expected, Assert.Single(issues), StringComparison.Ordinal);
+        var invalid = Assert.IsType<InvalidCameraConfiguration>(Assert.Single(config.Cams));
+        Assert.Equal(issues[0], invalid.Problem);
+        Assert.StartsWith("cams[0]", invalid.Problem, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ASectionThatIsNotAnArrayIsReported()
+    {
+        var config = TestSchema.Load("""{ "cams": { } }""", out var issues);
+
+        Assert.Contains("must be an array", Assert.Single(issues), StringComparison.Ordinal);
         Assert.Empty(config.Cams);
+    }
+
+    [Fact]
+    public void AnUnknownTypeNamesTheTypesThatAreKnown()
+    {
+        TestSchema.Load("""{ "cams": [ { "type": "Cgf.PtzCamera", "instance": 1 } ] }""", out var issues);
+
+        Assert.Contains("Lens.Camera", Assert.Single(issues), StringComparison.Ordinal);
     }
 
     [Fact]
     public void OneBadEntryDoesNotDiscardItsSiblings()
     {
-        var config = ConfigLoader.Load(
+        var config = TestSchema.Load(
             """
             {
               "cams": [
-                { "type": "Websocket.PtzLanc", "instance": 1 },
-                { "type": "Websocket.PtzLanc" },
-                { "type": "Websocket.PtzLanc", "instance": 3 }
+                { "type": "Lens.Camera", "instance": 1, "ip": "10.0.0.1" },
+                { "type": "Lens.Camera", "instance": 2 },
+                { "type": "Lens.Camera", "instance": 3, "ip": "10.0.0.3" }
               ]
             }
             """,
             out var issues);
 
-        Assert.Single(issues);
-        Assert.Equal([1, 3], config.Cams.Select(c => c.Instance));
+        Assert.StartsWith("cams[1]: Lens.Camera[2]", Assert.Single(issues), StringComparison.Ordinal);
+        Assert.IsType<LensCamera>(config.Cams[0]);
+        Assert.IsType<InvalidCameraConfiguration>(config.Cams[1]);
+        Assert.IsType<LensCamera>(config.Cams[2]);
+        Assert.Equal([1, 2, 3], config.Cams.Select(camera => camera.Instance));
+    }
+
+    [Fact]
+    public void AnInvalidEntryKeepsItsJsonWithoutComments()
+    {
+        var invalid = Assert.IsType<InvalidCameraConfiguration>(Assert.Single(TestSchema.Load(
+            """{ "cams": [ { "type": "Cgf.PtzCamera", /* old */ "instance": 7, "connectionPort": "COM6" } ] }""",
+            out _).Cams));
+
+        Assert.Equal("""{"type":"Cgf.PtzCamera","instance":7,"connectionPort":"COM6"}""", invalid.Json);
+        Assert.Equal("Cgf.PtzCamera", invalid.Type);
+        Assert.Equal(7, invalid.Instance);
     }
 
     [Fact]
     public void RejectsJsonThatIsNotAnObject()
     {
-        Assert.Throws<ConfigFormatException>(() => ConfigLoader.Load("[]", out _));
-        Assert.Throws<ConfigFormatException>(() => ConfigLoader.Load("{ not json", out _));
+        Assert.Throws<ConfigFormatException>(() => TestSchema.Load("[]", out _));
+        Assert.Throws<ConfigFormatException>(() => TestSchema.Load("{ not json", out _));
     }
 
-    // The shipped configs use the builder type strings, not the ones the README documents, and the
-    // oldest of them omits connectionChange.type and specialFunction entirely. The loader keeps every
-    // entry it can identify and leaves the meaning of the rest to the builder that claims the type.
     [Fact]
-    public void AcceptsTheShapeOfTheOldestShippedConfig()
+    public void ASchemaCannotRegisterOneTypeStringTwice()
     {
-        var config = ConfigLoader.Load(
-            """
-            {
-              "cams": [ { "type": "Cgf.PtzCamera", "instance": 1, "connectionUrl": "http://10.0.0.5:5001", "connectionPort": "/dev/ttyACM0" } ],
-              "videoMixers": [ { "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.6", "mixEffectBlock": 0 } ],
-              "interfaces": [
-                {
-                  "type": "logitech/F710",
-                  "instance": 1,
-                  "videoMixer": 1,
-                  "connectionChange": { "default": { "up": 1, "right": 2, "down": 3, "left": 4 } },
-                  "cameraMap": { "1": 1, "2": 2, "3": 3 }
-                }
-              ]
-            }
-            """,
-            out var issues);
+        var schema = new ConfigurationSchema(TestConfigurationContext.Default).Camera<LensCamera>("lens");
 
-        Assert.Empty(issues);
-        var hmi = Assert.Single(config.Interfaces);
-        Assert.False(hmi.Raw.GetProperty("connectionChange").TryGetProperty("type", out _));
-        Assert.False(hmi.Raw.TryGetProperty("specialFunction", out _));
+        Assert.Throws<InvalidOperationException>(() => schema.Camera<LensCamera>("LENS"));
     }
 }

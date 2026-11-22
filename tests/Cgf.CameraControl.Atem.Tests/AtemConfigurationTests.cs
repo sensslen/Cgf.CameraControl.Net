@@ -1,5 +1,4 @@
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
-using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.VideoMixer;
 
 namespace Cgf.CameraControl.Atem.Tests;
@@ -26,10 +25,9 @@ public class AtemConfigurationTests
     [Fact]
     public void RequiresIp()
     {
-        var error = Assert.Throws<ConfigValidationException>(() =>
-            Read("""{ "type": "blackmagicdesign/atem", "instance": 1, "mixEffectBlock": 0 }"""));
+        var error = Rejected("""{ "type": "blackmagicdesign/atem", "instance": 1, "mixEffectBlock": 0 }""");
 
-        Assert.Contains("'ip'", error.Message, StringComparison.Ordinal);
+        Assert.Contains("'ip'", error, StringComparison.Ordinal);
     }
 
     // The converter runs while reading, so the reported path comes from the reader rather than from
@@ -37,28 +35,25 @@ public class AtemConfigurationTests
     [Fact]
     public void RejectsAnAddressThatIsNeitherHostNorIp()
     {
-        var error = Assert.Throws<ConfigValidationException>(() =>
-            Read("""{ "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1 ", "mixEffectBlock": 0 }"""));
+        var error = Rejected("""{ "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1 ", "mixEffectBlock": 0 }""");
 
-        Assert.Equal("blackmagicdesign/atem[1].ip", error.Path);
-        Assert.Contains("host name or IP address", error.Message, StringComparison.Ordinal);
+        Assert.Contains("blackmagicdesign/atem[1].ip: ", error, StringComparison.Ordinal);
+        Assert.Contains("host name or IP address", error, StringComparison.Ordinal);
     }
 
     [Fact]
     public void RejectsANegativeMixEffectBlock()
     {
-        var error = Assert.Throws<ConfigValidationException>(() =>
-            Read("""{ "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": -1 }"""));
+        var error = Rejected("""{ "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": -1 }""");
 
-        Assert.Equal("blackmagicdesign/atem[1].mixEffectBlock", error.Path);
-        Assert.Contains("non-negative", error.Message, StringComparison.Ordinal);
+        Assert.Contains("blackmagicdesign/atem[1].mixEffectBlock: ", error, StringComparison.Ordinal);
+        Assert.Contains("non-negative", error, StringComparison.Ordinal);
     }
 
     [Fact]
     public void RejectsAFractionalMixEffectBlock()
     {
-        Assert.Throws<ConfigValidationException>(() =>
-            Read("""{ "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": 1.5 }"""));
+        Rejected("""{ "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": 1.5 }""");
     }
 
     public class TallyPolicy : AtemConfigurationTests
@@ -88,16 +83,14 @@ public class AtemConfigurationTests
         [InlineData("null")]
         public void InvalidPoliciesReportTheMixerField(string value)
         {
-            var error = Assert.Throws<ConfigValidationException>(() => Read($$"""
+            var error = Rejected($$"""
                 { "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": 0, "tallyMode": {{value}} }
-                """));
-            Assert.Equal("blackmagicdesign/atem[1].tallyMode", error.Path);
+                """);
+            Assert.Contains("blackmagicdesign/atem[1].tallyMode: ", error, StringComparison.Ordinal);
         }
     }
 
-    private static AtemConfiguration Read(string json)
-    {
-        var config = ConfigLoader.Load($$"""{ "videoMixers": [ {{json}} ] }""", out _);
-        return Assert.Single(config.VideoMixers).Deserialize(AtemConfigurationContext.Default.AtemConfiguration);
-    }
+    private static AtemConfiguration Read(string json) => TestSchema.Read<AtemConfiguration>("videoMixers", json);
+
+    private static string Rejected(string json) => TestSchema.Rejected("videoMixers", json);
 }

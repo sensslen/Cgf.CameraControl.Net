@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.GenericFactory;
 using Cgf.CameraControl.Core.Logger;
@@ -108,13 +107,28 @@ public class FactoryTests
     private Task<LoadIssue?> Parse(int instance, string type) =>
         _factory.ParseConfigAsync(Entry(instance, type), _logger, TestContext.Current.CancellationToken);
 
-    private static ConfigEntry Entry(int instance, string type)
+    private static ThingConfiguration Entry(int instance, string type) => new(type) { Instance = instance };
+
+    [Fact]
+    public async Task AnEntryTheLoaderCouldNotReadIsNotBuiltOrReportedAgain()
     {
-        using var document = JsonDocument.Parse($$"""{ "instance": {{instance}}, "type": "{{type}}" }""");
-        return new ConfigEntry(instance, type, document.RootElement.Clone());
+        _factory.AddBuilder(new ThingBuilder("known"));
+
+        var issue = await _factory.ParseConfigAsync(
+            new InvalidThingConfiguration("known", "{}", "cams[0] is missing a numeric 'instance'"),
+            _logger,
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(issue);
+        Assert.Empty(_factory.Instances);
     }
 
-    private sealed class ThingFactory() : Factory<Thing>("cams");
+    private record ThingConfiguration(string Type) : CameraConfiguration(Type);
+
+    private sealed record InvalidThingConfiguration(string Type, string Json, string Problem)
+        : ThingConfiguration(Type), IInvalidConfiguration;
+
+    private sealed class ThingFactory() : Factory<Thing, ThingConfiguration>("cams");
 
     private sealed class Thing(int instance) : IAsyncDisposable
     {
@@ -131,13 +145,13 @@ public class FactoryTests
         }
     }
 
-    private sealed class ThingBuilder(params string[] types) : IBuilder<Thing>
+    private sealed class ThingBuilder(params string[] types) : IBuilder<Thing, ThingConfiguration>
     {
         public string? Failure { get; init; }
 
         public IReadOnlyCollection<string> SupportedTypes => types;
 
-        public Task<Thing> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken) =>
+        public Task<Thing> BuildAsync(ThingConfiguration entry, CancellationToken cancellationToken) =>
             Failure is null
                 ? Task.FromResult(new Thing(entry.Instance))
                 : Task.FromException<Thing>(new InvalidOperationException(Failure));

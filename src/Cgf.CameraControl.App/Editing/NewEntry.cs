@@ -50,7 +50,7 @@ public sealed partial class NewEntry : ViewModelBase
 
     private EntryDraft Build()
     {
-        var entry = new EntryDraft(Strings, _kind, SelectedType, EntrySchema.NewEntry(SelectedType, _instance), _pads);
+        var entry = new EntryDraft(Strings, _kind, EntrySchema.NewEntry(SelectedType, _instance), _pads);
         entry.Edited += (_, _) => OnPropertyChanged(nameof(CanAdd));
         return entry;
     }

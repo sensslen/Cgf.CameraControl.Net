@@ -4,13 +4,13 @@ using Cgf.CameraControl.Core.Logger;
 
 namespace Cgf.CameraControl.Core.VideoMixer.Passthrough;
 
-public sealed class PassthroughBuilder(ILogger logger) : IBuilder<IVideoMixer>
+public sealed class PassthroughBuilder(ILogger logger) : IBuilder<IVideoMixer, VideoMixerConfiguration>
 {
-    public IReadOnlyCollection<string> SupportedTypes => ["passthrough/default"];
+    public IReadOnlyCollection<string> SupportedTypes => [PassthroughConfiguration.TypeName];
 
-    public Task<IVideoMixer> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken)
+    public Task<IVideoMixer> BuildAsync(VideoMixerConfiguration entry, CancellationToken cancellationToken)
     {
-        var config = entry.Deserialize(PassthroughConfigurationContext.Default.PassthroughConfiguration);
+        var config = (PassthroughConfiguration)entry;
         return Task.FromResult<IVideoMixer>(new Passthrough(logger, config.TallyMode));
     }
 }

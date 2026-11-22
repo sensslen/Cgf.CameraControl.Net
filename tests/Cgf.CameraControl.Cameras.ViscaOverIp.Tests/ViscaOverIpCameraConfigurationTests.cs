@@ -1,5 +1,4 @@
 using Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
-using Cgf.CameraControl.Core.Configuration;
 
 namespace Cgf.CameraControl.Cameras.ViscaOverIp.Tests;
 
@@ -24,8 +23,7 @@ public class ViscaOverIpCameraConfigurationTests
     [InlineData("null")]
     [InlineData("\"50\"")]
     public void RejectsInvalidPanTiltSpeed(string value) =>
-        Assert.Throws<ConfigValidationException>(() =>
-            Read($$"""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1", "panTiltSpeedPercent": {{value}} }"""));
+        Rejected($$"""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1", "panTiltSpeedPercent": {{value}} }""");
 
     [Fact]
     public void ReadsTheShippedShape()
@@ -47,14 +45,13 @@ public class ViscaOverIpCameraConfigurationTests
     [Fact]
     public void RequiresIp()
     {
-        Assert.Throws<ConfigValidationException>(() => Read("""{ "type": "viscaoverip", "instance": 1 }"""));
+        Rejected("""{ "type": "viscaoverip", "instance": 1 }""");
     }
 
     [Fact]
     public void RejectsAPortNoSocketCanBeOn()
     {
-        Assert.Throws<ConfigValidationException>(() =>
-            Read("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1", "port": 70000 }"""));
+        Rejected("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1", "port": 70000 }""");
     }
 
     // The names are the ones the TypeScript schema accepts, less 'sony-lumens', whose two lamps sit
@@ -75,8 +72,7 @@ public class ViscaOverIpCameraConfigurationTests
     [Fact]
     public void RejectsAVendorItHasNoPayloadsFor()
     {
-        Assert.Throws<ConfigValidationException>(() =>
-            Read("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1", "tallyMode": "panasonic" }"""));
+        Rejected("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1", "tallyMode": "panasonic" }""");
     }
 
     [Fact]
@@ -87,10 +83,7 @@ public class ViscaOverIpCameraConfigurationTests
             Read("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1" }""").TallyMode);
     }
 
-    private static ViscaOverIpCameraConfiguration Read(string json)
-    {
-        var config = ConfigLoader.Load($$"""{ "cams": [ {{json}} ] }""", out _);
-        return Assert.Single(config.Cams)
-            .Deserialize(ViscaOverIpCameraConfigurationContext.Default.ViscaOverIpCameraConfiguration);
-    }
+    private static ViscaOverIpCameraConfiguration Read(string json) => TestSchema.Read<ViscaOverIpCameraConfiguration>("cams", json);
+
+    private static string Rejected(string json) => TestSchema.Rejected("cams", json);
 }

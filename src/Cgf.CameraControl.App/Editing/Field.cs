@@ -1,26 +1,22 @@
 using System.Globalization;
 using System.Reactive.Linq;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Cgf.CameraControl.App.Editing;
 
-/// One property of one configuration entry, bound to the JSON that entry carries.
+/// One property of one configuration record, read and written through the accessors it is given.
 ///
-/// A field reads its value out of that JSON when it is built and writes back only when it is changed
-/// afterwards, which is what lets an entry somebody merely looked at come out of the writer exactly as
-/// it went in. Everything no field covers, the functions and the bindings among them, rides along
-/// inside the same object untouched.
-public abstract partial class Field(ILocalizer strings, JsonObject entry, string key, string label, string? placeholder = null)
+/// A field reads its value from the record when it is built and writes back only when it is changed
+/// afterwards. Everything no field covers, the functions and the bindings among them, stays in the
+/// record untouched.
+public abstract partial class Field(ILocalizer strings, string key, string label, string? placeholder = null)
     : ViewModelBase
 {
-    protected JsonObject Entry { get; } = entry;
-
     public ILocalizer Strings { get; } = strings;
 
+    /// The property's name in the file, which is also how a field is found.
     public string Key { get; } = key;
 
     /// A localization key, so the form follows the language menu like everything else.
@@ -42,23 +38,11 @@ public abstract partial class Field(ILocalizer strings, JsonObject entry, string
     public event EventHandler? Edited;
 
     /// False until the constructor has put the value it read into the property. Setting a property
-    /// runs the same handler an operator's typing does, and a field must not report the file as
+    /// runs the same handler an operator's typing does, and a field must not report the record as
     /// edited for having been read.
     protected bool Loaded { get; private set; }
 
-    /// True once this field has written into the entry, including a mistyped value it rewrote on load.
-    public bool Rewritten { get; private set; }
-
     protected internal abstract void Validate();
-
-    /// The value as text, whatever JSON type the file wrote it as. A hand-written `"port": "52381"`
-    /// is shown for correction rather than taking the form down with it.
-    protected static string Text(JsonNode? node) =>
-        node is JsonValue value && value.TryGetValue<string>(out var text) ? text : node?.ToJsonString() ?? string.Empty;
-
-    /// True when the file holds this key as something other than the given JSON kind.
-    protected bool Mistyped(params JsonValueKind[] kinds) =>
-        Entry[Key] is { } node && !kinds.Contains(node.GetValueKind());
 
     protected void Ready()
     {
@@ -66,26 +50,22 @@ public abstract partial class Field(ILocalizer strings, JsonObject entry, string
         Loaded = true;
     }
 
-    protected void Write(JsonNode? value)
+    /// Applies an operator's change to the record. The record follows the box whenever the box holds
+    /// a value of the right kind, even one a rule refuses: what is refused is reported, and blocks the
+    /// save, rather than leaving the record saying something the form no longer shows.
+    protected void Write(Action apply)
     {
         if (!Loaded)
         {
             return;
         }
 
-        if (value is null)
-        {
-            Entry.Remove(Key);
-        }
-        else
-        {
-            Entry[Key] = value;
-        }
-
-        Rewritten = true;
+        apply();
         Validate();
         Edited?.Invoke(this, EventArgs.Empty);
     }
+
+    protected static string Format(int value) => value.ToString(CultureInfo.CurrentUICulture);
 }
 
 /// A free string: an address, a serial number, a serial port.
@@ -95,25 +75,24 @@ public abstract partial class Field(ILocalizer strings, JsonObject entry, string
 public sealed partial class TextField : Field
 {
     private readonly bool _required;
+    private readonly Action<string?> _write;
 
     public TextField(
         ILocalizer strings,
-        JsonObject entry,
         string key,
         string label,
         bool required,
+        Func<string?> read,
+        Action<string?> write,
         string? placeholder = null,
         IReadOnlyList<string>? suggestions = null)
-        : base(strings, entry, key, label, placeholder)
+        : base(strings, key, label, placeholder)
     {
         _required = required;
+        _write = write;
         Suggestions = suggestions ?? [];
-        Value = Text(entry[key]);
+        Value = read() ?? string.Empty;
         Ready();
-        if (Mistyped(JsonValueKind.String))
-        {
-            OnValueChanged(Value);
-        }
     }
 
     public IReadOnlyList<string> Suggestions { get; }
@@ -134,8 +113,7 @@ public sealed partial class TextField : Field
             ? _required || RequiredWhen?.Invoke() == true ? Strings.Text("edit.required") : null
             : Check?.Invoke(Value);
 
-    partial void OnValueChanged(string value) =>
-        Write(string.IsNullOrWhiteSpace(value) ? null : JsonValue.Create(value));
+    partial void OnValueChanged(string value) => Write(() => _write(string.IsNullOrWhiteSpace(value) ? null : value));
 }
 
 /// A whole number, backed by its text rather than by an int. A box you can only type a number into is
@@ -146,30 +124,26 @@ public sealed partial class NumberField : Field
     private readonly int _minimum;
     private readonly int _maximum;
     private readonly bool _required;
+    private readonly Action<int?> _write;
 
     public NumberField(
         ILocalizer strings,
-        JsonObject entry,
         string key,
         string label,
         bool required,
         int minimum,
+        Func<int?> read,
+        Action<int?> write,
         string? placeholder = null,
         int maximum = int.MaxValue)
-        : base(strings, entry, key, label, placeholder)
+        : base(strings, key, label, placeholder)
     {
         _required = required;
         _minimum = minimum;
         _maximum = maximum;
-        var node = entry[key];
-        Value = node is JsonValue stored && stored.TryGetValue<int>(out var number)
-            ? number.ToString(CultureInfo.CurrentUICulture)
-            : Text(node);
+        _write = write;
+        Value = read() is { } number ? Format(number) : string.Empty;
         Ready();
-        if (node is not null && !(node is JsonValue written && written.TryGetValue<int>(out _)))
-        {
-            OnValueChanged(Value);
-        }
     }
 
     [ObservableProperty]
@@ -195,23 +169,19 @@ public sealed partial class NumberField : Field
             _ => null,
         };
 
-    partial void OnValueChanged(string value) => Write(Number is { } number ? JsonValue.Create(number) : null);
+    partial void OnValueChanged(string value) => Write(() => _write(Number));
 }
 
 public sealed partial class PercentField : Field
 {
-    public PercentField(ILocalizer strings, JsonObject entry, string key, string label)
-        : base(strings, entry, key, label)
+    private readonly Action<int> _write;
+
+    public PercentField(ILocalizer strings, string key, string label, Func<int> read, Action<int> write)
+        : base(strings, key, label)
     {
-        var node = entry[key];
-        Value = node is null ? "100"
-            : node is JsonValue stored && stored.TryGetValue<int>(out var number) ? number.ToString(CultureInfo.CurrentUICulture)
-            : Text(node);
+        _write = write;
+        Value = Format(read());
         Ready();
-        if (node is not null && !(node is JsonValue written && written.TryGetValue<int>(out _)))
-        {
-            OnValueChanged(Value);
-        }
     }
 
     [ObservableProperty]
@@ -224,7 +194,7 @@ public sealed partial class PercentField : Field
     public double SliderValue
     {
         get => Math.Clamp(Number ?? 100, 1, 100);
-        set => Value = Math.Round(Math.Clamp(value, 1, 100)).ToString(CultureInfo.CurrentUICulture);
+        set => Value = Format((int)Math.Round(Math.Clamp(value, 1, 100)));
     }
 
     protected internal override void Validate() =>
@@ -236,26 +206,25 @@ public sealed partial class PercentField : Field
             _ => null,
         };
 
-    partial void OnValueChanged(string value) => Write(Number is { } number ? JsonValue.Create(number) : null);
+    partial void OnValueChanged(string value) => Write(() =>
+    {
+        if (Number is { } number)
+        {
+            _write(number);
+        }
+    });
 }
 
 public sealed partial class SwitchField : Field
 {
-    public SwitchField(ILocalizer strings, JsonObject entry, string key, string label, bool fallback)
-        : base(strings, entry, key, label)
+    private readonly Action<bool> _write;
+
+    public SwitchField(ILocalizer strings, string key, string label, Func<bool> read, Action<bool> write)
+        : base(strings, key, label)
     {
-        var mistyped = Mistyped(JsonValueKind.True, JsonValueKind.False);
-        Value = entry[key] switch
-        {
-            null => fallback,
-            var node when !mistyped => node.GetValue<bool>(),
-            var node => bool.TryParse(Text(node), out var parsed) ? parsed : fallback,
-        };
+        _write = write;
+        Value = read();
         Ready();
-        if (mistyped)
-        {
-            OnValueChanged(Value);
-        }
     }
 
     [ObservableProperty]
@@ -265,7 +234,7 @@ public sealed partial class SwitchField : Field
     {
     }
 
-    partial void OnValueChanged(bool value) => Write(JsonValue.Create(value));
+    partial void OnValueChanged(bool value) => Write(() => _write(value));
 }
 
 public sealed record ChoiceOption(ILocalizer Strings, string Value, string? CaptionKey)
@@ -277,23 +246,24 @@ public sealed record ChoiceOption(ILocalizer Strings, string Value, string? Capt
 /// One of a fixed set of names, which is how every enum in the configuration is written.
 public sealed partial class ChoiceField : Field
 {
+    private readonly Action<string> _write;
+
     public ChoiceField(
         ILocalizer strings,
-        JsonObject entry,
         string key,
         string label,
         IReadOnlyList<string> options,
-        string fallback,
+        Func<string> read,
+        Action<string> write,
         string? optionLabelPrefix = null)
-        : base(strings, entry, key, label)
+        : base(strings, key, label)
     {
+        _write = write;
         Options = options;
         Items = options.Select(value => new ChoiceOption(
             strings,
             value, optionLabelPrefix is null ? null : $"{optionLabelPrefix}.{value}")).ToArray();
-        var written = entry.TryGetPropertyValue(key, out var node) ? node?.ToString() ?? string.Empty : fallback;
-        Value = options.FirstOrDefault(option => string.Equals(option, written, StringComparison.OrdinalIgnoreCase))
-            ?? written;
+        Value = read();
         Ready();
     }
 
@@ -320,27 +290,28 @@ public sealed partial class ChoiceField : Field
     protected internal override void Validate() =>
         Error = SelectedOption is null ? Strings.Text("edit.required") : null;
 
-    partial void OnValueChanged(string value) => Write(JsonValue.Create(value));
+    partial void OnValueChanged(string value) => Write(() =>
+    {
+        if (SelectedOption is { } option)
+        {
+            _write(option.Value);
+        }
+    });
 }
 
 /// A number with a decimal point, for the one field that takes a fraction.
 public sealed partial class FractionField : Field
 {
     private readonly double _maximum;
+    private readonly Action<double> _write;
 
-    public FractionField(ILocalizer strings, JsonObject entry, string key, string label, double fallback, double maximum)
-        : base(strings, entry, key, label)
+    public FractionField(ILocalizer strings, string key, string label, double maximum, Func<double> read, Action<double> write)
+        : base(strings, key, label)
     {
         _maximum = maximum;
-        var node = entry[key];
-        Value = node is null ? fallback.ToString(CultureInfo.CurrentUICulture)
-            : node is JsonValue stored && stored.TryGetValue<double>(out var number) ? number.ToString(CultureInfo.CurrentUICulture)
-            : Text(node);
+        _write = write;
+        Value = read().ToString(CultureInfo.CurrentUICulture);
         Ready();
-        if (Mistyped(JsonValueKind.Number))
-        {
-            OnValueChanged(Value);
-        }
     }
 
     [ObservableProperty]
@@ -363,5 +334,11 @@ public sealed partial class FractionField : Field
             _ => null,
         };
 
-    partial void OnValueChanged(string value) => Write(Number is { } number ? JsonValue.Create(number) : null);
+    partial void OnValueChanged(string value) => Write(() =>
+    {
+        if (Number is { } number)
+        {
+            _write(number);
+        }
+    });
 }

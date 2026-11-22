@@ -13,19 +13,19 @@ public sealed class KeyboardBuilder(
     VideoMixerFactory mixers,
     CameraConnectionFactory cameras,
     ICollection<ControlSurfaceDevice> surfaces,
-    ILogger logger) : IBuilder<IHmi>
+    ILogger logger) : IBuilder<IHmi, InterfaceConfiguration>
 {
-    public IReadOnlyCollection<string> SupportedTypes => ["keyboard"];
+    public IReadOnlyCollection<string> SupportedTypes => [KeyboardConfiguration.TypeName];
 
-    public Task<IHmi> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken)
+    public Task<IHmi> BuildAsync(InterfaceConfiguration entry, CancellationToken cancellationToken)
     {
-        var config = entry.Deserialize(InterfaceConfigurationContext.Default.KeyboardConfiguration);
+        var config = (KeyboardConfiguration)entry;
         var mixer = mixers.Get(config.VideoMixer)
                     ?? throw new ConfigValidationException(
                         $"{entry}.videoMixer",
                         $"no video mixer is configured with instance {config.VideoMixer}");
 
-        InterfaceValidation.Bindings(entry, config);
+        InterfaceValidation.Bindings(config);
 
         var device = new ControlSurfaceDevice(entry.Instance);
         surfaces.Add(device);

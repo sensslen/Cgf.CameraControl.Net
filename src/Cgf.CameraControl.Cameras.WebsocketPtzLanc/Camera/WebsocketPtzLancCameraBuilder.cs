@@ -5,13 +5,13 @@ using Cgf.CameraControl.Core.Logger;
 
 namespace Cgf.CameraControl.Cameras.WebsocketPtzLanc.Camera;
 
-public sealed class WebsocketPtzLancCameraBuilder(ILogger logger) : IBuilder<ICameraConnection>
+public sealed class WebsocketPtzLancCameraBuilder(ILogger logger) : IBuilder<ICameraConnection, CameraConfiguration>
 {
-    public IReadOnlyCollection<string> SupportedTypes => ["Websocket.PtzLanc"];
+    public IReadOnlyCollection<string> SupportedTypes => [WebsocketPtzLancCameraConfiguration.TypeName];
 
-    public Task<ICameraConnection> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken)
+    public Task<ICameraConnection> BuildAsync(CameraConfiguration entry, CancellationToken cancellationToken)
     {
-        var config = entry.Deserialize(WebsocketPtzLancCameraConfigurationContext.Default.WebsocketPtzLancCameraConfiguration);
+        var config = (WebsocketPtzLancCameraConfiguration)entry;
         var transport = new WebsocketTransport(new Uri($"ws://{config.Ip}/ws"), logger);
         return Task.FromResult<ICameraConnection>(new WebsocketPtzLancCamera(config, transport));
     }

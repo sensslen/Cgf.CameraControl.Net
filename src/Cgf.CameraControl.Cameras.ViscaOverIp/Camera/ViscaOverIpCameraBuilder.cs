@@ -5,13 +5,13 @@ using Cgf.CameraControl.Core.Logger;
 
 namespace Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 
-public sealed class ViscaOverIpCameraBuilder(ILogger logger) : IBuilder<ICameraConnection>
+public sealed class ViscaOverIpCameraBuilder(ILogger logger) : IBuilder<ICameraConnection, CameraConfiguration>
 {
-    public IReadOnlyCollection<string> SupportedTypes => ["viscaoverip"];
+    public IReadOnlyCollection<string> SupportedTypes => [ViscaOverIpCameraConfiguration.TypeName];
 
-    public Task<ICameraConnection> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken)
+    public Task<ICameraConnection> BuildAsync(CameraConfiguration entry, CancellationToken cancellationToken)
     {
-        var config = entry.Deserialize(ViscaOverIpCameraConfigurationContext.Default.ViscaOverIpCameraConfiguration);
+        var config = (ViscaOverIpCameraConfiguration)entry;
         Validate.Port(config.Port, $"{entry}.port");
         var transport = new ViscaUdpTransport(config.Ip, config.Port, logger);
         return Task.FromResult<ICameraConnection>(new ViscaOverIpCamera(config, transport, logger));

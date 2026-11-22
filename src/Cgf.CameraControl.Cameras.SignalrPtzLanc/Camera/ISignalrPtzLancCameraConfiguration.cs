@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.Configuration.Converters;
 
 namespace Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
@@ -29,26 +30,22 @@ public sealed class ControllerUrlConverter : JsonConverter<string>
 ///   connectionUrl: z.string(),
 ///   connectionPort: z.string(),
 ///   panTiltInvert: z.boolean().default(false).optional() })
-/// On the `get; set;` and [JsonRequired] conventions, see WebsocketPtzLancCameraConfiguration.
-public sealed record SignalrPtzLancCameraConfiguration
+/// On the `get; set;` and [JsonRequired] conventions, see EntryConfiguration.
+public sealed record SignalrPtzLancCameraConfiguration() : CameraConfiguration(TypeName)
 {
+    public const string TypeName = "Signalr.PtzLanc";
+
     [JsonRequired]
     [JsonConverter(typeof(ControllerUrlConverter))]
-    public string ConnectionUrl { get; set; } = null!;
+    public string ConnectionUrl { get; set; } = string.Empty;
 
     /// The serial port the controller drives the camera through, named as that controller names it:
     /// "COM6" on Windows, "/dev/ttyUSB0" elsewhere. One controller can hold several.
     [JsonRequired]
-    public string ConnectionPort { get; set; } = null!;
+    public string ConnectionPort { get; set; } = string.Empty;
 
     public bool PanTiltInvert { get; set; }
 
     [JsonConverter(typeof(PercentConverter))]
     public int PanTiltSpeedPercent { get; set; } = 100;
 }
-
-[JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    UseStringEnumConverter = true)]
-[JsonSerializable(typeof(SignalrPtzLancCameraConfiguration))]
-public sealed partial class SignalrPtzLancCameraConfigurationContext : JsonSerializerContext;

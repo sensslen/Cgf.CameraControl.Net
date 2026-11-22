@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Text.Json.Nodes;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using Cgf.CameraControl.Core.Configuration;
@@ -53,9 +52,9 @@ public sealed partial class ConfigDraft : ViewModelBase
 
     public RootConfig ToConfig() =>
         new(
-            [.. Cameras.Select(entry => entry.ToEntry())],
-            [.. Mixers.Select(entry => entry.ToEntry())],
-            [.. Interfaces.Select(entry => entry.ToEntry())]);
+            [.. Cameras.Select(entry => (CameraConfiguration)entry.ToEntry())],
+            [.. Mixers.Select(entry => (VideoMixerConfiguration)entry.ToEntry())],
+            [.. Interfaces.Select(entry => (InterfaceConfiguration)entry.ToEntry())]);
 
     /// The lowest number nothing in that collection has taken, so a new entry is proposed one that
     /// does not collide rather than one that has to be corrected before it can be saved.
@@ -67,7 +66,7 @@ public sealed partial class ConfigDraft : ViewModelBase
 
     public EntryDraft Add(EntryKind kind, string type)
     {
-        var draft = new EntryDraft(_strings, kind, type, EntrySchema.NewEntry(type, NextInstance(kind)), Pads);
+        var draft = new EntryDraft(_strings, kind, EntrySchema.NewEntry(type, NextInstance(kind)), Pads);
         Insert(draft);
         return draft;
     }
@@ -125,16 +124,11 @@ public sealed partial class ConfigDraft : ViewModelBase
     private static int? Mixer(EntryDraft entry) =>
         entry.Fields.OfType<NumberField>().FirstOrDefault(field => field.Key == "videoMixer")?.Number;
 
-    private void Fill(EntryKind kind, ObservableCollection<EntryDraft> list, IReadOnlyList<ConfigEntry> entries)
+    private void Fill(EntryKind kind, ObservableCollection<EntryDraft> list, IEnumerable<EntryConfiguration> entries)
     {
         foreach (var entry in entries)
         {
-            var node = JsonNode.Parse(entry.Raw.GetRawText()) as JsonObject ?? [];
-            var draft = Attach(new EntryDraft(_strings, kind, entry.Type, node, Pads));
-            list.Add(draft);
-
-            // A field that rewrote a mistyped value while loading has changed what will be saved.
-            IsDirty |= draft.Fields.Any(field => field.Rewritten);
+            list.Add(Attach(new EntryDraft(_strings, kind, entry, Pads)));
         }
     }
 
@@ -185,9 +179,11 @@ public sealed partial class ConfigDraft : ViewModelBase
 
     private void Report(IReadOnlyList<EntryDraft> list, string section)
     {
+        // An entry the loader could not read is written back as it was, so it is shown with what is
+        // wrong with it but does not stop the rest of the file being saved.
         foreach (var entry in list)
         {
-            entry.Problem = null;
+            entry.Problem = entry.Unreadable;
         }
 
         foreach (var entry in list)

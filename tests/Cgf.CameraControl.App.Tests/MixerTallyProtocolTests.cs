@@ -47,7 +47,7 @@ public class MixerTallyProtocolTests
                 new ViscaOverIpCameraConfiguration { Ip = "127.0.0.1", TallyMode = protocol }, transport, logger);
             var entry = Assert.Single(ConfigLoader.Load($$"""
                 {"videoMixers":[{"type":"passthrough/default","instance":1,"tallyMode":"{{mode}}"}]}
-                """, out _).VideoMixers);
+                """, AppHost.Schema, out _).VideoMixers);
             await using var mixer = await new PassthroughBuilder(logger).BuildAsync(entry, TestContext.Current.CancellationToken);
             await using var device = new ControlSurfaceDevice(1);
             await using var keyboard = new Gamepad(

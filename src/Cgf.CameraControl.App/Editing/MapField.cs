@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Text.Json.Nodes;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -13,15 +12,25 @@ namespace Cgf.CameraControl.App.Editing;
 /// a JSON object typed by hand is a syntax error waiting to be reported against the whole entry.
 public sealed partial class MapField : Field
 {
-    public MapField(ILocalizer strings, JsonObject entry, string key, string label, string leftLabel, string rightLabel)
-        : base(strings, entry, key, label)
+    private readonly Action<IReadOnlyDictionary<int, int>> _write;
+
+    public MapField(
+        ILocalizer strings,
+        string key,
+        string label,
+        string leftLabel,
+        string rightLabel,
+        Func<IReadOnlyDictionary<int, int>> read,
+        Action<IReadOnlyDictionary<int, int>> write)
+        : base(strings, key, label)
     {
         LeftLabel = leftLabel;
         RightLabel = rightLabel;
+        _write = write;
 
-        foreach (var pair in entry[key] as JsonObject ?? [])
+        foreach (var (input, camera) in read())
         {
-            Add(pair.Key, pair.Value?.ToString() ?? string.Empty);
+            Add(Format(input), Format(camera));
         }
 
         Ready();
@@ -98,16 +107,16 @@ public sealed partial class MapField : Field
     /// different key and there is nothing to patch.
     private void Save()
     {
-        var map = new JsonObject();
+        var map = new Dictionary<int, int>();
         foreach (var row in Rows)
         {
-            if (Number(row.Key) is { } input && Number(row.Value) is { } camera && !map.ContainsKey(row.Key))
+            if (Number(row.Key) is { } input && Number(row.Value) is { } camera)
             {
-                map[input.ToString(CultureInfo.InvariantCulture)] = JsonValue.Create(camera);
+                map.TryAdd(input, camera);
             }
         }
 
-        Write(map);
+        Write(() => _write(map));
     }
 }
 

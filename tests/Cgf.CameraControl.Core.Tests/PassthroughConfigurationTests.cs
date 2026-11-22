@@ -55,18 +55,17 @@ public class PassthroughConfigurationTests
         [InlineData("0")]
         [InlineData("\"2\"")]
         [InlineData("null")]
-        public async Task InvalidPoliciesReportTheMixerField(string value)
+        public void InvalidPoliciesReportTheMixerField(string value)
         {
-            var builder = new PassthroughBuilder(Substitute.For<ILogger>());
-            var error = await Assert.ThrowsAsync<ConfigValidationException>(() => builder.BuildAsync(
-                Read($$"""{"type":"passthrough/default","instance":1,"tallyMode":{{value}}}"""), TestContext.Current.CancellationToken));
-            Assert.Equal("passthrough/default[1].tallyMode", error.Path);
+            var invalid = Assert.IsType<InvalidVideoMixerConfiguration>(
+                Read($$"""{"type":"passthrough/default","instance":1,"tallyMode":{{value}}}"""));
+            Assert.StartsWith("videoMixers[0]: passthrough/default[1].tallyMode: ", invalid.Problem, StringComparison.Ordinal);
         }
     }
 
-    private static ConfigEntry Read(string entry)
+    private static VideoMixerConfiguration Read(string entry)
     {
-        var config = ConfigLoader.Load($$"""
+        var config = TestSchema.Load($$"""
             {"videoMixers":[{{entry}}]}
             """, out _);
         return Assert.Single(config.VideoMixers);

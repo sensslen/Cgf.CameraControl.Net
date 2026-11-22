@@ -6,15 +6,15 @@ using Cgf.CameraControl.Core.VideoMixer;
 
 namespace Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 
-public sealed class AtemBuilder(ILogger logger, IServices services) : IBuilder<IVideoMixer>
+public sealed class AtemBuilder(ILogger logger, IServices services) : IBuilder<IVideoMixer, VideoMixerConfiguration>
 {
     private readonly AtemFactory _atemFactory = new(logger, services);
 
-    public IReadOnlyCollection<string> SupportedTypes => ["blackmagicdesign/atem"];
+    public IReadOnlyCollection<string> SupportedTypes => [AtemConfiguration.TypeName];
 
-    public async Task<IVideoMixer> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken)
+    public async Task<IVideoMixer> BuildAsync(VideoMixerConfiguration entry, CancellationToken cancellationToken)
     {
-        var config = entry.Deserialize(AtemConfigurationContext.Default.AtemConfiguration);
+        var config = (AtemConfiguration)entry;
         var atem = new Atem(config, _atemFactory);
         try
         {

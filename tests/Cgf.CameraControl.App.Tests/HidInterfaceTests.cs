@@ -1,3 +1,4 @@
+using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.Core;
 using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.Logger;
@@ -45,7 +46,7 @@ public class HidInterfaceTests
                 }
               ]
             }
-            """, out _);
+            """, AppHost.Schema, out _);
         for (var load = 0; load < 2; load++)
         {
             Assert.Empty(await core.ReconfigureAsync(config, TestContext.Current.CancellationToken));

@@ -213,7 +213,7 @@ public class MainWindowKeyboardTests
             mixer.WhenPreviewChanged.Returns(Observable.Never<PreviewChange>());
             mixer.WhenProgramChanged.Returns(Observable.Never<int>());
             mixer.WhenConnectedChanged.Returns(Observable.Return(true));
-            var config = Assert.Single(ConfigLoader.Load("""
+            var config = (KeyboardConfiguration)Assert.Single(ConfigLoader.Load("""
                 {
                   "interfaces": [{
                     "type": "keyboard", "instance": 1, "videoMixer": 1,
@@ -226,7 +226,7 @@ public class MainWindowKeyboardTests
                     }
                   }]
                 }
-                """, out _).Interfaces).Deserialize(InterfaceConfigurationContext.Default.KeyboardConfiguration);
+                """, AppHost.Schema, out _).Interfaces);
             await using var hmi = new Gamepad(config, device, mixer, _ => null, Substitute.For<ILogger>());
             using var view = new InterfaceViewModel(new Localizer(), 1, hmi, new ControlSurfaceViewModel(device), [], []);
             model.Interfaces.Add(view);

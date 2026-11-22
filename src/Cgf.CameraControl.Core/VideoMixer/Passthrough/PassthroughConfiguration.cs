@@ -1,16 +1,10 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Cgf.CameraControl.Core.Configuration;
 
 namespace Cgf.CameraControl.Core.VideoMixer.Passthrough;
 
-public sealed record PassthroughConfiguration
+public sealed record PassthroughConfiguration() : VideoMixerConfiguration(TypeName)
 {
+    public const string TypeName = "passthrough/default";
+
     public MixerTallyMode TallyMode { get; set; } = MixerTallyMode.PreviewProgram;
 }
-
-[JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    AllowTrailingCommas = true,
-    ReadCommentHandling = JsonCommentHandling.Skip)]
-[JsonSerializable(typeof(PassthroughConfiguration))]
-public sealed partial class PassthroughConfigurationContext : JsonSerializerContext;

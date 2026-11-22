@@ -3,10 +3,11 @@ using Cgf.CameraControl.Core.Logger;
 
 namespace Cgf.CameraControl.Core.GenericFactory;
 
-public abstract class Factory<T>(string section) : IAsyncDisposable
+public abstract class Factory<T, TConfiguration>(string section) : IAsyncDisposable
     where T : IAsyncDisposable
+    where TConfiguration : EntryConfiguration
 {
-    private readonly Dictionary<string, IBuilder<T>> _builders = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, IBuilder<T, TConfiguration>> _builders = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<int, T> _instances = [];
 
     // Every instance arrives through ParseConfigAsync, so whenever there is something to dispose
@@ -17,7 +18,10 @@ public abstract class Factory<T>(string section) : IAsyncDisposable
 
     public T? Get(int instance) => _instances.TryGetValue(instance, out var value) ? value : default;
 
-    public void AddBuilder(IBuilder<T> builder)
+    /// The type strings the registered builders claim.
+    public IReadOnlyCollection<string> ClaimedTypes => _builders.Keys;
+
+    public void AddBuilder(IBuilder<T, TConfiguration> builder)
     {
         foreach (var type in builder.SupportedTypes)
         {
@@ -29,9 +33,16 @@ public abstract class Factory<T>(string section) : IAsyncDisposable
         }
     }
 
-    public async Task<LoadIssue?> ParseConfigAsync(ConfigEntry entry, ILogger logger, CancellationToken cancellationToken)
+    public async Task<LoadIssue?> ParseConfigAsync(TConfiguration entry, ILogger logger, CancellationToken cancellationToken)
     {
         _logger = logger;
+
+        // The loader has reported it already, and there is nothing in it to build from.
+        if (entry is IInvalidConfiguration)
+        {
+            return null;
+        }
+
         if (_instances.ContainsKey(entry.Instance))
         {
             return Issue(entry, $"instance {entry.Instance} is already configured");
@@ -52,7 +63,7 @@ public abstract class Factory<T>(string section) : IAsyncDisposable
             return Issue(entry, ex.Message);
         }
 
-        LoadIssue Issue(ConfigEntry failed, string message)
+        LoadIssue Issue(TConfiguration failed, string message)
         {
             var issue = new LoadIssue(section, failed, message);
             logger.Error("Configuration", issue.ToString());

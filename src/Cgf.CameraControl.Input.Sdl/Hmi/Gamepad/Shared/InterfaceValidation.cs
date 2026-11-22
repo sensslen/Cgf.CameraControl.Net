@@ -8,56 +8,54 @@ namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 /// silently does nothing in the middle of a service.
 public static class InterfaceValidation
 {
-    public static void Bindings(ConfigEntry entry, GamepadConfiguration config)
+    public static void Bindings(GamepadConfiguration config)
     {
         if (!Enum.IsDefined(config.Backend))
         {
-            throw new ConfigValidationException($"{entry}.backend", $"Unknown gamepad backend {config.Backend}.");
+            throw new ConfigValidationException($"{config}.backend", $"Unknown gamepad backend {config.Backend}.");
         }
         if (config.Backend == GamepadBackend.Hid)
         {
             if (string.IsNullOrWhiteSpace(config.SerialNumber) || !config.SerialNumber.Any(char.IsLetterOrDigit))
             {
-                throw new ConfigValidationException($"{entry}.serialNumber", "HID backend requires a serial number.");
+                throw new ConfigValidationException($"{config}.serialNumber", "HID backend requires a serial number.");
             }
-            if (entry.Type.Equals("logitech/F710", StringComparison.OrdinalIgnoreCase) ||
-                entry.Type.Equals("logitech/Rumblepad2", StringComparison.OrdinalIgnoreCase))
+            if (!config.SupportsHid)
             {
-                throw new ConfigValidationException($"{entry}.backend", "HID backend currently supports F310 pads only.");
+                throw new ConfigValidationException($"{config}.backend", "HID backend currently supports F310 pads only.");
             }
         }
-        Names(entry, config, "pad.default", config.Pad.Default.Values);
-        Names(entry, config, "pad.alt", config.Pad.Alt?.Values);
-        Names(entry, config, "pad.altLower", config.Pad.AltLower?.Values);
-        Shared(entry, config);
+        Names(config, "pad.default", config.Pad.Default.Values);
+        Names(config, "pad.alt", config.Pad.Alt?.Values);
+        Names(config, "pad.altLower", config.Pad.AltLower?.Values);
+        Shared(config);
     }
 
-    public static void Bindings(ConfigEntry entry, KeyboardConfiguration config)
+    public static void Bindings(KeyboardConfiguration config)
     {
-        Names(entry, config, "keys.function", config.Keys.Function?.Values);
-        Shared(entry, config);
+        Names(config, "keys.function", config.Keys.Function?.Values);
+        Shared(config);
     }
 
-    private static void Shared(ConfigEntry entry, InterfaceConfiguration config)
+    private static void Shared(ControlInterfaceConfiguration config)
     {
-        Validate.NonNegativeMap(config.CameraMap, $"{entry}.cameraMap");
+        Validate.NonNegativeMap(config.CameraMap, $"{config}.cameraMap");
         foreach (var (name, function) in config.Functions)
         {
             // An empty loop is a button that logs an error on every press instead of running a macro.
             if (function is MacroLoopSpecialFunctionConfiguration loop)
             {
-                Validate.MinCount(loop.Indexes, 1, $"{entry}.functions.{name}.indexes");
+                Validate.MinCount(loop.Indexes, 1, $"{config}.functions.{name}.indexes");
                 foreach (var index in loop.Indexes)
                 {
-                    Validate.NonNegative(index, $"{entry}.functions.{name}.indexes");
+                    Validate.NonNegative(index, $"{config}.functions.{name}.indexes");
                 }
             }
         }
     }
 
     private static void Names(
-        ConfigEntry entry,
-        InterfaceConfiguration config,
+        ControlInterfaceConfiguration config,
         string path,
         IEnumerable<string>? bound)
     {
@@ -66,7 +64,7 @@ public static class InterfaceValidation
             if (!config.Functions.ContainsKey(name))
             {
                 throw new ConfigValidationException(
-                    $"{entry}.{path}",
+                    $"{config}.{path}",
                     $"binds {name}, which is not one of the configured functions" +
                     (config.Functions.Count == 0
                         ? " (none are configured)"
