@@ -9,6 +9,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Cgf.CameraControl.App.Hosting;
+using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using Cgf.CameraControl.App.Views;
 using Cgf.CameraControl.Core.CameraConnection;
@@ -44,7 +45,7 @@ public class CameraColorTests
                 var color = Assert.IsAssignableFrom<ICameraColorControl>(camera);
                 camera.WhenConnectedChanged.Returns(Observable.Return(true));
                 color.WhenColorChanged.Returns(Observable.Return<CameraColorState?>(new(true, 128, 128)));
-                var model = new CameraViewModel(new ObservedCamera(camera));
+                var model = new CameraViewModel(new Localizer(), new ObservedCamera(camera));
                 model.Dispose();
                 Dispatcher.UIThread.RunJobs();
                 color.DidNotReceive().RefreshColor();
@@ -87,7 +88,7 @@ public class CameraColorTests
                 var camera = Substitute.For<ICameraConnection>();
                 camera.ConnectionString.Returns("lanc://camera");
                 camera.WhenConnectedChanged.Returns(Observable.Return(true));
-                using var model = new CameraViewModel(new ObservedCamera(camera));
+                using var model = new CameraViewModel(new Localizer(), new ObservedCamera(camera));
                 main.Cameras.Add(model);
                 Dispatcher.UIThread.RunJobs();
                 Assert.False(FindWheel(window, model).IsVisible);
@@ -177,7 +178,7 @@ public class CameraColorTests
                 transport.Received.Returns(replies);
                 await using var camera = new ViscaOverIpCamera(new() { Ip = "127.0.0.1" },
                     transport, Substitute.For<ILogger>());
-                using var model = new CameraViewModel(new ObservedCamera(camera));
+                using var model = new CameraViewModel(new Localizer(), new ObservedCamera(camera));
                 Dispatcher.UIThread.RunJobs();
                 ReadColor(replies, 120, 140);
                 Dispatcher.UIThread.RunJobs();
@@ -263,7 +264,7 @@ public class CameraColorTests
                 camera.WhenConnectedChanged.Returns(Observable.Return(true));
                 using var state = new BehaviorSubject<CameraColorState?>(null);
                 color.WhenColorChanged.Returns(state);
-                using var model = new CameraViewModel(new ObservedCamera(camera));
+                using var model = new CameraViewModel(new Localizer(), new ObservedCamera(camera));
                 Dispatcher.UIThread.RunJobs();
                 check(model, color, state);
                 Dispatcher.UIThread.RunJobs();
@@ -288,7 +289,7 @@ public class CameraColorTests
                 var camera = Substitute.For<ICameraConnection>();
                 camera.ConnectionString.Returns("lanc://a-camera-with-a-longer-address");
                 camera.WhenConnectedChanged.Returns(Observable.Return(true));
-                using var unsupported = new CameraViewModel(new ObservedCamera(camera));
+                using var unsupported = new CameraViewModel(new Localizer(), new ObservedCamera(camera));
                 main.Cameras.Add(unsupported);
                 Dispatcher.UIThread.RunJobs();
                 var initialX = MovementX(window, model);
@@ -358,7 +359,7 @@ public class CameraColorTests
             await session.Dispatch(async () =>
             {
                 await using var host = new AppHost();
-                using var main = new MainViewModel(host) { AreDevicesExpanded = true };
+                using var main = new MainViewModel(new Localizer(), host) { AreDevicesExpanded = true };
                 using var connected = new BehaviorSubject<bool>(true);
                 using var replies = new Subject<byte[]>();
                 var transport = Substitute.For<IViscaTransport>();
@@ -366,7 +367,7 @@ public class CameraColorTests
                 transport.Received.Returns(replies);
                 await using var camera = new ViscaOverIpCamera(new() { Ip = "127.0.0.1" },
                     transport, Substitute.For<ILogger>());
-                using var model = new CameraViewModel(new ObservedCamera(camera));
+                using var model = new CameraViewModel(new Localizer(), new ObservedCamera(camera));
                 main.Cameras.Add(model);
                 var window = new MainWindow { DataContext = main };
                 window.Show();
@@ -493,14 +494,14 @@ public class CameraColorTests
         await session.Dispatch(async () =>
         {
             await using var host = new AppHost();
-            using var main = new MainViewModel(host) { AreDevicesExpanded = true };
+            using var main = new MainViewModel(new Localizer(), host) { AreDevicesExpanded = true };
             var camera = Substitute.For<ICameraConnection, ICameraColorControl>();
             var color = Assert.IsAssignableFrom<ICameraColorControl>(camera);
             camera.ConnectionString.Returns("visca://127.0.0.1:52381");
             camera.WhenConnectedChanged.Returns(Observable.Return(true));
             using var state = new BehaviorSubject<CameraColorState?>(null);
             color.WhenColorChanged.Returns(state);
-            using var model = new CameraViewModel(new ObservedCamera(camera));
+            using var model = new CameraViewModel(new Localizer(), new ObservedCamera(camera));
             main.Cameras.Add(model);
             var window = new MainWindow { DataContext = main };
             window.Show();

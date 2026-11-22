@@ -40,7 +40,7 @@ public class EntryEditorViewTests
             {
                 var editor = new EntryEditorView
                 {
-                    DataContext = new NewEntry(EntryKind.Camera, 1) { SelectedType = "viscaoverip" }.Entry,
+                    DataContext = new NewEntry(new Localizer(), EntryKind.Camera, 1) { SelectedType = "viscaoverip" }.Entry,
                 };
                 var window = new Window
                 {
@@ -92,7 +92,8 @@ public class EntryEditorViewTests
             var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(EntryEditorViewTests).Assembly);
             await session.Dispatch(() =>
             {
-                var entry = new NewEntry(EntryKind.Camera, 1) { SelectedType = type }.Entry;
+                var strings = new Localizer();
+                var entry = new NewEntry(strings, EntryKind.Camera, 1) { SelectedType = type }.Entry;
                 var field = Assert.Single(entry.Fields.OfType<PercentField>());
                 var editor = new EntryEditorView { DataContext = entry };
                 var window = new Window
@@ -112,7 +113,7 @@ public class EntryEditorViewTests
                     Assert.InRange(box.Bounds.Height, 32, 36);
                     Assert.InRange(slider.Bounds.Height, 32, 36);
                     Assert.InRange(Math.Abs(box.Bounds.Height - slider.Bounds.Height), 0, 1);
-                    Assert.Equal(Localizer.Current.Text(field.Label), AutomationProperties.GetName(box));
+                    Assert.Equal(strings.Text(field.Label), AutomationProperties.GetName(box));
 
                     slider.Value = 50;
                     Dispatcher.UIThread.RunJobs();
@@ -157,7 +158,8 @@ public class EntryEditorViewTests
             var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(EntryEditorViewTests).Assembly);
             await session.Dispatch(() =>
             {
-                var entry = new NewEntry(EntryKind.Mixer, 1) { SelectedType = "blackmagicdesign/atem" }.Entry;
+                var strings = new Localizer();
+                var entry = new NewEntry(strings, EntryKind.Mixer, 1) { SelectedType = "blackmagicdesign/atem" }.Entry;
                 var field = Assert.Single(entry.Fields.OfType<ChoiceField>());
                 var editor = new EntryEditorView { DataContext = entry };
                 var window = new Window { Width = 560, Height = 500, Content = editor };
@@ -172,7 +174,7 @@ public class EntryEditorViewTests
                     var addressPosition = Assert.IsType<Point>(address.TranslatePoint(default, window));
                     Assert.InRange(Math.Abs(choicePosition.X - addressPosition.X), 0, 0.5);
                     Assert.Equal(280, choice.Bounds.Width);
-                    Assert.Equal(Localizer.Current.Text(field.Label), AutomationProperties.GetName(choice));
+                    Assert.Equal(strings.Text(field.Label), AutomationProperties.GetName(choice));
 
                     field.Value = "invalid";
                     Dispatcher.UIThread.RunJobs();
@@ -218,9 +220,10 @@ public class EntryEditorViewTests
             var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(EntryEditorViewTests).Assembly);
             await session.Dispatch(() =>
             {
+                var strings = new Localizer();
                 var window = new AddEntryWindow
                 {
-                    DataContext = new NewEntry(EntryKind.Camera, 1),
+                    DataContext = new NewEntry(strings, EntryKind.Camera, 1),
                     Width = 540,
                     Height = 400,
                     FlowDirection = rtl ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
@@ -235,7 +238,7 @@ public class EntryEditorViewTests
                     var typeSelector = Assert.Single(window.GetVisualDescendants().OfType<ComboBox>(),
                         control => !control.GetVisualAncestors().OfType<EntryEditorView>().Any());
                     Assert.True(typeSelector.IsEffectivelyVisible);
-                    Assert.Equal(Localizer.Current.Text("edit.type"), AutomationProperties.GetName(typeSelector));
+                    Assert.Equal(strings.Text("edit.type"), AutomationProperties.GetName(typeSelector));
                     AssertWithinWindow(typeSelector, window);
                     var editor = Assert.Single(window.GetVisualDescendants().OfType<EntryEditorView>());
                     foreach (var input in editor.GetVisualDescendants().OfType<TextBox>()
@@ -295,17 +298,16 @@ public class EntryEditorViewTests
             var session = HeadlessUnitTestSession.GetOrStartForAssembly(typeof(EntryEditorViewTests).Assembly);
             await session.Dispatch(() =>
             {
-                var entry = new NewEntry(EntryKind.Interface, 1, ["known-pad"]).Entry;
+                var strings = new Localizer();
+                var entry = new NewEntry(strings, EntryKind.Interface, 1, ["known-pad"]).Entry;
                 entry.Problem = "Camera 99 is not configured.";
                 var serial = Assert.Single(entry.Fields.OfType<TextField>());
                 var map = Assert.Single(entry.Fields.OfType<MapField>());
                 var editor = new EntryEditorView { DataContext = entry };
                 var window = new Window { Width = 560, Height = 800, Content = editor };
-                var previousLanguage = Localizer.Current.Active;
                 window.Show();
                 try
                 {
-                    Localizer.Current.Use(Localizer.Languages.First(language => language.Culture == "en"));
                     Dispatcher.UIThread.RunJobs();
                     var summary = Assert.Single(editor.GetVisualDescendants().OfType<TextBlock>(),
                         control => control.Text == entry.Problem);
@@ -327,7 +329,7 @@ public class EntryEditorViewTests
                     Assert.Single(map.Rows);
                     var remove = Assert.Single(editor.GetVisualDescendants().OfType<Button>(),
                         button => button.Command == map.RemoveRowCommand);
-                    Assert.Equal(Localizer.Current.Text("edit.delete"), AutomationProperties.GetName(remove));
+                    Assert.Equal(strings.Text("edit.delete"), AutomationProperties.GetName(remove));
                     Assert.NotNull(remove.Command);
                     remove.Command.Execute(remove.CommandParameter);
                     Dispatcher.UIThread.RunJobs();
@@ -345,29 +347,28 @@ public class EntryEditorViewTests
                         .Where(control => control.DataContext is MapRow && Grid.GetColumn(control) == 2).ToArray();
                     Assert.Equal(2, keys.Length);
                     Assert.Equal(2, values.Length);
-                    Assert.Equal($"{Localizer.Current.Text(map.LeftLabel)} 1", AutomationProperties.GetName(keys[0]));
-                    Assert.Equal($"{Localizer.Current.Text(map.LeftLabel)} 2", AutomationProperties.GetName(keys[1]));
-                    Assert.Equal($"{Localizer.Current.Text(map.RightLabel)} 1", AutomationProperties.GetName(values[0]));
-                    Assert.Equal($"{Localizer.Current.Text(map.RightLabel)} 2", AutomationProperties.GetName(values[1]));
+                    Assert.Equal($"{strings.Text(map.LeftLabel)} 1", AutomationProperties.GetName(keys[0]));
+                    Assert.Equal($"{strings.Text(map.LeftLabel)} 2", AutomationProperties.GetName(keys[1]));
+                    Assert.Equal($"{strings.Text(map.RightLabel)} 1", AutomationProperties.GetName(values[0]));
+                    Assert.Equal($"{strings.Text(map.RightLabel)} 2", AutomationProperties.GetName(values[1]));
                     var originalName = AutomationProperties.GetName(keys[0]);
-                    Localizer.Current.Use(Localizer.Languages.First(language => language.Culture == "de"));
+                    strings.Use(Localizer.Languages.First(language => language.Culture == "de"));
                     Dispatcher.UIThread.RunJobs();
                     Assert.NotEqual(originalName, AutomationProperties.GetName(keys[0]));
-                    Assert.Equal($"{Localizer.Current.Text(map.LeftLabel)} 1", AutomationProperties.GetName(keys[0]));
-                    Assert.Equal($"{Localizer.Current.Text(map.LeftLabel)} 2", AutomationProperties.GetName(keys[1]));
-                    Assert.Equal($"{Localizer.Current.Text(map.RightLabel)} 1", AutomationProperties.GetName(values[0]));
-                    Assert.Equal($"{Localizer.Current.Text(map.RightLabel)} 2", AutomationProperties.GetName(values[1]));
+                    Assert.Equal($"{strings.Text(map.LeftLabel)} 1", AutomationProperties.GetName(keys[0]));
+                    Assert.Equal($"{strings.Text(map.LeftLabel)} 2", AutomationProperties.GetName(keys[1]));
+                    Assert.Equal($"{strings.Text(map.RightLabel)} 1", AutomationProperties.GetName(values[0]));
+                    Assert.Equal($"{strings.Text(map.RightLabel)} 2", AutomationProperties.GetName(values[1]));
                     map.RemoveRowCommand.Execute(first);
                     Dispatcher.UIThread.RunJobs();
                     Assert.Equal(1, second.Position);
-                    Assert.Equal($"{Localizer.Current.Text(map.LeftLabel)} 1", AutomationProperties.GetName(keys[1]));
-                    Assert.Equal($"{Localizer.Current.Text(map.RightLabel)} 1", AutomationProperties.GetName(values[1]));
+                    Assert.Equal($"{strings.Text(map.LeftLabel)} 1", AutomationProperties.GetName(keys[1]));
+                    Assert.Equal($"{strings.Text(map.RightLabel)} 1", AutomationProperties.GetName(values[1]));
                     map.AddRowCommand.Execute(null);
                     Assert.Equal(2, map.Rows[1].Position);
                 }
                 finally
                 {
-                    Localizer.Current.Use(previousLanguage);
                     window.Close();
                 }
             }, TestContext.Current.CancellationToken);

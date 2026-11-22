@@ -3,6 +3,7 @@ using System.Threading.Channels;
 using AtemSharp.DependencyInjection;
 using AtemSharp.FrameworkAbstraction;
 using Avalonia.Threading;
+using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 using Cgf.CameraControl.Core;
@@ -51,8 +52,8 @@ public class DisconnectedMixerTests
 
         Assert.Empty(issues);
         Assert.Same(core.MixerFactory.Get(1), Assert.IsType<Gamepad>(core.HmiFactory.Get(3)).Mixer);
-        using var first = new MixerViewModel(1, core.MixerFactory.Get(1)!);
-        using var second = new MixerViewModel(2, core.MixerFactory.Get(2)!);
+        using var first = new MixerViewModel(new Localizer(), 1, core.MixerFactory.Get(1)!);
+        using var second = new MixerViewModel(new Localizer(), 2, core.MixerFactory.Get(2)!);
         Dispatcher.UIThread.RunJobs();
         Assert.Equal("192.168.1.241:0", first.ConnectionString);
         Assert.Equal("192.168.1.241:1", second.ConnectionString);

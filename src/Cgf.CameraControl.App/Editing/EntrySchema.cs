@@ -22,77 +22,78 @@ internal static class EntrySchema
     /// A type nothing here knows is still shown and still saved, from the JSON it arrived with. The
     /// configuration is older than this editor and will outlive it.
     public static IReadOnlyList<Field> Fields(
+        ILocalizer strings,
         string type,
         JsonObject entry,
         IReadOnlyList<string> pads) => Kind(type) switch
         {
             "viscaoverip" =>
             [
-                new TextField(entry, "ip", "edit.ip", required: true),
-                new NumberField(entry, "port", "edit.port", required: false, minimum: 1, "edit.portDefault", maximum: 65535),
-                new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
-                new PercentField(entry, "panTiltSpeedPercent", "edit.panTiltSpeedPercent"),
-                new ChoiceField(entry, "tallyMode", "edit.tallyMode", ["none", "avonic", "ptzoptics"], "none"),
+                new TextField(strings, entry, "ip", "edit.ip", required: true),
+                new NumberField(strings, entry, "port", "edit.port", required: false, minimum: 1, "edit.portDefault", maximum: 65535),
+                new SwitchField(strings, entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
+                new PercentField(strings, entry, "panTiltSpeedPercent", "edit.panTiltSpeedPercent"),
+                new ChoiceField(strings, entry, "tallyMode", "edit.tallyMode", ["none", "avonic", "ptzoptics"], "none"),
             ],
             "websocket.ptzlanc" =>
             [
-                new TextField(entry, "ip", "edit.ip", required: true),
-                new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
-                new PercentField(entry, "panTiltSpeedPercent", "edit.panTiltSpeedPercent"),
-                new SwitchField(entry, "showTallyLight", "edit.showTallyLight", fallback: true),
+                new TextField(strings, entry, "ip", "edit.ip", required: true),
+                new SwitchField(strings, entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
+                new PercentField(strings, entry, "panTiltSpeedPercent", "edit.panTiltSpeedPercent"),
+                new SwitchField(strings, entry, "showTallyLight", "edit.showTallyLight", fallback: true),
             ],
             "signalr.ptzlanc" =>
             [
-                new TextField(entry, "connectionUrl", "edit.connectionUrl", required: true)
+                new TextField(strings, entry, "connectionUrl", "edit.connectionUrl", required: true)
                 {
-                    Check = value => Validate.IsHttpUrl(value) ? null : Localizer.Current.Text("edit.notAUrl"),
+                    Check = value => Validate.IsHttpUrl(value) ? null : strings.Text("edit.notAUrl"),
                 },
-                new TextField(entry, "connectionPort", "edit.connectionPort", required: true),
-                new SwitchField(entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
-                new PercentField(entry, "panTiltSpeedPercent", "edit.panTiltSpeedPercent"),
+                new TextField(strings, entry, "connectionPort", "edit.connectionPort", required: true),
+                new SwitchField(strings, entry, "panTiltInvert", "edit.panTiltInvert", fallback: false),
+                new PercentField(strings, entry, "panTiltSpeedPercent", "edit.panTiltSpeedPercent"),
             ],
             "blackmagicdesign/atem" =>
             [
-                new TextField(entry, "ip", "edit.ip", required: true),
-                new NumberField(entry, "mixEffectBlock", "edit.mixEffectBlock", required: true, minimum: 0),
-                new ChoiceField(entry, "tallyMode", "edit.mixerTallyMode", ["preview-program", "program", "none"], "preview-program",
+                new TextField(strings, entry, "ip", "edit.ip", required: true),
+                new NumberField(strings, entry, "mixEffectBlock", "edit.mixEffectBlock", required: true, minimum: 0),
+                new ChoiceField(strings, entry, "tallyMode", "edit.mixerTallyMode", ["preview-program", "program", "none"], "preview-program",
                     optionLabelPrefix: "edit.mixerTally"),
             ],
             "passthrough/default" =>
             [
-                new ChoiceField(entry, "tallyMode", "edit.mixerTallyMode", ["preview-program", "program", "none"], "preview-program",
+                new ChoiceField(strings, entry, "tallyMode", "edit.mixerTallyMode", ["preview-program", "program", "none"], "preview-program",
                     optionLabelPrefix: "edit.mixerTally"),
             ],
-            "gamepad" => Gamepad(entry, pads, HidCapable(type)),
+            "gamepad" => Gamepad(strings, entry, pads, HidCapable(type)),
             "keyboard" =>
             [
-                new NumberField(entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
-                new MapField(entry, "cameraMap", "edit.cameraMap", "edit.input", "edit.camera"),
-                new SwitchField(entry, "enableChangingProgram", "edit.enableChangingProgram", fallback: true),
+                new NumberField(strings, entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
+                new MapField(strings, entry, "cameraMap", "edit.cameraMap", "edit.input", "edit.camera"),
+                new SwitchField(strings, entry, "enableChangingProgram", "edit.enableChangingProgram", fallback: true),
             ],
             _ => [],
         };
 
-    private static IReadOnlyList<Field> Gamepad(JsonObject entry, IReadOnlyList<string> pads, bool hidCapable)
+    private static IReadOnlyList<Field> Gamepad(ILocalizer strings, JsonObject entry, IReadOnlyList<string> pads, bool hidCapable)
     {
-        var backend = new ChoiceField(entry, "backend", "edit.gamepadBackend", hidCapable ? ["sdl", "hid"] : ["sdl"], "sdl");
+        var backend = new ChoiceField(strings, entry, "backend", "edit.gamepadBackend", hidCapable ? ["sdl", "hid"] : ["sdl"], "sdl");
         return
         [
             backend,
-            new NumberField(entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
-            new MapField(entry, "cameraMap", "edit.cameraMap", "edit.input", "edit.camera"),
-            new SwitchField(entry, "enableChangingProgram", "edit.enableChangingProgram", fallback: true),
-            new TextField(entry, "serialNumber", "edit.serialNumber", required: false, "edit.anyPad", pads)
+            new NumberField(strings, entry, "videoMixer", "edit.videoMixer", required: true, minimum: 1),
+            new MapField(strings, entry, "cameraMap", "edit.cameraMap", "edit.input", "edit.camera"),
+            new SwitchField(strings, entry, "enableChangingProgram", "edit.enableChangingProgram", fallback: true),
+            new TextField(strings, entry, "serialNumber", "edit.serialNumber", required: false, "edit.anyPad", pads)
             {
                 RequiredWhen = () => string.Equals(backend.Value, "hid", StringComparison.OrdinalIgnoreCase),
                 // The loader refuses a serial with no letter or digit in it, as it would refuse none.
                 Check = serial =>
                     serial.Any(char.IsLetterOrDigit) || !string.Equals(backend.Value, "hid", StringComparison.OrdinalIgnoreCase)
                         ? null
-                        : Localizer.Current.Text("edit.required"),
+                        : strings.Text("edit.required"),
             },
-            new FractionField(entry, "deadzone", "edit.deadzone", fallback: 0.05, maximum: 1),
-            new SwitchField(entry, "rumble", "edit.rumble", fallback: true),
+            new FractionField(strings, entry, "deadzone", "edit.deadzone", fallback: 0.05, maximum: 1),
+            new SwitchField(strings, entry, "rumble", "edit.rumble", fallback: true),
         ];
     }
 

@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 
 namespace Cgf.CameraControl.App.Views;
@@ -16,7 +17,7 @@ public partial class MainWindow : Window
     private const int MacTrafficLightHeight = 28;
 
     // Built per dialog so the filter name follows the language chosen at run time.
-    private static FilePickerFileType ConfigurationFiles => new(Localization.Localizer.Current.Text("config.fileType"))
+    private FilePickerFileType ConfigurationFiles => new(Strings.Text("config.fileType"))
     {
         Patterns = ["*.json"],
         MimeTypes = ["application/json"],
@@ -64,11 +65,14 @@ public partial class MainWindow : Window
         }
     }
 
+    /// The dialogs are opened only through the model, so it is there whenever they are.
+    private ILocalizer Strings => ((MainViewModel)DataContext!).Strings;
+
     public async Task<string?> PickFileAsync()
     {
         var chosen = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = Localization.Localizer.Current.Text("config.openTitle"),
+            Title = Strings.Text("config.openTitle"),
             AllowMultiple = false,
             FileTypeFilter = [ConfigurationFiles],
         });
@@ -81,7 +85,7 @@ public partial class MainWindow : Window
     {
         var chosen = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = Localization.Localizer.Current.Text("edit.saveAsTitle"),
+            Title = Strings.Text("edit.saveAsTitle"),
             SuggestedFileName = "config.json",
             DefaultExtension = "json",
             FileTypeChoices = [ConfigurationFiles],

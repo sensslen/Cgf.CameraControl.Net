@@ -4,7 +4,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using Path = Avalonia.Controls.Shapes.Path;
@@ -117,14 +116,12 @@ public partial class GamepadWireframe : UserControl
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        Localizer.Current.LanguageChanged += OnLanguageChanged;
         Follow();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        Localizer.Current.LanguageChanged -= OnLanguageChanged;
         Watch(null);
     }
 
@@ -151,12 +148,14 @@ public partial class GamepadWireframe : UserControl
         if (_model is not null)
         {
             _model.PropertyChanged -= OnModelChanged;
+            _model.Strings.LanguageChanged -= OnLanguageChanged;
         }
 
         _model = model;
         if (_model is not null)
         {
             _model.PropertyChanged += OnModelChanged;
+            _model.Strings.LanguageChanged += OnLanguageChanged;
         }
     }
 
@@ -186,7 +185,7 @@ public partial class GamepadWireframe : UserControl
             return;
         }
 
-        var text = Localizer.Current;
+        var text = model.Strings;
         for (var index = 0; index < 4; index++)
         {
             var input = At(model.DPadLabels, index);

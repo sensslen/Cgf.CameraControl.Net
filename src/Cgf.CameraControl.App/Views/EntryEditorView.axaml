@@ -1,7 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:edit="using:Cgf.CameraControl.App.Editing"
-             xmlns:loc="using:Cgf.CameraControl.App.Localization"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="620" d:DesignHeight="460"
@@ -43,8 +42,6 @@
     <Style Selector="Button.remove">
       <Setter Property="Padding" Value="8,4" />
       <Setter Property="VerticalAlignment" Value="Center" />
-      <Setter Property="AutomationProperties.Name" Value="{Binding [edit.delete]^, Source={x:Static loc:Localizer.Current}}" />
-      <Setter Property="ToolTip.Tip" Value="{Binding [edit.delete]^, Source={x:Static loc:Localizer.Current}}" />
     </Style>
   </UserControl.Styles>
 
@@ -155,6 +152,8 @@
                   </AutomationProperties.Name>
                 </TextBox>
                 <Button Grid.Column="4" Classes="remove" Content="&#x2715;"
+                        AutomationProperties.Name="{Binding $parent[ItemsControl].((edit:MapField)DataContext).Strings[edit.delete]^}"
+                        ToolTip.Tip="{Binding $parent[ItemsControl].((edit:MapField)DataContext).Strings[edit.delete]^}"
                         Command="{Binding $parent[ItemsControl].((edit:MapField)DataContext).RemoveRowCommand}"
                         CommandParameter="{Binding}" />
               </Grid>
@@ -162,7 +161,7 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
         <Button HorizontalAlignment="Left" Command="{Binding AddRowCommand}"
-                Content="{Binding [edit.add]^, Source={x:Static loc:Localizer.Current}}" />
+                Content="{Binding Strings[edit.add]^}" />
         <TextBlock Classes="wrong" Text="{Binding Error}" AutomationProperties.LiveSetting="Polite"
                    IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>

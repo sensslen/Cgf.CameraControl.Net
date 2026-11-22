@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Cgf.CameraControl.App.Hosting;
+using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using Cgf.CameraControl.App.Views;
 using Cgf.CameraControl.Core.Configuration;
@@ -40,7 +41,7 @@ public class MainWindowKeyboardTests
                 camera.WhenConnectedChanged.Returns(Observable.Return(true));
                 using var state = new BehaviorSubject<CameraColorState?>(new(true, 128, 128));
                 color.WhenColorChanged.Returns(state);
-                using var cameraModel = new CameraViewModel(new ObservedCamera(camera));
+                using var cameraModel = new CameraViewModel(new Localizer(), new ObservedCamera(camera));
                 model.Cameras.Add(cameraModel);
                 model.AreDevicesExpanded = true;
                 Dispatcher.UIThread.RunJobs();
@@ -206,7 +207,7 @@ public class MainWindowKeyboardTests
         await session.Dispatch(async () =>
         {
             await using var host = new AppHost();
-            using var model = new MainViewModel(host);
+            using var model = new MainViewModel(new Localizer(), host);
             await using var device = new ControlSurfaceDevice(1);
             var mixer = Substitute.For<IVideoMixer>();
             mixer.WhenPreviewChanged.Returns(Observable.Never<PreviewChange>());
@@ -227,7 +228,7 @@ public class MainWindowKeyboardTests
                 }
                 """, out _).Interfaces).Deserialize(InterfaceConfigurationContext.Default.KeyboardConfiguration);
             await using var hmi = new Gamepad(config, device, mixer, _ => null, Substitute.For<ILogger>());
-            using var view = new InterfaceViewModel(1, hmi, new ControlSurfaceViewModel(device), [], []);
+            using var view = new InterfaceViewModel(new Localizer(), 1, hmi, new ControlSurfaceViewModel(device), [], []);
             model.Interfaces.Add(view);
             model.SelectedInterface = view;
             var window = new MainWindow { DataContext = model };

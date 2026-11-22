@@ -4,7 +4,6 @@
         xmlns:vm="using:Cgf.CameraControl.App.ViewModels"
         xmlns:edit="using:Cgf.CameraControl.App.Editing"
         xmlns:hosting="using:Cgf.CameraControl.App.Hosting"
-        xmlns:loc="using:Cgf.CameraControl.App.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="780"
@@ -101,11 +100,11 @@
         <TextBlock Grid.Column="1" Text="{Binding ConnectionString}" TextTrimming="CharacterEllipsis"
                    VerticalAlignment="Center" />
         <TextBlock Grid.Column="2" Classes="detail" Margin="8,0,0,0" VerticalAlignment="Center">
-          <Run Text="{Binding [mixer.preview]^, Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Preview}" />
-          <Run Text="  " /><Run Text="{Binding [mixer.program]^, Source={x:Static loc:Localizer.Current}}" /><Run Text=" " /><Run Text="{Binding Program}" />
+          <Run Text="{Binding Strings[mixer.preview]^}" /><Run Text=" " /><Run Text="{Binding Preview}" />
+          <Run Text="  " /><Run Text="{Binding Strings[mixer.program]^}" /><Run Text=" " /><Run Text="{Binding Program}" />
         </TextBlock>
         <TextBlock Grid.Column="3" Classes="detail" Margin="8,0,0,0" VerticalAlignment="Center"
-                   Text="{Binding [mixer.onAir]^, Source={x:Static loc:Localizer.Current}}"
+                   Text="{Binding Strings[mixer.onAir]^}"
                    IsVisible="{Binding IsPreviewOnAir}" />
       </Grid>
     </DataTemplate>
@@ -121,8 +120,8 @@
                    Text="{Binding MovementText}" />
         <Button Grid.Column="3" Name="ColorCorrectionButton" Margin="8,0,0,0" Padding="5"
                 IsVisible="{Binding SupportsColorCorrection}" IsEnabled="{Binding IsConnected}"
-                AutomationProperties.Name="{Binding [color.title]^, Source={x:Static loc:Localizer.Current}}"
-                ToolTip.Tip="{Binding [color.title]^, Source={x:Static loc:Localizer.Current}}">
+                AutomationProperties.Name="{Binding Strings[color.title]^}"
+                ToolTip.Tip="{Binding Strings[color.title]^}">
           <Button.Flyout>
             <Flyout Placement="Left" ShowMode="Standard"
                     FlyoutPresenterTheme="{StaticResource CameraColorPopover}"
@@ -153,11 +152,11 @@
                 IsVisible="{Binding ShowsSelection}">
           <Grid ColumnDefinitions="Auto,*,24,Auto,*">
             <TextBlock Grid.Column="0" Classes="detail" VerticalAlignment="Center" Margin="0,0,8,0"
-                       Text="{Binding [surface.program]^, Source={x:Static loc:Localizer.Current}}" />
+                       Text="{Binding Strings[surface.program]^}" />
             <TextBlock Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                        Text="{Binding ProgramText}" />
             <TextBlock Grid.Column="3" Classes="detail" VerticalAlignment="Center" Margin="0,0,8,0"
-                       Text="{Binding [surface.preview]^, Source={x:Static loc:Localizer.Current}}" />
+                       Text="{Binding Strings[surface.preview]^}" />
             <TextBlock Grid.Column="4" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                        Text="{Binding PreviewText}" />
           </Grid>
@@ -182,8 +181,8 @@
                      IsVisible="{Binding Problem, Converter={x:Static ObjectConverters.IsNotNull}}" />
         </StackPanel>
         <Button Grid.Column="2" Content="&#x2715;" Padding="8,4" VerticalAlignment="Center"
-                AutomationProperties.Name="{Binding [edit.delete]^, Source={x:Static loc:Localizer.Current}}"
-                ToolTip.Tip="{Binding [edit.delete]^, Source={x:Static loc:Localizer.Current}}"
+                AutomationProperties.Name="{Binding Strings[edit.delete]^}"
+                ToolTip.Tip="{Binding Strings[edit.delete]^}"
                 Command="{Binding $parent[ListBox].((vm:MainViewModel)DataContext).DeleteEntryCommand}"
                 CommandParameter="{Binding}" />
       </Grid>
@@ -482,7 +481,7 @@
       <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" DataContext="{Binding Log}"
             x:DataType="vm:LogViewModel">
         <TextBlock Grid.Column="0" Classes="heading" VerticalAlignment="Center"
-                   Text="{Binding [panel.log]^, Source={x:Static loc:Localizer.Current}}" />
+                   Text="{Binding Strings[panel.log]^}" />
         <ComboBox Grid.Column="1" HorizontalAlignment="Right" MinWidth="160" Margin="0,0,0,6"
                   ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}">
           <ComboBox.ItemTemplate>

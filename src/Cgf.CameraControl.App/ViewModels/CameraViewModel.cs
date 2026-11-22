@@ -1,6 +1,7 @@
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Cgf.CameraControl.App.Hosting;
+using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.Core.CameraConnection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -15,8 +16,9 @@ public sealed partial class CameraViewModel : ViewModelBase, IDisposable
     private bool _updatingColor;
     private bool _disposed;
 
-    public CameraViewModel(ObservedCamera camera)
+    public CameraViewModel(ILocalizer strings, ObservedCamera camera)
     {
+        Strings = strings;
         ConnectionString = camera.ConnectionString;
         _colorControl = camera.ColorControl;
 
@@ -43,6 +45,8 @@ public sealed partial class CameraViewModel : ViewModelBase, IDisposable
         _subscriptions.Add(camera.WhenTallyChanged.Bind(tally => Tally = tally));
         _subscriptions.Add(camera.WhenMovementChanged.Bind(movement => Movement = movement));
     }
+
+    public ILocalizer Strings { get; }
 
     public string ConnectionString { get; }
 

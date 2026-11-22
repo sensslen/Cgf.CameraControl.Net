@@ -1,4 +1,3 @@
-using System.Globalization;
 using Cgf.CameraControl.App.Localization;
 
 namespace Cgf.CameraControl.App;
@@ -30,12 +29,13 @@ public static class AotProbes
     private static (bool Alive, string Report) ProbeLocalization()
     {
         var missing = new List<string>();
-        var title = Localizer.Current["app.title"];
+        var strings = new Localizer();
+        var title = strings["app.title"];
         var english = Latest(title);
 
         foreach (var language in Localizer.Languages)
         {
-            Localizer.Current.Use(language);
+            strings.Use(language);
             var translated = Latest(title);
 
             // A language whose file did not survive falls back, so English is the tell for
@@ -45,8 +45,6 @@ public static class AotProbes
                 missing.Add(language.Culture);
             }
         }
-
-        Localizer.Current.Use(Localizer.Match(CultureInfo.InvariantCulture));
 
         return missing.Count == 0
             ? (true, $"localization {Localizer.Languages.Count} languages -> OK: all resolve")

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using Cgf.CameraControl.Core.Configuration;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -24,14 +25,15 @@ public sealed partial class EntryDraft : ViewModelBase
 {
     private readonly JsonObject _entry;
 
-    public EntryDraft(EntryKind kind, string type, JsonObject entry, IReadOnlyList<string>? pads = null)
+    public EntryDraft(ILocalizer strings, EntryKind kind, string type, JsonObject entry, IReadOnlyList<string>? pads = null)
     {
+        Strings = strings;
         Kind = kind;
         Type = type;
         _entry = entry;
 
-        InstanceField = new NumberField(entry, "instance", "edit.instance", required: true, minimum: 1);
-        Fields = [InstanceField, .. EntrySchema.Fields(type, entry, pads ?? [])];
+        InstanceField = new NumberField(strings, entry, "instance", "edit.instance", required: true, minimum: 1);
+        Fields = [InstanceField, .. EntrySchema.Fields(strings, type, entry, pads ?? [])];
 
         foreach (var field in Fields)
         {
@@ -41,6 +43,8 @@ public sealed partial class EntryDraft : ViewModelBase
 
         Title = Describe();
     }
+
+    public ILocalizer Strings { get; }
 
     public EntryKind Kind { get; }
 

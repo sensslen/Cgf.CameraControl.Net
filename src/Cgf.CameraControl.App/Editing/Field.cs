@@ -14,10 +14,12 @@ namespace Cgf.CameraControl.App.Editing;
 /// afterwards, which is what lets an entry somebody merely looked at come out of the writer exactly as
 /// it went in. Everything no field covers, the functions and the bindings among them, rides along
 /// inside the same object untouched.
-public abstract partial class Field(JsonObject entry, string key, string label, string? placeholder = null)
+public abstract partial class Field(ILocalizer strings, JsonObject entry, string key, string label, string? placeholder = null)
     : ViewModelBase
 {
     protected JsonObject Entry { get; } = entry;
+
+    public ILocalizer Strings { get; } = strings;
 
     public string Key { get; } = key;
 
@@ -28,9 +30,9 @@ public abstract partial class Field(JsonObject entry, string key, string label, 
     /// it is left alone rather than looking like one somebody forgot.
     public string? Placeholder { get; } = placeholder;
 
-    public IObservable<string> Caption => Localizer.Current[Label];
+    public IObservable<string> Caption => Strings[Label];
 
-    public IObservable<string> Hint => Localizer.Current[Placeholder ?? string.Empty];
+    public IObservable<string> Hint => Strings[Placeholder ?? string.Empty];
 
     /// What stops a save, in the words the operator will read. Null while the field is fine.
     [ObservableProperty]
@@ -95,13 +97,14 @@ public sealed partial class TextField : Field
     private readonly bool _required;
 
     public TextField(
+        ILocalizer strings,
         JsonObject entry,
         string key,
         string label,
         bool required,
         string? placeholder = null,
         IReadOnlyList<string>? suggestions = null)
-        : base(entry, key, label, placeholder)
+        : base(strings, entry, key, label, placeholder)
     {
         _required = required;
         Suggestions = suggestions ?? [];
@@ -128,7 +131,7 @@ public sealed partial class TextField : Field
 
     protected internal override void Validate() =>
         Error = string.IsNullOrWhiteSpace(Value)
-            ? _required || RequiredWhen?.Invoke() == true ? Localizer.Current.Text("edit.required") : null
+            ? _required || RequiredWhen?.Invoke() == true ? Strings.Text("edit.required") : null
             : Check?.Invoke(Value);
 
     partial void OnValueChanged(string value) =>
@@ -145,6 +148,7 @@ public sealed partial class NumberField : Field
     private readonly bool _required;
 
     public NumberField(
+        ILocalizer strings,
         JsonObject entry,
         string key,
         string label,
@@ -152,7 +156,7 @@ public sealed partial class NumberField : Field
         int minimum,
         string? placeholder = null,
         int maximum = int.MaxValue)
-        : base(entry, key, label, placeholder)
+        : base(strings, entry, key, label, placeholder)
     {
         _required = required;
         _minimum = minimum;
@@ -177,15 +181,15 @@ public sealed partial class NumberField : Field
     protected internal override void Validate() =>
         Error = (Value.Length, Number) switch
         {
-            (0, _) => _required ? Localizer.Current.Text("edit.required") : null,
-            (_, null) => Localizer.Current.Text("edit.notANumber"),
+            (0, _) => _required ? Strings.Text("edit.required") : null,
+            (_, null) => Strings.Text("edit.notANumber"),
             (_, var number) when number < _minimum => string.Format(
                 CultureInfo.CurrentUICulture,
-                Localizer.Current.Text("edit.tooSmall"),
+                Strings.Text("edit.tooSmall"),
                 _minimum),
             (_, var number) when number > _maximum => string.Format(
                 CultureInfo.CurrentUICulture,
-                Localizer.Current.Text("edit.outOfRange"),
+                Strings.Text("edit.outOfRange"),
                 _minimum,
                 _maximum),
             _ => null,
@@ -196,8 +200,8 @@ public sealed partial class NumberField : Field
 
 public sealed partial class PercentField : Field
 {
-    public PercentField(JsonObject entry, string key, string label)
-        : base(entry, key, label)
+    public PercentField(ILocalizer strings, JsonObject entry, string key, string label)
+        : base(strings, entry, key, label)
     {
         var node = entry[key];
         Value = node is null ? "100"
@@ -226,9 +230,9 @@ public sealed partial class PercentField : Field
     protected internal override void Validate() =>
         Error = Number switch
         {
-            null => Localizer.Current.Text("edit.notANumber"),
+            null => Strings.Text("edit.notANumber"),
             < 1 or > 100 => string.Format(
-                CultureInfo.CurrentUICulture, Localizer.Current.Text("edit.outOfRange"), 1, 100),
+                CultureInfo.CurrentUICulture, Strings.Text("edit.outOfRange"), 1, 100),
             _ => null,
         };
 
@@ -237,8 +241,8 @@ public sealed partial class PercentField : Field
 
 public sealed partial class SwitchField : Field
 {
-    public SwitchField(JsonObject entry, string key, string label, bool fallback)
-        : base(entry, key, label)
+    public SwitchField(ILocalizer strings, JsonObject entry, string key, string label, bool fallback)
+        : base(strings, entry, key, label)
     {
         var mistyped = Mistyped(JsonValueKind.True, JsonValueKind.False);
         Value = entry[key] switch
@@ -264,26 +268,28 @@ public sealed partial class SwitchField : Field
     partial void OnValueChanged(bool value) => Write(JsonValue.Create(value));
 }
 
-public sealed record ChoiceOption(string Value, string? CaptionKey)
+public sealed record ChoiceOption(ILocalizer Strings, string Value, string? CaptionKey)
 {
     public IObservable<string> Caption =>
-        CaptionKey is { } key ? Localizer.Current[key] : Observable.Return(Value);
+        CaptionKey is { } key ? Strings[key] : Observable.Return(Value);
 }
 
 /// One of a fixed set of names, which is how every enum in the configuration is written.
 public sealed partial class ChoiceField : Field
 {
     public ChoiceField(
+        ILocalizer strings,
         JsonObject entry,
         string key,
         string label,
         IReadOnlyList<string> options,
         string fallback,
         string? optionLabelPrefix = null)
-        : base(entry, key, label)
+        : base(strings, entry, key, label)
     {
         Options = options;
         Items = options.Select(value => new ChoiceOption(
+            strings,
             value, optionLabelPrefix is null ? null : $"{optionLabelPrefix}.{value}")).ToArray();
         var written = entry.TryGetPropertyValue(key, out var node) ? node?.ToString() ?? string.Empty : fallback;
         Value = options.FirstOrDefault(option => string.Equals(option, written, StringComparison.OrdinalIgnoreCase))
@@ -312,7 +318,7 @@ public sealed partial class ChoiceField : Field
     public partial string Value { get; set; } = string.Empty;
 
     protected internal override void Validate() =>
-        Error = SelectedOption is null ? Localizer.Current.Text("edit.required") : null;
+        Error = SelectedOption is null ? Strings.Text("edit.required") : null;
 
     partial void OnValueChanged(string value) => Write(JsonValue.Create(value));
 }
@@ -322,8 +328,8 @@ public sealed partial class FractionField : Field
 {
     private readonly double _maximum;
 
-    public FractionField(JsonObject entry, string key, string label, double fallback, double maximum)
-        : base(entry, key, label)
+    public FractionField(ILocalizer strings, JsonObject entry, string key, string label, double fallback, double maximum)
+        : base(strings, entry, key, label)
     {
         _maximum = maximum;
         var node = entry[key];
@@ -348,10 +354,10 @@ public sealed partial class FractionField : Field
     protected internal override void Validate() =>
         Error = Number switch
         {
-            null => Localizer.Current.Text("edit.notANumber"),
+            null => Strings.Text("edit.notANumber"),
             var number when number < 0 || number > _maximum => string.Format(
                 CultureInfo.CurrentUICulture,
-                Localizer.Current.Text("edit.outOfRange"),
+                Strings.Text("edit.outOfRange"),
                 0,
                 _maximum),
             _ => null,

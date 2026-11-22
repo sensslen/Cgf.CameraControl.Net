@@ -1,5 +1,6 @@
 using System.Reactive.Linq;
 using Cgf.CameraControl.App.Editing;
+using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.Core.Configuration;
 
 namespace Cgf.CameraControl.App.Tests;
@@ -536,7 +537,7 @@ public class ConfigDraftTests
         [Fact]
         public void APadIsOfferedTheSerialsThatAreConnected()
         {
-            var draft = ConfigDraft.From(ConfigLoader.Load(Desk, out _), ["83234F94"]);
+            var draft = ConfigDraft.From(new Localizer(), ConfigLoader.Load(Desk, out _), ["83234F94"]);
 
             var serial = draft.Interfaces[0].Fields.OfType<TextField>()
                 .First(entry => entry.Key == "serialNumber");
@@ -555,7 +556,7 @@ public class ConfigDraftTests
         }
     }
 
-    private static ConfigDraft Draft(string json) => ConfigDraft.From(ConfigLoader.Load(json, out _));
+    private static ConfigDraft Draft(string json) => ConfigDraft.From(new Localizer(), ConfigLoader.Load(json, out _));
 
     private static TextField Address(EntryDraft entry) =>
         entry.Fields.OfType<TextField>().First(field => field.Key == "ip");
