@@ -6,7 +6,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="620" d:DesignHeight="680"
         x:Class="Cgf.CameraControl.App.Views.LicensesWindow"
-        x:DataType="loc:Localizer"
+        x:DataType="loc:ILocalizer"
         Width="620" Height="680"
         Icon="/Assets/appicon.ico"
         WindowStartupLocation="CenterOwner"
@@ -60,24 +60,24 @@
               <StackPanel>
                 <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,0,0,10">
                   <TextBlock Grid.Row="0" Grid.Column="0" Classes="label"
-                             Text="{Binding [licenses.license]^, Source={x:Static loc:Localizer.Current}}" />
+                             Text="{Binding $parent[Window].((loc:ILocalizer)DataContext)[licenses.license]^}" />
                   <SelectableTextBlock Grid.Row="0" Grid.Column="1" Classes="value" Text="{Binding License}" />
 
                   <TextBlock Grid.Row="1" Grid.Column="0" Classes="label"
                              IsVisible="{Binding Copyright, Converter={x:Static ObjectConverters.IsNotNull}}"
-                             Text="{Binding [licenses.copyright]^, Source={x:Static loc:Localizer.Current}}" />
+                             Text="{Binding $parent[Window].((loc:ILocalizer)DataContext)[licenses.copyright]^}" />
                   <SelectableTextBlock Grid.Row="1" Grid.Column="1" Classes="value" Text="{Binding Copyright}"
                                        IsVisible="{Binding Copyright, Converter={x:Static ObjectConverters.IsNotNull}}" />
 
                   <TextBlock Grid.Row="2" Grid.Column="0" Classes="label"
                              IsVisible="{Binding Authors, Converter={x:Static ObjectConverters.IsNotNull}}"
-                             Text="{Binding [licenses.authors]^, Source={x:Static loc:Localizer.Current}}" />
+                             Text="{Binding $parent[Window].((loc:ILocalizer)DataContext)[licenses.authors]^}" />
                   <SelectableTextBlock Grid.Row="2" Grid.Column="1" Classes="value" Text="{Binding Authors}"
                                        IsVisible="{Binding Authors, Converter={x:Static ObjectConverters.IsNotNull}}" />
 
                   <TextBlock Grid.Row="3" Grid.Column="0" Classes="label"
                              IsVisible="{Binding ProjectUrl, Converter={x:Static ObjectConverters.IsNotNull}}"
-                             Text="{Binding [licenses.project]^, Source={x:Static loc:Localizer.Current}}" />
+                             Text="{Binding $parent[Window].((loc:ILocalizer)DataContext)[licenses.project]^}" />
                   <SelectableTextBlock Grid.Row="3" Grid.Column="1" Classes="value" Text="{Binding ProjectUrl}"
                                        IsVisible="{Binding ProjectUrl, Converter={x:Static ObjectConverters.IsNotNull}}" />
                 </Grid>

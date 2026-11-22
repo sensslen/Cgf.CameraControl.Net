@@ -7,11 +7,13 @@ using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using Cgf.CameraControl.App.Views;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cgf.CameraControl.App;
 
 public partial class App : Application
 {
+    private ServiceProvider? _services;
     private AppHost? _host;
     private MainViewModel? _model;
     private Task _startup = Task.CompletedTask;
@@ -25,8 +27,11 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            _services = new ServiceCollection().AddCommonServices().BuildServiceProvider();
+
             var settings = Settings.Read();
-            Localizer.Current.Use(settings.Language is { } chosen
+            var strings = _services.GetRequiredService<ILocalizer>();
+            strings.Use(settings.Language is { } chosen
                 ? Localizer.Languages.FirstOrDefault(language => language.Culture == chosen)
                   ?? Localizer.Match(CultureInfo.CurrentUICulture)
                 : Localizer.Match(CultureInfo.CurrentUICulture));
@@ -34,18 +39,18 @@ public partial class App : Application
             // The name macOS puts in its menu bar, read before the menu is built. A language change
             // afterwards writes it again, which the next start picks up whether or not the running
             // menu bar does.
-            Name = Localizer.Current.Text("app.title");
-            Localizer.Current.LanguageChanged += (_, _) => Name = Localizer.Current.Text("app.title");
+            Name = strings.Text("app.title");
+            strings.LanguageChanged += (_, _) => Name = strings.Text("app.title");
 
-            _host = new AppHost();
-            _model = new MainViewModel(_host);
+            _host = _services.GetRequiredService<AppHost>();
+            _model = _services.GetRequiredService<MainViewModel>();
 
             var window = new MainWindow { DataContext = _model };
             _model.PickFile = window.PickFileAsync;
             _model.PickSaveFile = window.PickSaveFileAsync;
-            _model.ShowLicenses = () => new LicensesWindow().ShowDialog(window);
-            _model.AskToSave = (canSave, issues) => AskWindow.LeavingAsync(window, canSave, issues);
-            _model.AskToDelete = (entry, references) => AskWindow.DeletingAsync(window, entry, references);
+            _model.ShowLicenses = () => new LicensesWindow { DataContext = strings }.ShowDialog(window);
+            _model.AskToSave = (canSave, issues) => AskWindow.LeavingAsync(window, strings, canSave, issues);
+            _model.AskToDelete = (entry, references) => AskWindow.DeletingAsync(window, strings, entry, references);
             _model.AskToAdd = entry => AddEntryWindow.AskAsync(window, entry);
             desktop.MainWindow = window;
             window.Closing += OnClosing;
@@ -110,14 +115,15 @@ public partial class App : Application
     /// Once, whichever of the close or a forced exit gets here first, and both wait for that one.
     private Task ReleaseAsync() => _release ??= ReleaseOnceAsync();
 
+    /// The container disposes in reverse order of creation, so the view model lets go of the devices
+    /// before the host takes them down.
     private async Task ReleaseOnceAsync()
     {
-        _model?.Dispose();
         _model = null;
         // The host stays set after disposal so a teardown failure can still be logged through it.
-        if (_host is { } host)
+        if (_services is { } services)
         {
-            await host.DisposeAsync().ConfigureAwait(false);
+            await services.DisposeAsync().ConfigureAwait(false);
         }
     }
 

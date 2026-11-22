@@ -13,8 +13,8 @@ namespace Cgf.CameraControl.App.Editing;
 /// a JSON object typed by hand is a syntax error waiting to be reported against the whole entry.
 public sealed partial class MapField : Field
 {
-    public MapField(JsonObject entry, string key, string label, string leftLabel, string rightLabel)
-        : base(entry, key, label)
+    public MapField(ILocalizer strings, JsonObject entry, string key, string label, string leftLabel, string rightLabel)
+        : base(strings, entry, key, label)
     {
         LeftLabel = leftLabel;
         RightLabel = rightLabel;
@@ -31,9 +31,9 @@ public sealed partial class MapField : Field
 
     public string RightLabel { get; }
 
-    public IObservable<string> LeftCaption => Localizer.Current[LeftLabel];
+    public IObservable<string> LeftCaption => Strings[LeftLabel];
 
-    public IObservable<string> RightCaption => Localizer.Current[RightLabel];
+    public IObservable<string> RightCaption => Strings[RightLabel];
 
     public ObservableCollection<MapRow> Rows { get; } = [];
 
@@ -44,9 +44,9 @@ public sealed partial class MapField : Field
     {
         var keys = Rows.Select(row => Number(row.Key)).OfType<int>().ToList();
         Error = Rows.Any(row => Number(row.Key) is null or < 1 || Number(row.Value) is null or < 1)
-            ? Localizer.Current.Text("edit.mapNeedsNumbers")
+            ? Strings.Text("edit.mapNeedsNumbers")
             : keys.Count != keys.Distinct().Count()
-                ? Localizer.Current.Text("edit.mapRepeatsAnInput")
+                ? Strings.Text("edit.mapRepeatsAnInput")
                 : null;
     }
 

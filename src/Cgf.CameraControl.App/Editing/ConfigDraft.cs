@@ -15,6 +15,14 @@ namespace Cgf.CameraControl.App.Editing;
 /// input without a camera on it is an ordinary desk.
 public sealed partial class ConfigDraft : ViewModelBase
 {
+    private readonly ILocalizer _strings;
+
+    private ConfigDraft(ILocalizer strings, IReadOnlyList<string> pads)
+    {
+        _strings = strings;
+        Pads = pads;
+    }
+
     public ObservableCollection<EntryDraft> Cameras { get; } = [];
 
     public ObservableCollection<EntryDraft> Mixers { get; } = [];
@@ -31,11 +39,11 @@ public sealed partial class ConfigDraft : ViewModelBase
 
     /// The pads the backends report right now, offered where a configuration names one. Nothing consumes them
     /// while the mode is on, which is what makes them available to offer.
-    public IReadOnlyList<string> Pads { get; private set; } = [];
+    public IReadOnlyList<string> Pads { get; }
 
-    public static ConfigDraft From(RootConfig config, IReadOnlyList<string>? pads = null)
+    public static ConfigDraft From(ILocalizer strings, RootConfig config, IReadOnlyList<string>? pads = null)
     {
-        var draft = new ConfigDraft { Pads = pads ?? [] };
+        var draft = new ConfigDraft(strings, pads ?? []);
         draft.Fill(EntryKind.Camera, draft.Cameras, config.Cams);
         draft.Fill(EntryKind.Mixer, draft.Mixers, config.VideoMixers);
         draft.Fill(EntryKind.Interface, draft.Interfaces, config.Interfaces);
@@ -59,7 +67,7 @@ public sealed partial class ConfigDraft : ViewModelBase
 
     public EntryDraft Add(EntryKind kind, string type)
     {
-        var draft = new EntryDraft(kind, type, EntrySchema.NewEntry(type, NextInstance(kind)), Pads);
+        var draft = new EntryDraft(_strings, kind, type, EntrySchema.NewEntry(type, NextInstance(kind)), Pads);
         Insert(draft);
         return draft;
     }
@@ -122,7 +130,7 @@ public sealed partial class ConfigDraft : ViewModelBase
         foreach (var entry in entries)
         {
             var node = JsonNode.Parse(entry.Raw.GetRawText()) as JsonObject ?? [];
-            var draft = Attach(new EntryDraft(kind, entry.Type, node, Pads));
+            var draft = Attach(new EntryDraft(_strings, kind, entry.Type, node, Pads));
             list.Add(draft);
 
             // A field that rewrote a mistyped value while loading has changed what will be saved.
@@ -188,9 +196,9 @@ public sealed partial class ConfigDraft : ViewModelBase
             {
                 Note(entry, string.Format(
                     CultureInfo.CurrentUICulture,
-                    Localizer.Current.Text("edit.issue.field"),
+                    _strings.Text("edit.issue.field"),
                     entry.Title,
-                    Localizer.Current.Text(field.Label),
+                    _strings.Text(field.Label),
                     field.Error));
             }
         }
@@ -203,8 +211,8 @@ public sealed partial class ConfigDraft : ViewModelBase
             {
                 Note(entry, string.Format(
                     CultureInfo.CurrentUICulture,
-                    Localizer.Current.Text("edit.issue.repeatedInstance"),
-                    Localizer.Current.Text(section),
+                    _strings.Text("edit.issue.repeatedInstance"),
+                    _strings.Text(section),
                     group.Key));
             }
         }
@@ -213,7 +221,7 @@ public sealed partial class ConfigDraft : ViewModelBase
     private void Flag(EntryDraft entry, string key, object argument) =>
         Note(entry, string.Format(
             CultureInfo.CurrentUICulture,
-            Localizer.Current.Text(key),
+            _strings.Text(key),
             entry.Title,
             argument));
 

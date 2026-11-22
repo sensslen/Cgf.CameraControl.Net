@@ -8,12 +8,12 @@ namespace Cgf.CameraControl.App.ViewModels;
 
 /// A component to filter the log by, or every component when the name is absent. Source names are
 /// the components' own, so the only translated entry is the one that means all of them.
-public sealed class LogSource(string? name)
+public sealed class LogSource(ILocalizer strings, string? name)
 {
     public string? Name => name;
 
     public IObservable<string> Display =>
-        name is null ? Localizer.Current["log.allSources"] : Observable.Return(name);
+        name is null ? strings["log.allSources"] : Observable.Return(name);
 }
 
 public sealed partial class LogViewModel : ViewModelBase, IDisposable
@@ -23,15 +23,19 @@ public sealed partial class LogViewModel : ViewModelBase, IDisposable
     private const int Capacity = 1000;
 
     private readonly Queue<LogEntry> _history = new(Capacity);
-    private readonly LogSource _everything = new(null);
+    private readonly LogSource _everything;
     private readonly IDisposable _subscription;
 
-    public LogViewModel(UiLogger logger)
+    public LogViewModel(ILocalizer strings, UiLogger logger)
     {
+        Strings = strings;
+        _everything = new LogSource(strings, null);
         Sources = [_everything];
         SelectedSource = _everything;
         _subscription = logger.WhenLogged.Bind(Append);
     }
+
+    public ILocalizer Strings { get; }
 
     public ObservableCollection<LogEntry> Entries { get; } = [];
 
@@ -66,7 +70,7 @@ public sealed partial class LogViewModel : ViewModelBase, IDisposable
 
         if (Sources.All(source => source.Name != entry.Source))
         {
-            Sources.Add(new LogSource(entry.Source));
+            Sources.Add(new LogSource(Strings, entry.Source));
         }
 
         if (Passes(entry))

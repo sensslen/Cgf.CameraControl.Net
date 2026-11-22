@@ -1,4 +1,5 @@
 using System.Reactive.Disposables;
+using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.Core.VideoMixer;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -8,8 +9,9 @@ public sealed partial class MixerViewModel : ViewModelBase, IDisposable
 {
     private readonly CompositeDisposable _subscriptions = [];
 
-    public MixerViewModel(int instance, IVideoMixer mixer)
+    public MixerViewModel(ILocalizer strings, int instance, IVideoMixer mixer)
     {
+        Strings = strings;
         Instance = instance;
         ConnectionString = mixer.ConnectionString;
 
@@ -21,6 +23,8 @@ public sealed partial class MixerViewModel : ViewModelBase, IDisposable
         }));
         _subscriptions.Add(mixer.WhenProgramChanged.Bind(program => Program = program));
     }
+
+    public ILocalizer Strings { get; }
 
     public int Instance { get; }
 

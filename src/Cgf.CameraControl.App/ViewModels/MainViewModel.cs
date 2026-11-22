@@ -14,13 +14,14 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly AppHost _host;
 
-    public MainViewModel(AppHost host)
+    public MainViewModel(ILocalizer strings, AppHost host)
     {
+        Strings = strings;
         _host = host;
-        Log = new LogViewModel(host.Logger);
-        Languages = [.. Localizer.Languages.Select(language => new LanguageViewModel(language))];
-        ConfigPath = Localizer.Current.Text("config.none");
-        Localizer.Current.LanguageChanged += OnLanguageChanged;
+        Log = new LogViewModel(strings, host.Logger);
+        Languages = [.. Localizer.Languages.Select(language => new LanguageViewModel(strings, language))];
+        ConfigPath = strings.Text("config.none");
+        strings.LanguageChanged += OnLanguageChanged;
     }
 
     /// Supplied by the window, because a file dialog needs one and a view model must not hold it.
@@ -43,7 +44,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     /// add leaves the configuration exactly as it was.
     public Func<NewEntry, Task<EntryDraft?>>? AskToAdd { get; set; }
 
-    public Localizer Strings => Localizer.Current;
+    public ILocalizer Strings { get; }
 
     public IReadOnlyList<LanguageViewModel> Languages { get; }
 
@@ -117,7 +118,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             var configuration = _host.Configuration;
             Clear();
             await _host.UnloadAsync(CancellationToken.None).ConfigureAwait(true);
-            Draft = ConfigDraft.From(configuration, ConnectedPads());
+            Draft = ConfigDraft.From(Strings, configuration, ConnectedPads());
             OnPropertyChanged(nameof(IsEditing));
             OnPropertyChanged(nameof(CanUseFileMenu));
             SelectedInterfaceEntry = Draft.Interfaces.FirstOrDefault();
@@ -143,7 +144,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
             // The host keeps the file it last loaded when this one fails, and that is the one Reload
             // and Save act on, so that is the one shown.
-            ConfigPath = _host.ConfigPath ?? Localizer.Current.Text("config.none");
+            ConfigPath = _host.ConfigPath ?? Strings.Text("config.none");
             Rebuild();
         }
         finally
@@ -309,7 +310,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        if (await ask(new NewEntry(kind, draft.NextInstance(kind), draft.Pads)).ConfigureAwait(true) is { } added)
+        if (await ask(new NewEntry(Strings, kind, draft.NextInstance(kind), draft.Pads)).ConfigureAwait(true) is { } added)
         {
             draft.Insert(added);
             Select(added);
@@ -354,7 +355,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
-        Localizer.Current.LanguageChanged -= OnLanguageChanged;
+        Strings.LanguageChanged -= OnLanguageChanged;
         Log.Dispose();
         Clear();
     }
@@ -363,12 +364,12 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     {
         if (_host.ConfigPath is null)
         {
-            ConfigPath = Localizer.Current.Text("config.none");
+            ConfigPath = Strings.Text("config.none");
         }
 
         foreach (var language in Languages)
         {
-            language.IsActive = Localizer.Current.Active == language.Language;
+            language.IsActive = Strings.Active == language.Language;
         }
     }
 
@@ -405,14 +406,14 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
 
         foreach (var (instance, mixer) in _host.Core.MixerFactory.Instances.OrderBy(entry => entry.Key))
         {
-            var view = new MixerViewModel(instance, mixer);
+            var view = new MixerViewModel(Strings, instance, mixer);
             view.PropertyChanged += OnChildChanged;
             Mixers.Add(view);
         }
 
         foreach (var camera in _host.Cameras)
         {
-            var view = new CameraViewModel(camera);
+            var view = new CameraViewModel(Strings, camera);
             view.PropertyChanged += OnChildChanged;
             Cameras.Add(view);
         }
@@ -429,6 +430,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         {
             var device = _host.Surfaces.FirstOrDefault(surface => surface.Instance == instance);
             Interfaces.Add(new InterfaceViewModel(
+                Strings,
                 instance,
                 hmi,
                 device is null ? null : new ControlSurfaceViewModel(device),

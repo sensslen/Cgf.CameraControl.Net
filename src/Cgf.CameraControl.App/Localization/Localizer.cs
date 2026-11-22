@@ -20,7 +20,7 @@ internal sealed partial class LanguageJson : JsonSerializerContext;
 /// Each key is an observable, bound with XAML's stream operator, so a language change pushes new
 /// text to every control that asked for it. An indexer returning a plain string needs a change
 /// notification for an indexer, which binds without complaint and then does not update.
-public sealed class Localizer
+public sealed class Localizer : ILocalizer
 {
     public const string SourceLanguage = "en";
 
@@ -31,10 +31,6 @@ public sealed class Localizer
     private readonly BehaviorSubject<FlowDirection> _flow = new(Avalonia.Media.FlowDirection.LeftToRight);
 
     private Dictionary<string, string> _strings = Fallback;
-
-    private Localizer()
-    {
-    }
 
     public event EventHandler? LanguageChanged;
 
@@ -55,20 +51,12 @@ public sealed class Localizer
         new("de", "Deutsch"),
     ];
 
-    /// Declared after Languages because static initialisers run in order and the instance this
-    /// creates reads that list.
-    public static Localizer Current { get; } = new();
-
     public Language Active { get; private set; } = Languages[0];
 
     public IObservable<FlowDirection> FlowDirection => _flow;
 
-    /// The string as it reads now, for the few places that cannot take an observable: a native menu
-    /// item's header, and the application's own name.
     public string Text(string key) => Lookup(key);
 
-    /// A missing key shows as its own name rather than as blank, so a gap in a translation is
-    /// visible instead of leaving an unlabelled button.
     public IObservable<string> this[string key]
     {
         get

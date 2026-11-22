@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="260"
         x:Class="Cgf.CameraControl.App.Views.AskWindow"
-        x:DataType="loc:Localizer" FlowDirection="{Binding FlowDirection^}"
+        x:DataType="loc:ILocalizer" FlowDirection="{Binding FlowDirection^}"
         Width="460" SizeToContent="Height" CanResize="False"
         Icon="/Assets/appicon.ico"
         WindowStartupLocation="CenterOwner">

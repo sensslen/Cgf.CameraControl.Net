@@ -1,3 +1,4 @@
+using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -12,8 +13,9 @@ public sealed partial class NewEntry : ViewModelBase
     private readonly int _instance;
     private readonly IReadOnlyList<string> _pads;
 
-    public NewEntry(EntryKind kind, int instance, IReadOnlyList<string>? pads = null)
+    public NewEntry(ILocalizer strings, EntryKind kind, int instance, IReadOnlyList<string>? pads = null)
     {
+        Strings = strings;
         _kind = kind;
         _instance = instance;
         _pads = pads ?? [];
@@ -27,6 +29,8 @@ public sealed partial class NewEntry : ViewModelBase
         SelectedType = Types[0];
         Entry = Build();
     }
+
+    public ILocalizer Strings { get; }
 
     public IReadOnlyList<string> Types { get; }
 
@@ -46,7 +50,7 @@ public sealed partial class NewEntry : ViewModelBase
 
     private EntryDraft Build()
     {
-        var entry = new EntryDraft(_kind, SelectedType, EntrySchema.NewEntry(SelectedType, _instance), _pads);
+        var entry = new EntryDraft(Strings, _kind, SelectedType, EntrySchema.NewEntry(SelectedType, _instance), _pads);
         entry.Edited += (_, _) => OnPropertyChanged(nameof(CanAdd));
         return entry;
     }

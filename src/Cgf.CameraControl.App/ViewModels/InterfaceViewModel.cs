@@ -24,12 +24,14 @@ public sealed partial class InterfaceViewModel : ViewModelBase, IDisposable
     private readonly Gamepad? _gamepad;
 
     public InterfaceViewModel(
+        ILocalizer strings,
         int instance,
         IHmi hmi,
         ControlSurfaceViewModel? surface,
         IReadOnlyList<MixerViewModel> mixers,
         IReadOnlyList<CameraViewModel> cameras)
     {
+        Strings = strings;
         Instance = instance;
         Description = hmi.Description;
         Surface = surface;
@@ -69,6 +71,8 @@ public sealed partial class InterfaceViewModel : ViewModelBase, IDisposable
             Recolour();
         }
     }
+
+    public ILocalizer Strings { get; }
 
     public int Instance { get; }
 
@@ -207,11 +211,11 @@ public sealed partial class InterfaceViewModel : ViewModelBase, IDisposable
                 .ToDictionary(entry => entry.Key!.Value, entry => entry.Direction));
 
         Cut = new KeyButtonViewModel(
-            Localizer.Current.Text("mixer.cut"),
+            Strings.Text("mixer.cut"),
             Parse(config.Keys.Cut),
             new RelayCommand(() => surface.Transition(MixerTransition.Cut)));
         Auto = new KeyButtonViewModel(
-            Localizer.Current.Text("mixer.auto"),
+            Strings.Text("mixer.auto"),
             Parse(config.Keys.Auto),
             new RelayCommand(() => surface.Transition(MixerTransition.Auto)));
     }
@@ -271,7 +275,7 @@ public sealed partial class InterfaceViewModel : ViewModelBase, IDisposable
     {
         if (input is not { } selected || selected < 0)
         {
-            return Localizer.Current.Text("mixer.nothingSelected");
+            return Strings.Text("mixer.nothingSelected");
         }
 
         var number = selected.ToString(CultureInfo.CurrentUICulture);
