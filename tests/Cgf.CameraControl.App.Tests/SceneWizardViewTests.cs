@@ -1,7 +1,8 @@
 using System.Reactive.Subjects;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
-using Avalonia.Interactivity;
+using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Cgf.CameraControl.App.Localization;
@@ -62,6 +63,66 @@ public class SceneWizardViewTests
         }, editing: true);
     }
 
+    [Fact]
+    public async Task HeldArrowKeysSteerTheCameraUntilReleased()
+    {
+        await WithSheet((view, _, camera) =>
+        {
+            Pad(view, "MovePad").Focus();
+            var window = Assert.IsType<Window>(TopLevel.GetTopLevel(view));
+
+            window.KeyPress(Key.Up, RawInputModifiers.None, PhysicalKey.ArrowUp, null);
+            window.KeyPress(Key.Right, RawInputModifiers.None, PhysicalKey.ArrowRight, null);
+
+            camera.Received().Pan(1);
+            camera.Received().Tilt(1);
+            camera.ClearReceivedCalls();
+
+            window.KeyRelease(Key.Up, RawInputModifiers.None, PhysicalKey.ArrowUp, null);
+            window.KeyRelease(Key.Right, RawInputModifiers.None, PhysicalKey.ArrowRight, null);
+
+            camera.Received().Pan(0);
+            camera.Received().Tilt(0);
+            return Task.CompletedTask;
+        });
+    }
+
+    [Fact]
+    public async Task MovingFocusAwayWithAKeyHeldStopsTheCamera()
+    {
+        await WithSheet((view, _, camera) =>
+        {
+            Pad(view, "ZoomSlider").Focus();
+            var window = Assert.IsType<Window>(TopLevel.GetTopLevel(view));
+            window.KeyPress(Key.Left, RawInputModifiers.None, PhysicalKey.ArrowLeft, null);
+            camera.Received().Zoom(-1);
+            camera.ClearReceivedCalls();
+
+            view.GetVisualDescendants().OfType<TextBox>().Single(box => box.Name == "NewName").Focus();
+
+            camera.Received().Zoom(0);
+            return Task.CompletedTask;
+        });
+    }
+
+    [Fact]
+    public async Task ASliderIgnoresUpAndDown()
+    {
+        await WithSheet((view, _, camera) =>
+        {
+            Pad(view, "FocusSlider").Focus();
+            var window = Assert.IsType<Window>(TopLevel.GetTopLevel(view));
+
+            window.KeyPress(Key.Up, RawInputModifiers.None, PhysicalKey.ArrowUp, null);
+
+            camera.DidNotReceive().Focus(Arg.Any<double>());
+            return Task.CompletedTask;
+        });
+    }
+
+    private static StickPad Pad(Control view, string name) =>
+        view.GetVisualDescendants().OfType<StickPad>().Single(pad => pad.Name == name);
+
     private static Task<SceneWizardOutcome?> Finished(SceneWizardViewModel wizard) =>
         wizard.Completion.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
@@ -69,7 +130,11 @@ public class SceneWizardViewTests
     {
         var button = view.GetVisualDescendants().OfType<Button>().Single(control => control.Name == name);
         Assert.True(button.IsEffectivelyVisible && button.IsEffectivelyEnabled, name);
-        button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var window = Assert.IsType<Window>(TopLevel.GetTopLevel(button));
+        var centre = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window);
+        Assert.NotNull(centre);
+        window.MouseDown(centre.Value, MouseButton.Left);
+        window.MouseUp(centre.Value, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();
     }
 
@@ -102,6 +167,9 @@ public class SceneWizardViewTests
             {
                 window.Close();
             }
+
+            // Without a result the lambda binds to Dispatch<Task>, which never awaits it.
+            return true;
         }, TestContext.Current.CancellationToken);
     }
 }

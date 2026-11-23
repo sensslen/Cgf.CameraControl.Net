@@ -39,7 +39,8 @@ framings it copies. Edit scene picks the scene under **Scene** and allows a rena
 The list on the left shows every camera and, under each, the parts it answered. Choose one and
 frame it with the pan/tilt pad and the zoom and focus sliders. They work like the
 [keyboard panel](Configuration/Interfaces.md#keyboard) and stop the camera when released or when
-another camera is chosen. **Go to stored framing** drives the camera to what the edited or starting
+another camera is chosen. Without a mouse, Tab to a pad or slider and hold the arrow keys: a held
+key drives at full speed, and the camera stops when it is released or focus moves on. **Go to stored framing** drives the camera to what the edited or starting
 scene holds for it.
 
 **Next** needs a name no other scene has.

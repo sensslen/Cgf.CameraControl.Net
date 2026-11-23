@@ -39,6 +39,10 @@
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Height" Value="32" />
     </Style>
+    <Style Selector="views|StickPad:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlFocusVisualPrimaryBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
   </UserControl.Styles>
 
   <DockPanel Margin="20">
@@ -137,14 +141,14 @@
             <StackPanel Orientation="Horizontal" Spacing="20">
               <StackPanel>
                 <TextBlock Classes="label" Text="{Binding Strings[surface.panTilt]^}" />
-                <views:StickPad Name="MovePad" />
+                <views:StickPad Name="MovePad" ArrowKeys="True" />
               </StackPanel>
               <StackPanel Width="200">
                 <TextBlock Classes="label" Text="{Binding Strings[surface.zoom]^}" />
-                <views:StickPad Name="ZoomSlider" Classes="slider" Width="200" Horizontal="True" />
+                <views:StickPad Name="ZoomSlider" Classes="slider" Width="200" Horizontal="True" ArrowKeys="True" />
                 <TextBlock Classes="label" Margin="0,16,0,4"
                            Text="{Binding Strings[surface.focus]^}" />
-                <views:StickPad Name="FocusSlider" Classes="slider" Width="200" Horizontal="True" />
+                <views:StickPad Name="FocusSlider" Classes="slider" Width="200" Horizontal="True" ArrowKeys="True" />
                 <Button Name="GoToStored" Margin="0,16,0,0" HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Center"
                         IsVisible="{Binding SelectedCamera.HasStored, FallbackValue=False}"
