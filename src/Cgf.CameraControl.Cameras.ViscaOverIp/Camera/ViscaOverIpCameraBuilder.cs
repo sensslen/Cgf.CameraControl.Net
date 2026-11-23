@@ -12,8 +12,7 @@ public sealed class ViscaOverIpCameraBuilder(ILogger logger) : IBuilder<ICameraC
 
     private ICameraConnection Build(ViscaOverIpCameraConfiguration config)
     {
-        var port = Validate.Port(config.Port ?? ViscaOverIpCameraConfiguration.DefaultPort, $"{config}.port");
-        var transport = new ViscaUdpTransport(config.Ip, port, logger);
+        var transport = new ViscaUdpTransport(config.Ip, config.Port ?? ViscaOverIpCameraConfiguration.DefaultPort, logger);
         return new ViscaOverIpCamera(config, transport, logger);
     }
 }

@@ -1,7 +1,8 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Cgf.CameraControl.Core.Configuration;
-using Cgf.CameraControl.Core.Configuration.Converters;
 using Cgf.CameraControl.Core.VideoMixer;
+using Microsoft.Extensions.Options;
 
 namespace Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 
@@ -12,12 +13,18 @@ public sealed record AtemConfiguration() : VideoMixerConfiguration(TypeName)
     public const string TypeName = "blackmagicdesign/atem";
 
     [JsonRequired]
-    [JsonConverter(typeof(HostConverter))]
+    [Required]
+    [Host]
     public string Ip { get; set; } = string.Empty;
 
     [JsonRequired]
-    [JsonConverter(typeof(NonNegativeIntConverter))]
+    [Range(0, int.MaxValue)]
     public int MixEffectBlock { get; set; }
 
     public MixerTallyMode? TallyMode { get; set; }
+
+    public override IEnumerable<ValueProblem> Validate() => ValueProblem.Of(new AtemConfigurationValidator(), this);
 }
+
+[OptionsValidator]
+internal sealed partial class AtemConfigurationValidator : IValidateOptions<AtemConfiguration>;

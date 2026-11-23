@@ -39,8 +39,10 @@ Mixer input 3 maps to camera 7.
 Invalid entries are logged and skipped independently. Errors name the entry and property:
 
 ```
-viscaoverip[7].port: expected a number in ]0 .. 65535], found 70000
+cams[0]: viscaoverip[7].port: The field port must be between 1 and 65535.
 ```
+
+The editor checks the same value rules on each edit and shows the message under the field.
 
 Unknown properties are errors.
 

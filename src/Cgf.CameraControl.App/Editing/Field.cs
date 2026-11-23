@@ -34,6 +34,11 @@ public abstract partial class Field(ILocalizer strings, string key, string label
     [ObservableProperty]
     public partial string? Error { get; set; }
 
+    /// What the record's own rules say about the value this field wrote, set by the entry.
+    public string? Refusal { get; private set; }
+
+    private string? TextError { get; set; }
+
     /// Raised when a value changes, so the document can revalidate and mark itself dirty.
     public event EventHandler? Edited;
 
@@ -42,7 +47,21 @@ public abstract partial class Field(ILocalizer strings, string key, string label
     /// edited for having been read.
     protected bool Loaded { get; private set; }
 
-    protected internal abstract void Validate();
+    /// Text that the property's type cannot hold never reaches the record, so no rule on the
+    /// record can see it.
+    protected abstract string? CheckText();
+
+    protected internal void Validate()
+    {
+        TextError = CheckText();
+        Error = TextError ?? Refusal;
+    }
+
+    internal void Refuse(string? refusal)
+    {
+        Refusal = refusal;
+        Error = TextError ?? Refusal;
+    }
 
     protected void Ready()
     {
@@ -74,21 +93,18 @@ public abstract partial class Field(ILocalizer strings, string key, string label
 /// pads plugged in right now, until it is a desk being built away from them.
 public sealed partial class TextField : Field
 {
-    private readonly bool _required;
     private readonly Action<string?> _write;
 
     public TextField(
         ILocalizer strings,
         string key,
         string label,
-        bool required,
         Func<string?> read,
         Action<string?> write,
         string? placeholder = null,
         IReadOnlyList<string>? suggestions = null)
         : base(strings, key, label, placeholder)
     {
-        _required = required;
         _write = write;
         Suggestions = suggestions ?? [];
         Value = read() ?? string.Empty;
@@ -97,21 +113,12 @@ public sealed partial class TextField : Field
 
     public IReadOnlyList<string> Suggestions { get; }
 
-    /// Required only while this holds, such as a serial number while the backend is HID.
-    public Func<bool>? RequiredWhen { get; init; }
-
-    /// A rule beyond being present, returning what is wrong or null.
-    public Func<string, string?>? Check { get; init; }
-
     public bool HasSuggestions => Suggestions.Count > 0;
 
     [ObservableProperty]
     public partial string Value { get; set; } = string.Empty;
 
-    protected internal override void Validate() =>
-        Error = string.IsNullOrWhiteSpace(Value)
-            ? _required || RequiredWhen?.Invoke() == true ? Strings.Text("edit.required") : null
-            : Check?.Invoke(Value);
+    protected override string? CheckText() => null;
 
     partial void OnValueChanged(string value) => Write(() => _write(string.IsNullOrWhiteSpace(value) ? null : value));
 }
@@ -121,8 +128,6 @@ public sealed partial class TextField : Field
 /// wrong.
 public sealed partial class NumberField : Field
 {
-    private readonly int _minimum;
-    private readonly int _maximum;
     private readonly bool _required;
     private readonly Action<int?> _write;
 
@@ -131,16 +136,12 @@ public sealed partial class NumberField : Field
         string key,
         string label,
         bool required,
-        int minimum,
         Func<int?> read,
         Action<int?> write,
-        string? placeholder = null,
-        int maximum = int.MaxValue)
+        string? placeholder = null)
         : base(strings, key, label, placeholder)
     {
         _required = required;
-        _minimum = minimum;
-        _maximum = maximum;
         _write = write;
         Value = read() is { } number ? Format(number) : string.Empty;
         Ready();
@@ -152,20 +153,12 @@ public sealed partial class NumberField : Field
     public int? Number =>
         int.TryParse(Value, NumberStyles.Integer, CultureInfo.CurrentUICulture, out var parsed) ? parsed : null;
 
-    protected internal override void Validate() =>
-        Error = (Value.Length, Number) switch
+    /// Empty is not a number, so a property that cannot be absent cannot hold it.
+    protected override string? CheckText() =>
+        (Value.Length, Number) switch
         {
             (0, _) => _required ? Strings.Text("edit.required") : null,
             (_, null) => Strings.Text("edit.notANumber"),
-            (_, var number) when number < _minimum => string.Format(
-                CultureInfo.CurrentUICulture,
-                Strings.Text("edit.tooSmall"),
-                _minimum),
-            (_, var number) when number > _maximum => string.Format(
-                CultureInfo.CurrentUICulture,
-                Strings.Text("edit.outOfRange"),
-                _minimum,
-                _maximum),
             _ => null,
         };
 
@@ -197,14 +190,7 @@ public sealed partial class PercentField : Field
         set => Value = Format((int)Math.Round(Math.Clamp(value, 1, 100)));
     }
 
-    protected internal override void Validate() =>
-        Error = Number switch
-        {
-            null => Strings.Text("edit.notANumber"),
-            < 1 or > 100 => string.Format(
-                CultureInfo.CurrentUICulture, Strings.Text("edit.outOfRange"), 1, 100),
-            _ => null,
-        };
+    protected override string? CheckText() => Number is null ? Strings.Text("edit.notANumber") : null;
 
     partial void OnValueChanged(string value) => Write(() =>
     {
@@ -230,9 +216,7 @@ public sealed partial class SwitchField : Field
     [ObservableProperty]
     public partial bool Value { get; set; }
 
-    protected internal override void Validate()
-    {
-    }
+    protected override string? CheckText() => null;
 
     partial void OnValueChanged(bool value) => Write(() => _write(value));
 }
@@ -287,8 +271,7 @@ public sealed partial class ChoiceField : Field
     [NotifyPropertyChangedFor(nameof(SelectedOption))]
     public partial string Value { get; set; } = string.Empty;
 
-    protected internal override void Validate() =>
-        Error = SelectedOption is null ? Strings.Text("edit.required") : null;
+    protected override string? CheckText() => SelectedOption is null ? Strings.Text("edit.required") : null;
 
     partial void OnValueChanged(string value) => Write(() =>
     {
@@ -302,13 +285,11 @@ public sealed partial class ChoiceField : Field
 /// A number with a decimal point, for the one field that takes a fraction.
 public sealed partial class FractionField : Field
 {
-    private readonly double _maximum;
     private readonly Action<double> _write;
 
-    public FractionField(ILocalizer strings, string key, string label, double maximum, Func<double> read, Action<double> write)
+    public FractionField(ILocalizer strings, string key, string label, Func<double> read, Action<double> write)
         : base(strings, key, label)
     {
-        _maximum = maximum;
         _write = write;
         Value = read().ToString(CultureInfo.CurrentUICulture);
         Ready();
@@ -322,17 +303,7 @@ public sealed partial class FractionField : Field
             ? parsed
             : null;
 
-    protected internal override void Validate() =>
-        Error = Number switch
-        {
-            null => Strings.Text("edit.notANumber"),
-            var number when number < 0 || number > _maximum => string.Format(
-                CultureInfo.CurrentUICulture,
-                Strings.Text("edit.outOfRange"),
-                0,
-                _maximum),
-            _ => null,
-        };
+    protected override string? CheckText() => Number is null ? Strings.Text("edit.notANumber") : null;
 
     partial void OnValueChanged(string value) => Write(() =>
     {

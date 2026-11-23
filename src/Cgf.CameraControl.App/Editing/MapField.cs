@@ -49,10 +49,11 @@ public sealed partial class MapField : Field
     /// The camera instances this map names, for the document to check against the cameras that exist.
     public IEnumerable<int> Targets => Rows.Select(row => Number(row.Value)).OfType<int>();
 
-    protected internal override void Validate()
+    /// A map holds one camera per input, so a repeated input has nowhere to go in the record.
+    protected override string? CheckText()
     {
         var keys = Rows.Select(row => Number(row.Key)).OfType<int>().ToList();
-        Error = Rows.Any(row => Number(row.Key) is null or < 1 || Number(row.Value) is null or < 1)
+        return Rows.Any(row => Number(row.Key) is null || Number(row.Value) is null)
             ? Strings.Text("edit.mapNeedsNumbers")
             : keys.Count != keys.Distinct().Count()
                 ? Strings.Text("edit.mapRepeatsAnInput")

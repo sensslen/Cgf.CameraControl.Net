@@ -35,11 +35,10 @@ internal static class EntrySchema
         {
             ViscaOverIpCameraConfiguration visca =>
             [
-                new TextField(strings, "ip", "edit.ip", required: true, () => visca.Ip, value => visca.Ip = value ?? string.Empty),
+                new TextField(strings, "ip", "edit.ip", () => visca.Ip, value => visca.Ip = value ?? string.Empty),
                 // An empty box is the protocol's own port, which is what a file without one means.
-                new NumberField(strings, "port", "edit.port", required: false, minimum: 1,
-                    () => visca.Port, value => visca.Port = value,
-                    "edit.portDefault", maximum: 65535),
+                new NumberField(strings, "port", "edit.port", required: false,
+                    () => visca.Port, value => visca.Port = value, "edit.portDefault"),
                 new SwitchField(strings, "panTiltInvert", "edit.panTiltInvert",
                     () => visca.PanTiltInvert ?? false, value => visca.PanTiltInvert = value),
                 new PercentField(strings, "panTiltSpeedPercent", "edit.panTiltSpeedPercent",
@@ -49,7 +48,7 @@ internal static class EntrySchema
             ],
             WebsocketPtzLancCameraConfiguration websocket =>
             [
-                new TextField(strings, "ip", "edit.ip", required: true, () => websocket.Ip, value => websocket.Ip = value ?? string.Empty),
+                new TextField(strings, "ip", "edit.ip", () => websocket.Ip, value => websocket.Ip = value ?? string.Empty),
                 new SwitchField(strings, "panTiltInvert", "edit.panTiltInvert",
                     () => websocket.PanTiltInvert ?? false, value => websocket.PanTiltInvert = value),
                 new PercentField(strings, "panTiltSpeedPercent", "edit.panTiltSpeedPercent",
@@ -59,12 +58,9 @@ internal static class EntrySchema
             ],
             SignalrPtzLancCameraConfiguration signalr =>
             [
-                new TextField(strings, "connectionUrl", "edit.connectionUrl", required: true,
-                    () => signalr.ConnectionUrl, value => signalr.ConnectionUrl = value ?? string.Empty)
-                {
-                    Check = value => Validate.IsHttpUrl(value) ? null : strings.Text("edit.notAUrl"),
-                },
-                new TextField(strings, "connectionPort", "edit.connectionPort", required: true,
+                new TextField(strings, "connectionUrl", "edit.connectionUrl",
+                    () => signalr.ConnectionUrl, value => signalr.ConnectionUrl = value ?? string.Empty),
+                new TextField(strings, "connectionPort", "edit.connectionPort",
                     () => signalr.ConnectionPort, value => signalr.ConnectionPort = value ?? string.Empty),
                 new SwitchField(strings, "panTiltInvert", "edit.panTiltInvert",
                     () => signalr.PanTiltInvert ?? false, value => signalr.PanTiltInvert = value),
@@ -73,8 +69,8 @@ internal static class EntrySchema
             ],
             AtemConfiguration atem =>
             [
-                new TextField(strings, "ip", "edit.ip", required: true, () => atem.Ip, value => atem.Ip = value ?? string.Empty),
-                new NumberField(strings, "mixEffectBlock", "edit.mixEffectBlock", required: true, minimum: 0,
+                new TextField(strings, "ip", "edit.ip", () => atem.Ip, value => atem.Ip = value ?? string.Empty),
+                new NumberField(strings, "mixEffectBlock", "edit.mixEffectBlock", required: true,
                     () => atem.MixEffectBlock, value => atem.MixEffectBlock = value ?? 0),
                 Choice(strings, "tallyMode", "edit.mixerTallyMode", ConfigurationContext.Default.MixerTallyMode,
                     () => atem.TallyMode ?? MixerTallyMode.PreviewProgram, value => atem.TallyMode = value,
@@ -146,31 +142,22 @@ internal static class EntrySchema
             pad.SupportsHid ? Names(names) : [Name(GamepadBackend.Sdl, names)],
             () => Name(pad.Backend ?? GamepadBackend.Sdl, names),
             value => pad.Backend = Parse(value, names));
-        var hid = Name(GamepadBackend.Hid, names);
         return
         [
             backend,
             VideoMixer(strings, pad),
             CameraMap(strings, pad),
             EnableChangingProgram(strings, pad),
-            new TextField(strings, "serialNumber", "edit.serialNumber", required: false,
-                () => pad.SerialNumber, value => pad.SerialNumber = value, "edit.anyPad", pads)
-            {
-                RequiredWhen = () => string.Equals(backend.Value, hid, StringComparison.OrdinalIgnoreCase),
-                // The loader refuses a serial with no letter or digit in it, as it would refuse none.
-                Check = serial =>
-                    serial.Any(char.IsLetterOrDigit) || !string.Equals(backend.Value, hid, StringComparison.OrdinalIgnoreCase)
-                        ? null
-                        : strings.Text("edit.required"),
-            },
-            new FractionField(strings, "deadzone", "edit.deadzone", maximum: 1,
+            new TextField(strings, "serialNumber", "edit.serialNumber",
+                () => pad.SerialNumber, value => pad.SerialNumber = value, "edit.anyPad", pads),
+            new FractionField(strings, "deadzone", "edit.deadzone",
                 () => pad.Deadzone ?? GamepadConfiguration.DefaultDeadzone, value => pad.Deadzone = value),
             new SwitchField(strings, "rumble", "edit.rumble", () => pad.Rumble ?? true, value => pad.Rumble = value),
         ];
     }
 
     private static NumberField VideoMixer(ILocalizer strings, ControlInterfaceConfiguration control) =>
-        new(strings, "videoMixer", "edit.videoMixer", required: true, minimum: 1,
+        new(strings, "videoMixer", "edit.videoMixer", required: true,
             () => control.VideoMixer, value => control.VideoMixer = value ?? 0);
 
     private static MapField CameraMap(ILocalizer strings, ControlInterfaceConfiguration control) =>

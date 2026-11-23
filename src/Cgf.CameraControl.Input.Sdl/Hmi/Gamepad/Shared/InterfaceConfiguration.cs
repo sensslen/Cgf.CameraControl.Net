@@ -1,7 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Cgf.CameraControl.Core.Configuration;
-using Cgf.CameraControl.Core.Configuration.Converters;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange;
+using Microsoft.Extensions.Options;
 
 namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 
@@ -15,7 +16,7 @@ namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 public abstract record ControlInterfaceConfiguration(string Type) : InterfaceConfiguration(Type)
 {
     [JsonRequired]
-    [JsonConverter(typeof(PositiveIntConverter))]
+    [Range(1, int.MaxValue)]
     public int VideoMixer { get; set; }
 
     [JsonRequired]
@@ -24,6 +25,7 @@ public abstract record ControlInterfaceConfiguration(string Type) : InterfaceCon
 
     /// Maps the mixer's input channel to a camera instance in the configuration.
     [JsonRequired]
+    [NonNegativeNumbers]
     public IReadOnlyDictionary<int, int> CameraMap { get; set; } = new Dictionary<int, int>();
 
     /// Named here and bound by name below, so one function reaches a face button and a key without
@@ -31,10 +33,14 @@ public abstract record ControlInterfaceConfiguration(string Type) : InterfaceCon
     public IReadOnlyDictionary<string, SpecialFunctionConfiguration>? Functions { get; set; }
 
     public bool? EnableChangingProgram { get; set; }
+
+    private protected IEnumerable<ValueProblem> FunctionProblems() =>
+        (Functions ?? new Dictionary<string, SpecialFunctionConfiguration>())
+        .SelectMany(pair => pair.Value.Validate().Select(problem => problem.Under($"functions.{pair.Key}")));
 }
 
 /// A pad has four face buttons and no more, so the way past four is the modifier sets.
-public record GamepadConfiguration : ControlInterfaceConfiguration
+public record GamepadConfiguration : ControlInterfaceConfiguration, IValidatableObject
 {
     public const string TypeName = "gamepad";
 
@@ -62,12 +68,36 @@ public record GamepadConfiguration : ControlInterfaceConfiguration
 
     /// Stick travel ignored around centre. The HID path this replaces had a flat spot built into its
     /// interpolation table; SDL reports raw axes, so without this the cameras drift.
-    [JsonConverter(typeof(DeadzoneConverter))]
+    ///
+    /// Half the travel is already an unusable stick, and the rescaling that follows the deadzone
+    /// needs travel left to rescale.
+    [Range(0.0, 0.5)]
     public double? Deadzone { get; set; }
 
     public bool? Rumble { get; set; }
 
     public PadBindings? Pad { get; set; }
+
+    public override IEnumerable<ValueProblem> Validate() =>
+        ValueProblem.Of(new GamepadConfigurationValidator(), this).Concat(FunctionProblems());
+
+    IEnumerable<ValidationResult> IValidatableObject.Validate(ValidationContext validationContext)
+    {
+        if (Backend != GamepadBackend.Hid)
+        {
+            yield break;
+        }
+
+        if (SerialNumber is null || !SerialNumber.Any(char.IsLetterOrDigit))
+        {
+            yield return new ValidationResult("The HID backend requires a serial number.", [nameof(SerialNumber)]);
+        }
+
+        if (!SupportsHid)
+        {
+            yield return new ValidationResult("The HID backend supports F310 pads only.", [nameof(Backend)]);
+        }
+    }
 }
 
 /// The names pads were configured by before `gamepad`. Each is its own record because a type string
@@ -117,7 +147,16 @@ public sealed record KeyboardConfiguration() : ControlInterfaceConfiguration(Typ
 
     [JsonRequired]
     public KeyBindings Keys { get; set; } = new();
+
+    public override IEnumerable<ValueProblem> Validate() =>
+        ValueProblem.Of(new KeyboardConfigurationValidator(), this).Concat(FunctionProblems());
 }
+
+[OptionsValidator]
+internal sealed partial class GamepadConfigurationValidator : IValidateOptions<GamepadConfiguration>;
+
+[OptionsValidator]
+internal sealed partial class KeyboardConfigurationValidator : IValidateOptions<KeyboardConfiguration>;
 
 /// Key names are Avalonia's, so `D1` rather than `1` and `LeftShift` rather than `Shift`. They are
 /// matched without regard to case, and a name that is not one of them is reported against the entry

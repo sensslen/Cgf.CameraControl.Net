@@ -35,7 +35,7 @@ public sealed partial class NewEntry : ViewModelBase
     [ObservableProperty]
     public partial EntryDraft Entry { get; set; } = null!;
 
-    public bool CanAdd => Entry.Fields.All(entry => entry.Error is null);
+    public bool CanAdd => Entry.Fields.All(entry => entry.Error is null) && Entry.Refusals.Count == 0;
 
     partial void OnSelectedTypeChanged(string value)
     {

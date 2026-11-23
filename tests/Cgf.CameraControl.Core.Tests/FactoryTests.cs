@@ -118,7 +118,10 @@ public class FactoryTests
         Assert.Empty(_factory.Instances);
     }
 
-    private abstract record ThingConfiguration(string Type) : CameraConfiguration(Type);
+    private abstract record ThingConfiguration(string Type) : CameraConfiguration(Type)
+    {
+        public override IEnumerable<ValueProblem> Validate() => [];
+    }
 
     private sealed record KnownThing() : ThingConfiguration(TypeName)
     {

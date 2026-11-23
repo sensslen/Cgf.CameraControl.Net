@@ -1,5 +1,4 @@
-﻿using Cgf.CameraControl.Core.Configuration;
-using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
+﻿using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange;
 
 namespace Cgf.CameraControl.App.Tests.Configuration;
@@ -64,11 +63,11 @@ public class GamepadConfigurationTests
     [InlineData("----")]
     public void HidBackendRequiresAnIdentifyingSerial(string? serial)
     {
-        var pad = Read(Shipped);
-        pad.Backend = GamepadBackend.Hid;
-        pad.SerialNumber = serial;
-        var error = Assert.Throws<ConfigValidationException>(() => InterfaceValidation.Bindings(pad));
-        Assert.EndsWith(".serialNumber", error.Path, StringComparison.Ordinal);
+        var shape = serial is null
+            ? Shipped.Replace("\"serialNumber\": \"83234F94\",", "\"backend\": \"hid\",", StringComparison.Ordinal)
+            : Shipped.Replace("\"serialNumber\": \"83234F94\",", $"\"backend\": \"hid\", \"serialNumber\": \"{serial}\",", StringComparison.Ordinal);
+
+        Assert.Contains("logitech/F310[1].serialNumber: ", Rejected(shape), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -153,7 +152,8 @@ public class GamepadConfigurationTests
         {
             var error = Rejected(Minimal().Replace("\"videoMixer\": 1", "\"videoMixer\": 0"));
 
-            Assert.Contains("positive", error, StringComparison.Ordinal);
+            Assert.Contains("gamepad[1].videoMixer: ", error, StringComparison.Ordinal);
+            Assert.Contains("must be between 1 and", error, StringComparison.Ordinal);
         }
 
         [Fact]

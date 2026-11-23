@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Cgf.CameraControl.App.Configuration;
 using Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 using Cgf.CameraControl.Core.Configuration;
@@ -90,6 +91,57 @@ public class ConfigLoaderTests
         var invalid = Assert.IsType<InvalidCameraConfiguration>(Assert.Single(config.Cams));
         Assert.Equal(issues[0], invalid.Problem);
         Assert.StartsWith("cams[0]", invalid.Problem, StringComparison.Ordinal);
+    }
+
+    /// One case per kind of rule a record declares, each reported at the property that broke it.
+    [Theory]
+    [InlineData(
+        """{ "type": "viscaoverip", "instance": 0, "ip": "10.0.0.1" }""",
+        "cams[0]: viscaoverip[0].instance: The field instance must be between 1 and 2147483647.")]
+    [InlineData(
+        """{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1", "port": 70000 }""",
+        "cams[0]: viscaoverip[1].port: The field port must be between 1 and 65535.")]
+    [InlineData(
+        """{ "type": "Signalr.PtzLanc", "instance": 1, "connectionUrl": "http://10.0.0.5", "connectionPort": "" }""",
+        "cams[0]: Signalr.PtzLanc[1].connectionPort: The connectionPort field is required.")]
+    [InlineData(
+        """{ "type": "Websocket.PtzLanc", "instance": 1, "ip": "not a host" }""",
+        "cams[0]: Websocket.PtzLanc[1].ip: The field ip must be a host name or IP address.")]
+    [InlineData(
+        """{ "type": "Signalr.PtzLanc", "instance": 1, "connectionUrl": "http://10.0.0.5?a=1", "connectionPort": "COM6" }""",
+        "cams[0]: Signalr.PtzLanc[1].connectionUrl: The field connectionUrl must be an http or https URL without a query or a fragment.")]
+    [InlineData(
+        """{ "type": "viscaoverip", "instance": 1, "ip": "", "port": 0 }""",
+        "cams[0]: viscaoverip[1].ip: The ip field is required.; viscaoverip[1].port: The field port must be between 1 and 65535.")]
+    public void AValueTheRecordRefusesKeepsTheEntryAsInvalid(string entry, string expected)
+    {
+        var config = ConfigLoader.Load($$"""{ "cams": [ {{entry}} ] }""", out var issues);
+
+        Assert.Equal(expected, Assert.Single(issues));
+        var invalid = Assert.IsType<InvalidCameraConfiguration>(Assert.Single(config.Cams));
+        Assert.Equal(expected, invalid.Problem);
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(entry), JsonNode.Parse(invalid.Json)));
+    }
+
+    [Theory]
+    [InlineData(
+        """{ "type": "gamepad", "instance": 1, "videoMixer": 1, "deadzone": 0.6, "cameraMap": {}, "connectionChange": { "type": "direct", "default": {} } }""",
+        "interfaces[0]: gamepad[1].deadzone: The field deadzone must be between 0 and 0.5.")]
+    [InlineData(
+        """{ "type": "logitech/F710", "instance": 1, "videoMixer": 1, "backend": "hid", "serialNumber": "A1", "cameraMap": {}, "connectionChange": { "type": "direct", "default": {} } }""",
+        "interfaces[0]: logitech/F710[1].backend: The HID backend supports F310 pads only.")]
+    [InlineData(
+        """{ "type": "keyboard", "instance": 1, "videoMixer": 1, "keys": {}, "cameraMap": { "1": 1 }, "connectionChange": { "type": "direct", "default": {} }, "functions": { "loop": { "type": "macroLoop", "indexes": [ 1, -2 ] } } }""",
+        "interfaces[0]: keyboard[1].functions.loop.indexes: The field indexes must hold only numbers of 0 or more.")]
+    [InlineData(
+        """{ "type": "gamepad", "instance": 1, "videoMixer": 1, "cameraMap": {}, "connectionChange": { "type": "direct", "default": {} }, "functions": { "pulpit": { "type": "scene", "name": " " } } }""",
+        "interfaces[0]: gamepad[1].functions.pulpit.name: The name field is required.")]
+    public void AnInterfaceValueTheRecordRefusesIsReportedAtItsPath(string entry, string expected)
+    {
+        var config = ConfigLoader.Load($$"""{ "interfaces": [ {{entry}} ] }""", out var issues);
+
+        Assert.Equal(expected, Assert.Single(issues));
+        Assert.IsType<InvalidInterfaceConfiguration>(Assert.Single(config.Interfaces));
     }
 
     [Fact]

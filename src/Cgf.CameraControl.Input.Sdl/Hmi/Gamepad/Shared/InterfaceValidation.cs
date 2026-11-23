@@ -10,56 +10,13 @@ public static class InterfaceValidation
 {
     public static void Bindings(GamepadConfiguration config)
     {
-        if (config.Backend is { } backend && !Enum.IsDefined(backend))
-        {
-            throw new ConfigValidationException($"{config}.backend", $"Unknown gamepad backend {backend}.");
-        }
-        if (config.Backend == GamepadBackend.Hid)
-        {
-            if (string.IsNullOrWhiteSpace(config.SerialNumber) || !config.SerialNumber.Any(char.IsLetterOrDigit))
-            {
-                throw new ConfigValidationException($"{config}.serialNumber", "HID backend requires a serial number.");
-            }
-            if (!config.SupportsHid)
-            {
-                throw new ConfigValidationException($"{config}.backend", "HID backend currently supports F310 pads only.");
-            }
-        }
         Names(config, "pad.default", config.Pad?.Default?.Values);
         Names(config, "pad.alt", config.Pad?.Alt?.Values);
         Names(config, "pad.altLower", config.Pad?.AltLower?.Values);
-        Shared(config);
     }
 
-    public static void Bindings(KeyboardConfiguration config)
-    {
+    public static void Bindings(KeyboardConfiguration config) =>
         Names(config, "keys.function", config.Keys.Function?.Values);
-        Shared(config);
-    }
-
-    private static void Shared(ControlInterfaceConfiguration config)
-    {
-        Validate.NonNegativeMap(config.CameraMap, $"{config}.cameraMap");
-        foreach (var (name, function) in config.Functions ?? new Dictionary<string, SpecialFunctionConfiguration>())
-        {
-            // An empty loop is a button that logs an error on every press instead of running a macro.
-            if (function is MacroLoopSpecialFunctionConfiguration loop)
-            {
-                Validate.MinCount(loop.Indexes, 1, $"{config}.functions.{name}.indexes");
-                foreach (var index in loop.Indexes)
-                {
-                    Validate.NonNegative(index, $"{config}.functions.{name}.indexes");
-                }
-            }
-
-            // Scenes are saved from the window after the file is loaded, so the name is only
-            // checked for being one at all.
-            if (function is SceneSpecialFunctionConfiguration scene && string.IsNullOrWhiteSpace(scene.Name))
-            {
-                throw new ConfigValidationException($"{config}.functions.{name}.name", "expected the name of a scene");
-            }
-        }
-    }
 
     private static void Names(
         ControlInterfaceConfiguration config,

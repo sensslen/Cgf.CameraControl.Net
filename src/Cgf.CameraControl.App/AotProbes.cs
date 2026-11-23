@@ -33,7 +33,8 @@ public static class AotProbes
         return atem.RegistryAlive && signalr.Alive && localization.Alive && configuration.Alive ? 0 : 1;
     }
 
-    /// One entry of every registered type and a scene, read, written and read again.
+    /// One entry of every registered type and a scene, read, written and read again, and one value
+    /// its rules refuse.
     private static (bool Alive, string Report) ProbeConfiguration()
     {
         const string Desk =
@@ -75,9 +76,15 @@ public static class AotProbes
                 .Select(entry => entry.Type)
                 .ToList();
             var problems = issues.Concat(reissues).ToList();
+            ConfigLoader.Load("""{ "cams": [ { "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1", "port": 70000 } ] }""", out var refused);
+            if (!refused.Any(issue => issue.Contains("viscaoverip[1].port", StringComparison.Ordinal)))
+            {
+                problems.Add("a port of 70000 was not refused");
+            }
+
             var scene = again.Scenes.SingleOrDefault()?.Cameras.GetValueOrDefault(1);
             return problems.Count == 0 && types.Count == 10 && scene == new ScenePosition(-1, 2, 3, 4)
-                ? (true, $"configuration {types.Count} types and a scene -> OK: all read and written")
+                ? (true, $"configuration {types.Count} types and a scene -> OK: all read, written and validated")
                 : (false, $"configuration -> FAIL: {string.Join("; ", problems)}");
         }
         catch (Exception ex)
