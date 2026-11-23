@@ -2,8 +2,10 @@
 using Cgf.CameraControl.App.Editing;
 using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.Localization;
+using Cgf.CameraControl.App.Scenes;
 using Cgf.CameraControl.Core.CameraConnection;
 using Cgf.CameraControl.Core.Hmi;
+using Cgf.CameraControl.Core.Scenes;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -36,6 +38,18 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     /// Asked on the way out of edit mode. Save is offered only when nothing blocks it, which is what
     /// keeps a configuration naming something it does not define from reaching the disk.
     public Func<bool, IReadOnlyList<string>, Task<SaveChoice>>? AskToSave { get; set; }
+
+    /// Shows the scene wizard as a dialog, returning once it is closed.
+    public Func<SceneWizardViewModel, Task>? ShowSceneWizard { get; set; }
+
+    /// The scene wizard while it is open. A dialog blocks the window, but not the macOS menu bar, so
+    /// the menus read this too.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSceneWizardOpen), nameof(CanUseFileMenu), nameof(CanUseSceneMenu),
+        nameof(CanEditScenes), nameof(CanToggleEditing))]
+    public partial SceneWizardViewModel? SceneWizard { get; set; }
+
+    public bool IsSceneWizardOpen => SceneWizard is not null;
 
     /// Asked before an entry is deleted, carrying whatever still names it.
     public Func<EntryDraft, IReadOnlyList<string>, Task<bool>>? AskToDelete { get; set; }
@@ -88,7 +102,15 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     public bool IsEditing => Draft is not null;
 
     /// The file menu replaces the file being edited, so it is out of reach until the mode is left.
-    public bool CanUseFileMenu => !IsBusy && !IsEditing;
+    public bool CanUseFileMenu => !IsBusy && !IsEditing && !IsSceneWizardOpen;
+
+    public bool CanToggleEditing => !IsBusy && !IsSceneWizardOpen;
+
+    /// Scenes are written into the loaded file, so there has to be one, and they are framed with live
+    /// cameras, which edit mode has taken down.
+    public bool CanUseSceneMenu => CanUseFileMenu && _host.ConfigPath is not null;
+
+    public bool CanEditScenes => CanUseSceneMenu && _host.Core.Scenes.Scenes.Count != 0;
 
     /// One selection across three lists, because one editor fills the area they all point at.
     [ObservableProperty]
@@ -120,7 +142,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             await _host.UnloadAsync(CancellationToken.None).ConfigureAwait(true);
             Draft = ConfigDraft.From(Strings, configuration, ConnectedPads());
             OnPropertyChanged(nameof(IsEditing));
-            OnPropertyChanged(nameof(CanUseFileMenu));
+            NotifyMenus();
             SelectedInterfaceEntry = Draft.Interfaces.FirstOrDefault();
         }
         finally
@@ -146,6 +168,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             // and Save act on, so that is the one shown.
             ConfigPath = _host.ConfigPath ?? Strings.Text("config.none");
             Rebuild();
+            NotifyMenus();
         }
         finally
         {
@@ -153,7 +176,100 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
-    partial void OnIsBusyChanged(bool value) => OnPropertyChanged(nameof(CanUseFileMenu));
+    partial void OnIsBusyChanged(bool value) => NotifyMenus();
+
+    private void NotifyMenus()
+    {
+        OnPropertyChanged(nameof(CanUseFileMenu));
+        OnPropertyChanged(nameof(CanUseSceneMenu));
+        OnPropertyChanged(nameof(CanEditScenes));
+        OnPropertyChanged(nameof(CanToggleEditing));
+    }
+
+    [RelayCommand]
+    private Task NewSceneAsync() => ShowSceneWizardAsync(editing: false);
+
+    [RelayCommand]
+    private Task EditSceneAsync() => ShowSceneWizardAsync(editing: true);
+
+    private async Task ShowSceneWizardAsync(bool editing)
+    {
+        if (!CanUseSceneMenu || (editing && !CanEditScenes) || ShowSceneWizard is not { } show)
+        {
+            return;
+        }
+
+        var renamed = false;
+        var wizard = new SceneWizardViewModel(Strings, editing, _host.Configuration.Scenes, _host.Core.CameraFactory.Instances)
+        {
+            Commit = outcome =>
+            {
+                var written = WriteScene(outcome, out var repointed);
+                renamed |= written && repointed;
+                return Task.FromResult(written);
+            },
+        };
+        SceneWizard = wizard;
+        try
+        {
+            _ = wizard.ProbeAsync();
+            await show(wizard).ConfigureAwait(true);
+        }
+        finally
+        {
+            SceneWizard = null;
+            wizard.Dispose();
+        }
+
+        // The interfaces were built with the old name, so they recall the new one only once the file
+        // is loaded again. That waits for the wizard to close, because loading replaces the cameras
+        // it was driving.
+        if (renamed && _host.ConfigPath is { } path)
+        {
+            await LoadAsync(path).ConfigureAwait(true);
+        }
+    }
+
+    /// The names of the functions that recall a scene, for the delete confirmation to list.
+    public IReadOnlyList<string> SceneReferencesTo(string scene) => SceneReferences.To(_host.Configuration, scene);
+
+    /// A saved scene takes the place of the one it was edited from, and a rename re-points the
+    /// functions that recalled the old name. False when the file could not be written, which leaves
+    /// the running desk and the wizard as they were.
+    private bool WriteScene(SceneWizardOutcome outcome, out bool repointed)
+    {
+        var config = _host.Configuration;
+        var scenes = config.Scenes.ToList();
+        var index = outcome.Replaced is { } replaced
+            ? scenes.FindIndex(scene => CameraScene.SameName(scene.Name, replaced))
+            : -1;
+        if (index >= 0)
+        {
+            scenes.RemoveAt(index);
+        }
+
+        var changed = 0;
+        if (outcome.Saved is { } saved)
+        {
+            scenes.Insert(index >= 0 ? index : scenes.Count, saved);
+            if (outcome.Replaced is { } from && !CameraScene.SameName(from, saved.Name))
+            {
+                (config, changed) = SceneReferences.Rename(config, from, saved.Name);
+            }
+        }
+
+        repointed = changed != 0;
+        if (!_host.SaveScenes(config with { Scenes = scenes }))
+        {
+            return false;
+        }
+
+        _host.Logger.Log("Scenes", outcome.Deleted
+            ? $"deleted scene {outcome.Replaced}"
+            : $"saved scene {outcome.Saved?.Name}");
+        NotifyMenus();
+        return true;
+    }
 
     partial void OnSelectedCameraChanged(EntryDraft? value) => Choose(value, EntryKind.Camera);
 
@@ -286,7 +402,7 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         SelectedInterfaceEntry = null;
         SelectedEntry = null;
         OnPropertyChanged(nameof(IsEditing));
-        OnPropertyChanged(nameof(CanUseFileMenu));
+        NotifyMenus();
 
         if (path is not null)
         {

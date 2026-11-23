@@ -1,0 +1,13 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:scenes="using:Cgf.CameraControl.App.Scenes"
+        xmlns:views="using:Cgf.CameraControl.App.Views"
+        x:Class="Cgf.CameraControl.App.Views.SceneWizardWindow"
+        x:DataType="scenes:SceneWizardViewModel"
+        Width="800" Height="600" MinWidth="780" MinHeight="460"
+        Icon="/Assets/appicon.ico"
+        Title="{Binding Title}"
+        FlowDirection="{Binding Strings.FlowDirection^}"
+        WindowStartupLocation="CenterOwner">
+  <views:SceneWizardView />
+</Window>

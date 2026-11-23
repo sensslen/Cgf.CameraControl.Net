@@ -3,6 +3,7 @@ using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.GenericFactory;
 using Cgf.CameraControl.Core.Hmi;
 using Cgf.CameraControl.Core.Logger;
+using Cgf.CameraControl.Core.Scenes;
 using Cgf.CameraControl.Core.VideoMixer;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Hid;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
@@ -14,7 +15,8 @@ public sealed class GamepadBuilder(
     VideoMixerFactory mixers,
     CameraConnectionFactory cameras,
     ILogger logger,
-    HidGamepadSystem? hid = null) : IBuilder<IHmi, InterfaceConfiguration>
+    HidGamepadSystem? hid = null,
+    SceneLibrary? scenes = null) : IBuilder<IHmi, InterfaceConfiguration>
 {
     /// The legacy pad records derive from GamepadConfiguration, so one claim covers them all.
     public Task<IHmi>? BuildAsync(InterfaceConfiguration entry, CancellationToken cancellationToken) =>
@@ -52,7 +54,7 @@ public sealed class GamepadBuilder(
         }
         try
         {
-            return new Shared.Gamepad(config, device, mixer, cameras.Get, logger, config.Pad);
+            return new Shared.Gamepad(config, device, mixer, cameras.Get, logger, config.Pad, scenes: scenes);
         }
         catch
         {

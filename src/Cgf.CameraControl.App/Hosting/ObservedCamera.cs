@@ -26,6 +26,8 @@ public sealed class ObservedCamera(ICameraConnection inner) : ICameraConnection
 
     public ICameraColorControl? ColorControl => inner as ICameraColorControl;
 
+    public ICameraPositionControl? PositionControl => inner.PositionControl;
+
     public void Pan(double value)
     {
         _movement.OnNext(_movement.Value with { Pan = value });

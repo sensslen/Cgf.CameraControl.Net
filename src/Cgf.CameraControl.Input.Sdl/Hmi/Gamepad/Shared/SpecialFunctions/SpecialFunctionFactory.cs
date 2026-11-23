@@ -6,8 +6,9 @@ namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.SpecialFunctions;
 
 public static class SpecialFunctionFactory
 {
-    public static ISpecialFunction Get(SpecialFunctionConfiguration config) => config switch
+    public static ISpecialFunction Get(SpecialFunctionConfiguration config, Action<string>? recallScene = null) => config switch
     {
+        SceneSpecialFunctionConfiguration scene => new SceneSpecialFunction(scene, recallScene ?? (_ => { })),
         KeySpecialFunctionConfiguration key => new KeySpecialFunction(key),
         ConnectionChangeSpecialFunctionConfiguration change => new ConnectionChangeSpecialFunction(change),
         MacroLoopSpecialFunctionConfiguration loop => new MacroLoopSpecialFunction(loop),

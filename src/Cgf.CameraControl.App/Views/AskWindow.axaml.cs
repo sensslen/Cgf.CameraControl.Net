@@ -74,6 +74,29 @@ public partial class AskWindow : Window
         return confirmed;
     }
 
+    /// Functions that recall the scene stay in the configuration and recall nothing, which is worth
+    /// knowing before the scene goes.
+    public static async Task<bool> DeletingSceneAsync(
+        Window owner,
+        ILocalizer strings,
+        string scene,
+        IReadOnlyList<string> references)
+    {
+        var window = Build(
+            strings,
+            strings.Text("edit.deleteTitle"),
+            string.Format(CultureInfo.CurrentUICulture, strings.Text("scene.deleteQuestion"), scene),
+            references.Count == 0 ? null : strings.Text("scene.deleteReferences"),
+            references);
+
+        var confirmed = false;
+        window.Answer(strings.Text("edit.delete"), () => confirmed = true, primary: true);
+        window.Answer(strings.Text("edit.cancel"), () => confirmed = false);
+
+        await window.ShowDialog(owner).ConfigureAwait(true);
+        return confirmed;
+    }
+
     private static AskWindow Build(
         ILocalizer strings,
         string title,

@@ -1,7 +1,8 @@
 {
   "menu": {
     "file": "Archivo",
-    "help": "Ayuda"
+    "help": "Ayuda",
+    "scenes": "Escenas"
   },
   "app": {
     "title": "Control de cámaras"
@@ -129,5 +130,33 @@
     "input": "Entrada {0}",
     "alt": "Mantener pulsado para alt",
     "altLower": "Mantener pulsado para alt lower"
+  },
+  "scene": {
+    "new": "Nueva escena…",
+    "edit": "Editar escena…",
+    "newTitle": "Nueva escena",
+    "editTitle": "Editar escena",
+    "name": "Nombre",
+    "startFrom": "Partir de",
+    "startEmpty": "Nada",
+    "scene": "Escena",
+    "frameStep": "Encuadrar",
+    "includeStep": "Incluir",
+    "goToStored": "Ir al encuadre guardado",
+    "cancelNote": "Cancelar deja las cámaras donde están y no guarda nada.",
+    "checking": "comprobando…",
+    "noAnswer": "no respondió a la consulta de posición",
+    "noPosition": "no puede ir a posiciones guardadas",
+    "focusNote": "Un enfoque guardado pone la cámara en enfoque manual al recuperar la escena.",
+    "next": "Siguiente",
+    "back": "Atrás",
+    "delete": "Eliminar escena…",
+    "nameEmpty": "Escribe un nombre.",
+    "nameTaken": "Otra escena ya se llama {0}.",
+    "captureFailed": "{0} no informó su {1}.",
+    "deleteQuestion": "¿Eliminar la escena {0}?",
+    "deleteReferences": "Estas funciones la recuperan y no recuperarán nada:",
+    "selectCamera": "Elige una cámara a la izquierda para encuadrarla.",
+    "saveFailed": "No se pudo escribir el archivo de configuración. No se guardó nada."
   }
 }

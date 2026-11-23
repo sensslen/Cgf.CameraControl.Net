@@ -3,6 +3,7 @@ using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.GenericFactory;
 using Cgf.CameraControl.Core.Hmi;
 using Cgf.CameraControl.Core.Logger;
+using Cgf.CameraControl.Core.Scenes;
 using Cgf.CameraControl.Core.VideoMixer;
 
 namespace Cgf.CameraControl.Core;
@@ -15,11 +16,15 @@ public sealed class CameraControlCore(ILogger logger) : IAsyncDisposable
 
     public HmiFactory HmiFactory { get; } = new();
 
+    /// Kept across a reload like the factories, so an interface built later reads the same library.
+    public SceneLibrary Scenes { get; } = new();
+
     // Cameras before mixers before interfaces: an interface resolves its mixer and its cameras while
     // it is being built.
     public async Task<IReadOnlyList<LoadIssue>> BootstrapAsync(RootConfig config, CancellationToken cancellationToken)
     {
         var issues = new List<LoadIssue>();
+        Scenes.Replace(config.Scenes);
 
         foreach (var entry in config.Cams)
         {

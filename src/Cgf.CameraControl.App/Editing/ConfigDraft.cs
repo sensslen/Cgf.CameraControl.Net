@@ -15,10 +15,12 @@ namespace Cgf.CameraControl.App.Editing;
 public sealed partial class ConfigDraft : ViewModelBase
 {
     private readonly ILocalizer _strings;
+    private readonly RootConfig _source;
 
-    private ConfigDraft(ILocalizer strings, IReadOnlyList<string> pads)
+    private ConfigDraft(ILocalizer strings, RootConfig source, IReadOnlyList<string> pads)
     {
         _strings = strings;
+        _source = source;
         Pads = pads;
     }
 
@@ -42,7 +44,7 @@ public sealed partial class ConfigDraft : ViewModelBase
 
     public static ConfigDraft From(ILocalizer strings, RootConfig config, IReadOnlyList<string>? pads = null)
     {
-        var draft = new ConfigDraft(strings, pads ?? []);
+        var draft = new ConfigDraft(strings, config, pads ?? []);
         draft.Fill(draft.Cameras, config.Cams, entry => EntryDraft.Camera(strings, entry, draft.Pads));
         draft.Fill(draft.Mixers, config.VideoMixers, entry => EntryDraft.Mixer(strings, entry, draft.Pads));
         draft.Fill(draft.Interfaces, config.Interfaces, entry => EntryDraft.Interface(strings, entry, draft.Pads));
@@ -50,11 +52,14 @@ public sealed partial class ConfigDraft : ViewModelBase
         return draft;
     }
 
+    /// Scenes are not edited here, so they go back exactly as they were loaded.
     public RootConfig ToConfig() =>
-        new(
-            [.. Cameras.Select(entry => entry.ToEntry())],
-            [.. Mixers.Select(entry => entry.ToEntry())],
-            [.. Interfaces.Select(entry => entry.ToEntry())]);
+        _source with
+        {
+            Cams = [.. Cameras.Select(entry => entry.ToEntry())],
+            VideoMixers = [.. Mixers.Select(entry => entry.ToEntry())],
+            Interfaces = [.. Interfaces.Select(entry => entry.ToEntry())],
+        };
 
     /// The lowest number nothing in that collection has taken, so a new entry is proposed one that
     /// does not collide rather than one that has to be corrected before it can be saved.

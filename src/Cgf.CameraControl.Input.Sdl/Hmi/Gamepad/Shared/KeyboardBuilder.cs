@@ -3,6 +3,7 @@ using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.GenericFactory;
 using Cgf.CameraControl.Core.Hmi;
 using Cgf.CameraControl.Core.Logger;
+using Cgf.CameraControl.Core.Scenes;
 using Cgf.CameraControl.Core.VideoMixer;
 
 namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
@@ -13,7 +14,8 @@ public sealed class KeyboardBuilder(
     VideoMixerFactory mixers,
     CameraConnectionFactory cameras,
     ICollection<ControlSurfaceDevice> surfaces,
-    ILogger logger) : IBuilder<IHmi, InterfaceConfiguration>
+    ILogger logger,
+    SceneLibrary? scenes = null) : IBuilder<IHmi, InterfaceConfiguration>
 {
     public Task<IHmi>? BuildAsync(InterfaceConfiguration entry, CancellationToken cancellationToken) =>
         entry is KeyboardConfiguration config ? Task.FromResult(Build(config)) : null;
@@ -36,6 +38,7 @@ public sealed class KeyboardBuilder(
             cameras.Get,
             logger,
             functions: device.FunctionRequested,
-            inputs: device.InputRequested);
+            inputs: device.InputRequested,
+            scenes: scenes);
     }
 }

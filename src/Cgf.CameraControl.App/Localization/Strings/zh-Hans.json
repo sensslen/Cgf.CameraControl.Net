@@ -1,7 +1,8 @@
 {
   "menu": {
     "file": "文件",
-    "help": "帮助"
+    "help": "帮助",
+    "scenes": "场景"
   },
   "app": {
     "title": "摄像机控制"
@@ -129,5 +130,33 @@
     "input": "输入 {0}",
     "alt": "按住以使用 alt",
     "altLower": "按住以使用 alt lower"
+  },
+  "scene": {
+    "new": "新建场景…",
+    "edit": "编辑场景…",
+    "newTitle": "新建场景",
+    "editTitle": "编辑场景",
+    "name": "名称",
+    "startFrom": "基于",
+    "startEmpty": "无",
+    "scene": "场景",
+    "frameStep": "取景",
+    "includeStep": "包含",
+    "goToStored": "转到已存储的取景",
+    "cancelNote": "取消会让摄像机保持原位，且不存储任何内容。",
+    "checking": "正在检查…",
+    "noAnswer": "未响应位置查询",
+    "noPosition": "无法移动到已存储的位置",
+    "focusNote": "存储焦点后，调用场景时会将摄像机切换为手动对焦。",
+    "next": "下一步",
+    "back": "上一步",
+    "delete": "删除场景…",
+    "nameEmpty": "请输入名称。",
+    "nameTaken": "已有名为 {0} 的场景。",
+    "captureFailed": "{0} 未报告其{1}。",
+    "deleteQuestion": "删除场景 {0}？",
+    "deleteReferences": "这些功能会调用它，删除后将不再调用任何内容：",
+    "selectCamera": "在左侧选择一台摄像机进行取景。",
+    "saveFailed": "无法写入配置文件。未存储任何内容。"
   }
 }

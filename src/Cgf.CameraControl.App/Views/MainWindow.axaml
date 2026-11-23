@@ -26,7 +26,15 @@
                           IsEnabled="{Binding CanUseFileMenu}" />
           <NativeMenuItemSeparator />
           <NativeMenuItem Header="{Binding Strings[edit.mode]^}" Command="{Binding ToggleEditCommand}"
-                          ToggleType="CheckBox" IsChecked="{Binding IsEditing}" IsEnabled="{Binding !IsBusy}" />
+                          ToggleType="CheckBox" IsChecked="{Binding IsEditing}" IsEnabled="{Binding CanToggleEditing}" />
+        </NativeMenu>
+      </NativeMenuItem>
+      <NativeMenuItem Header="{Binding Strings[menu.scenes]^}">
+        <NativeMenu>
+          <NativeMenuItem Header="{Binding Strings[scene.new]^}" Command="{Binding NewSceneCommand}"
+                          IsEnabled="{Binding CanUseSceneMenu}" />
+          <NativeMenuItem Header="{Binding Strings[scene.edit]^}" Command="{Binding EditSceneCommand}"
+                          IsEnabled="{Binding CanEditScenes}" />
         </NativeMenu>
       </NativeMenuItem>
       <NativeMenuItem Header="{Binding Strings[language.label]^}">
@@ -328,7 +336,13 @@
                     IsEnabled="{Binding CanUseFileMenu}" />
           <Separator />
           <MenuItem Header="{Binding Strings[edit.mode]^}" Command="{Binding ToggleEditCommand}"
-                    ToggleType="CheckBox" IsChecked="{Binding IsEditing}" IsEnabled="{Binding !IsBusy}" />
+                    ToggleType="CheckBox" IsChecked="{Binding IsEditing}" IsEnabled="{Binding CanToggleEditing}" />
+        </MenuItem>
+        <MenuItem Header="{Binding Strings[menu.scenes]^}">
+          <MenuItem Header="{Binding Strings[scene.new]^}" Command="{Binding NewSceneCommand}"
+                    IsEnabled="{Binding CanUseSceneMenu}" />
+          <MenuItem Header="{Binding Strings[scene.edit]^}" Command="{Binding EditSceneCommand}"
+                    IsEnabled="{Binding CanEditScenes}" />
         </MenuItem>
         <MenuItem Header="{Binding Strings[language.label]^}" ItemsSource="{Binding Languages}">
           <MenuItem.ItemContainerTheme>

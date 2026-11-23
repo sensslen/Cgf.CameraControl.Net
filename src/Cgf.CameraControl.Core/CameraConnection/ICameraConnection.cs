@@ -26,4 +26,7 @@ public interface ICameraConnection : IConnectionProvider, IAsyncDisposable
     void Focus(double value);
 
     void SetTally(TallyState value);
+
+    /// A decorator answers for the camera it wraps, which a type test on the decorator cannot.
+    ICameraPositionControl? PositionControl => this as ICameraPositionControl;
 }

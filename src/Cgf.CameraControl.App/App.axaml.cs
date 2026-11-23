@@ -52,6 +52,10 @@ public partial class App : Application
             _model.AskToSave = (canSave, issues) => AskWindow.LeavingAsync(window, strings, canSave, issues);
             _model.AskToDelete = (entry, references) => AskWindow.DeletingAsync(window, strings, entry, references);
             _model.AskToAdd = entry => AddEntryWindow.AskAsync(window, entry);
+            _model.ShowSceneWizard = wizard => SceneWizardWindow.ShowAsync(
+                window,
+                wizard,
+                (owner, scene) => AskWindow.DeletingSceneAsync(owner, strings, scene, _model.SceneReferencesTo(scene)));
             desktop.MainWindow = window;
             window.Closing += OnClosing;
             desktop.Exit += OnExit;

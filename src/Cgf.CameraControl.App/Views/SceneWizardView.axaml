@@ -1,0 +1,200 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:scenes="using:Cgf.CameraControl.App.Scenes"
+             xmlns:core="using:Cgf.CameraControl.Core.Scenes"
+             xmlns:views="using:Cgf.CameraControl.App.Views"
+             x:Class="Cgf.CameraControl.App.Views.SceneWizardView"
+             x:DataType="scenes:SceneWizardViewModel"
+             FlowDirection="{Binding Strings.FlowDirection^}">
+
+  <UserControl.Styles>
+    <Style Selector="TextBlock.step">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Padding" Value="10,3" />
+      <Setter Property="Opacity" Value="0.55" />
+    </Style>
+    <Style Selector="TextBlock.step.current">
+      <Setter Property="Opacity" Value="1" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style Selector="TextBlock.note">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="views|StickPad">
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Width" Value="220" />
+      <Setter Property="Height" Value="160" />
+    </Style>
+    <Style Selector="views|StickPad.slider">
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Height" Value="32" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel Margin="20">
+
+
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="4" Margin="0,0,0,14">
+      <TextBlock Classes="step" Classes.current="{Binding IsFrameStep}"
+                 Text="{Binding Strings[scene.frameStep]^}" />
+      <TextBlock Classes="step" Text="›" Opacity="0.4" />
+      <TextBlock Classes="step" Classes.current="{Binding IsIncludeStep}"
+                 Text="{Binding Strings[scene.includeStep]^}" />
+    </StackPanel>
+
+    <!-- What the scene is: picked or named, and for a new one what it starts from. -->
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,16,*" Margin="0,0,0,16" IsEnabled="{Binding IsFrameStep}">
+      <StackPanel Grid.Column="0" IsVisible="{Binding IsEditing}">
+        <TextBlock Classes="label" Text="{Binding Strings[scene.scene]^}" />
+        <ComboBox Name="ScenePicker" HorizontalAlignment="Stretch" ItemsSource="{Binding Scenes}"
+                  SelectedItem="{Binding SelectedScene}"
+                  AutomationProperties.Name="{Binding Strings[scene.scene]^}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="core:CameraScene">
+              <TextBlock Text="{Binding Name}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+      <StackPanel Grid.Column="0" IsVisible="{Binding IsNew}">
+        <TextBlock Classes="label" Text="{Binding Strings[scene.name]^}" />
+        <TextBox Name="NewName" Text="{Binding Name}"
+                 AutomationProperties.Name="{Binding Strings[scene.name]^}" />
+      </StackPanel>
+      <StackPanel Grid.Column="2" IsVisible="{Binding IsEditing}">
+        <TextBlock Classes="label" Text="{Binding Strings[scene.name]^}" />
+        <TextBox Name="EditName" Text="{Binding Name}"
+                 AutomationProperties.Name="{Binding Strings[scene.name]^}" />
+      </StackPanel>
+      <StackPanel Grid.Column="2" IsVisible="{Binding IsNew}">
+        <TextBlock Classes="label" Text="{Binding Strings[scene.startFrom]^}" />
+        <ComboBox Name="BasePicker" HorizontalAlignment="Stretch" ItemsSource="{Binding BaseChoices}"
+                  SelectedItem="{Binding SelectedBase}"
+                  AutomationProperties.Name="{Binding Strings[scene.startFrom]^}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="scenes:SceneChoice">
+              <TextBlock Text="{Binding Display}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+    </Grid>
+
+    <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,Auto,*,Auto,Auto" Margin="0,16,0,0">
+      <Button Name="Cancel" Grid.Column="0" MinWidth="96" HorizontalContentAlignment="Center"
+              IsEnabled="{Binding !IsStoring}" Command="{Binding CancelCommand}"
+              Content="{Binding Strings[edit.cancel]^}" />
+      <Button Name="Delete" Grid.Column="1" MinWidth="96" Margin="8,0,0,0" HorizontalContentAlignment="Center"
+              IsVisible="{Binding CanDelete}" Command="{Binding DeleteCommand}"
+              Content="{Binding Strings[scene.delete]^}" />
+      <Button Name="BackButton" Grid.Column="3" MinWidth="96" Margin="0,0,8,0" HorizontalContentAlignment="Center"
+              IsVisible="{Binding IsIncludeStep}" IsEnabled="{Binding !IsSaving}" Command="{Binding BackCommand}"
+              Content="{Binding Strings[scene.back]^}" />
+      <Button Name="NextButton" Grid.Column="4" MinWidth="96" Classes="accent" HorizontalContentAlignment="Center"
+              IsVisible="{Binding IsFrameStep}" IsEnabled="{Binding CanNext}" Command="{Binding NextCommand}"
+              Content="{Binding Strings[scene.next]^}" />
+      <Button Name="SaveButton" Grid.Column="4" MinWidth="96" Classes="accent" HorizontalContentAlignment="Center"
+              IsVisible="{Binding IsIncludeStep}" IsEnabled="{Binding CanSave}" Command="{Binding SaveCommand}"
+              Content="{Binding Strings[edit.save]^}" />
+    </Grid>
+
+    <TextBlock DockPanel.Dock="Bottom" Classes="note" Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+               Opacity="1" Margin="0,10,0,0" IsVisible="{Binding !CanNext}" Text="{Binding NameError}" />
+    <TextBlock DockPanel.Dock="Bottom" Classes="note" Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+               Opacity="1" Margin="0,10,0,0" IsVisible="{Binding HasSaveError}" Text="{Binding SaveError}" />
+
+    <Panel>
+
+      <!-- Frame: pick a camera and steer it. Only cameras that answered the probe can be steered. -->
+      <Grid ColumnDefinitions="240,20,*" IsVisible="{Binding IsFrameStep}">
+        <ListBox Name="FrameCameras" ItemsSource="{Binding Cameras}" SelectedItem="{Binding SelectedCamera}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="scenes:SceneCameraViewModel">
+              <StackPanel Spacing="2" Opacity="{Binding CanFrame, Converter={x:Static views:SceneWizardView.Dimmed}}">
+                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="note" Text="{Binding Status}" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <StackPanel Grid.Column="2" Spacing="12">
+          <TextBlock Classes="note" IsVisible="{Binding !HasSelectedCamera}"
+                     Text="{Binding Strings[scene.selectCamera]^}" />
+          <StackPanel Spacing="12" IsVisible="{Binding HasSelectedCamera}"
+                      IsEnabled="{Binding SelectedCamera.CanFrame, FallbackValue=False}">
+            <TextBlock FontWeight="SemiBold" Text="{Binding SelectedCamera.Title, FallbackValue=''}" />
+            <StackPanel Orientation="Horizontal" Spacing="20">
+              <StackPanel>
+                <TextBlock Classes="label" Text="{Binding Strings[surface.panTilt]^}" />
+                <views:StickPad Name="MovePad" />
+              </StackPanel>
+              <StackPanel Width="200">
+                <TextBlock Classes="label" Text="{Binding Strings[surface.zoom]^}" />
+                <views:StickPad Name="ZoomSlider" Classes="slider" Width="200" Horizontal="True" />
+                <TextBlock Classes="label" Margin="0,16,0,4"
+                           Text="{Binding Strings[surface.focus]^}" />
+                <views:StickPad Name="FocusSlider" Classes="slider" Width="200" Horizontal="True" />
+                <Button Name="GoToStored" Margin="0,16,0,0" HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        IsVisible="{Binding SelectedCamera.HasStored, FallbackValue=False}"
+                        Content="{Binding Strings[scene.goToStored]^}" />
+              </StackPanel>
+            </StackPanel>
+          </StackPanel>
+          <TextBlock Classes="note" Text="{Binding Strings[scene.cancelNote]^}" />
+        </StackPanel>
+      </Grid>
+
+      <!-- Include: which cameras the scene stores, and which parts of each. -->
+      <DockPanel IsVisible="{Binding IsIncludeStep}" IsEnabled="{Binding !IsSaving}">
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,90,90,90" Margin="8,0,8,6">
+          <TextBlock Classes="label" Text="{Binding Strings[edit.camera]^}" />
+          <TextBlock Grid.Column="1" Classes="label" Text="{Binding Strings[surface.panTilt]^}" />
+          <TextBlock Grid.Column="2" Classes="label" Text="{Binding Strings[surface.zoom]^}" />
+          <TextBlock Grid.Column="3" Classes="label" Text="{Binding Strings[surface.focus]^}" />
+        </Grid>
+        <TextBlock DockPanel.Dock="Bottom" Classes="note" Margin="8,10,8,0"
+                   Text="{Binding Strings[scene.focusNote]^}" />
+        <ScrollViewer>
+          <ItemsControl Name="IncludeCameras" ItemsSource="{Binding Cameras}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="scenes:SceneCameraViewModel">
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="0,1,0,0" Padding="8,6">
+                  <Grid ColumnDefinitions="*,90,90,90">
+                    <StackPanel>
+                      <CheckBox IsChecked="{Binding Include}" IsEnabled="{Binding CanFrame}"
+                                AutomationProperties.Name="{Binding Title}">
+                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                      </CheckBox>
+                      <TextBlock Classes="note" Margin="28,0,0,0" Text="{Binding Status}" />
+                    </StackPanel>
+                    <CheckBox Grid.Column="1" IsChecked="{Binding StorePanTilt}" IsEnabled="{Binding CanStorePanTilt}"
+                              AutomationProperties.Name="{Binding Strings[surface.panTilt]^}" />
+                    <CheckBox Grid.Column="2" IsChecked="{Binding StoreZoom}" IsEnabled="{Binding CanStoreZoom}"
+                              AutomationProperties.Name="{Binding Strings[surface.zoom]^}" />
+                    <CheckBox Grid.Column="3" IsChecked="{Binding StoreFocus}" IsEnabled="{Binding CanStoreFocus}"
+                              AutomationProperties.Name="{Binding Strings[surface.focus]^}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+
+    </Panel>
+  </DockPanel>
+
+</UserControl>

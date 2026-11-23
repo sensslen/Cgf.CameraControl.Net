@@ -6,6 +6,7 @@ One JSON file defines cameras, video mixers and operator interfaces.
 - **[Cameras](Cameras.md)** — `cams`, one entry per camera, and the tally payloads.
 - **[Video mixers](VideoMixers.md)** covers ATEM, passthrough and tally signals.
 - **[Interfaces](Interfaces.md)** covers gamepad and keyboard controls, functions and key names.
+- **[Scenes](../Scenes.md#in-the-file)** covers stored camera framings.
 
 Write JSON by hand or use the [configuration editor](../../README.md#editing-the-configuration).
 
