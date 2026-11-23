@@ -118,4 +118,4 @@ reconnects.
 | `zoom`, `focus` | the camera's position units |
 
 A scene with an unknown property, a camera storing nothing, `pan` without `tilt`, or a name another
-scene already has is logged and can be neither recalled nor edited. Saving keeps it unchanged.
+scene already has is logged and can be neither recalled nor edited. The next save removes it.

@@ -12,7 +12,4 @@ public sealed record RootConfig(
     public static RootConfig Empty { get; } = new([], [], []);
 
     public IReadOnlyList<CameraScene> Scenes { get; init; } = [];
-
-    /// The scenes that could not be read, as the JSON they arrived as, so a save keeps them.
-    public IReadOnlyList<string> InvalidScenes { get; init; } = [];
 }

@@ -34,7 +34,6 @@ public static class ConfigLoader
             }
 
             var collected = new List<string>();
-            var unread = new List<string>();
             var root = document.RootElement;
             var config = new RootConfig(
                 ReadSection(root, "cams", ConfigurationSections.Cameras, collected,
@@ -44,8 +43,7 @@ public static class ConfigLoader
                 ReadSection(root, "interfaces", ConfigurationSections.Interfaces, collected,
                     (type, json, problem) => new InvalidInterfaceConfiguration(type, json, problem)))
             {
-                Scenes = ReadScenes(root, collected, unread),
-                InvalidScenes = unread,
+                Scenes = ReadScenes(root, collected),
             };
 
             issues = collected;
@@ -119,7 +117,7 @@ public static class ConfigLoader
         return entries;
     }
 
-    private static List<CameraScene> ReadScenes(JsonElement root, List<string> issues, List<string> invalid)
+    private static List<CameraScene> ReadScenes(JsonElement root, List<string> issues)
     {
         var scenes = new List<CameraScene>();
         if (!root.TryGetProperty("scenes", out var section))
@@ -150,7 +148,6 @@ public static class ConfigLoader
             catch (ConfigValidationException ex)
             {
                 issues.Add(ex.Message);
-                invalid.Add(Text(element));
             }
         }
 

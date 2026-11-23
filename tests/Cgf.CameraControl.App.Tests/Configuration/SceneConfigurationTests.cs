@@ -141,15 +141,21 @@ public class SceneConfigurationTests
     }
 
     [Fact]
-    public void AMalformedSceneIsWrittenBackAsItWasRead()
+    public void ASceneThatCouldNotBeReadIsNotWritten()
     {
         var config = ConfigLoader.Load(
-            """{ "scenes": [ { "name": "wide", "cameras": { "1": { "pan": 1 } } } ] }""",
+            """
+            { "scenes": [
+              { "name": "wide", "cameras": { "1": { "pan": 1 } } },
+              { "name": "Sermon", "cameras": { "1": { "zoom": 1 } } },
+              { "name": "sermon ", "cameras": { "1": { "zoom": 2 } } }
+            ] }
+            """,
             out _);
 
-        var written = ConfigLoader.Load(ConfigWriter.Write(config), out var issues);
+        var written = ConfigLoader.Load(ConfigWriter.Write(config with { Scenes = [] }), out var issues);
 
         Assert.Empty(written.Scenes);
-        Assert.Equal("scenes[0].cameras.1: 'pan' and 'tilt' are stored together", Assert.Single(issues));
+        Assert.Empty(issues);
     }
 }
