@@ -1,3 +1,5 @@
+using Cgf.CameraControl.Core.CameraConnection;
+
 namespace Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 
 /// What the camera is told to do. One packet per category is kept, so a stick that is moved while
@@ -14,6 +16,16 @@ public enum ViscaCategory
     WhiteBalanceInquiry,
     RedGainInquiry,
     BlueGainInquiry,
+    PanTiltPositionInquiry,
+    ZoomPositionInquiry,
+    FocusPositionInquiry,
+
+    /// Steps rather than levels: each one drives the camera somewhere, so sending the same one again
+    /// after an operator has moved the camera asks for something.
+    PanTiltPosition,
+    ZoomPosition,
+    FocusMode,
+    FocusPosition,
 }
 
 /// How the camera answered.
@@ -92,6 +104,69 @@ public static class ViscaPacket
     public static byte[] RedGainInquiry() => [Header, 0x09, CategoryCamera, 0x43, Terminator];
 
     public static byte[] BlueGainInquiry() => [Header, 0x09, CategoryCamera, 0x44, Terminator];
+
+    /// 8x 09 06 12 FF, answered with y0 50 0p 0p 0p 0p 0t 0t 0t 0t FF.
+    public static byte[] PanTiltPositionInquiry() => [Header, 0x09, CategoryPanTilt, 0x12, Terminator];
+
+    /// 8x 09 04 47 FF, answered with y0 50 0p 0q 0r 0s FF.
+    public static byte[] ZoomPositionInquiry() => [Header, 0x09, CategoryCamera, 0x47, Terminator];
+
+    /// 8x 09 04 48 FF, answered like the zoom position.
+    public static byte[] FocusPositionInquiry() => [Header, 0x09, CategoryCamera, 0x48, Terminator];
+
+    /// 8x 01 06 02 VV WW 0Y 0Y 0Y 0Y 0Z 0Z 0Z 0Z FF. The positions are the camera's own signed 16 bit
+    /// values, written back exactly as an inquiry reported them.
+    public static byte[] PanTiltAbsolute(int panSpeed, int tiltSpeed, PanTiltPosition position)
+    {
+        var packet = new byte[15];
+        packet[0] = Header;
+        packet[1] = Command;
+        packet[2] = CategoryPanTilt;
+        packet[3] = 0x02;
+        packet[4] = (byte)Math.Clamp(panSpeed, 1, MaximumPanSpeed);
+        packet[5] = (byte)Math.Clamp(tiltSpeed, 1, MaximumTiltSpeed);
+        WriteNibbles(packet, 6, position.Pan);
+        WriteNibbles(packet, 10, position.Tilt);
+        packet[14] = Terminator;
+        return packet;
+    }
+
+    /// 8x 01 04 47 0p 0q 0r 0s FF.
+    public static byte[] ZoomDirect(int position) => LensDirect(0x47, position);
+
+    /// 8x 01 04 48 0p 0q 0r 0s FF. Cameras take it only in manual focus.
+    public static byte[] FocusDirect(int position) => LensDirect(0x48, position);
+
+    /// 8x 01 04 38 03 FF.
+    public static byte[] ManualFocus() => [Header, Command, CategoryCamera, 0x38, 0x03, Terminator];
+
+    public static bool IsPositionInquiry(ViscaCategory category) =>
+        category is ViscaCategory.PanTiltPositionInquiry or ViscaCategory.ZoomPositionInquiry or ViscaCategory.FocusPositionInquiry;
+
+    public static bool IsInquiry(ViscaCategory category) => IsColorInquiry(category) || IsPositionInquiry(category);
+
+    public static bool IsPositionMove(ViscaCategory category) =>
+        category is ViscaCategory.PanTiltPosition or ViscaCategory.ZoomPosition or ViscaCategory.FocusMode or ViscaCategory.FocusPosition;
+
+    public static bool TryReadPanTilt(byte[] packet, out PanTiltPosition position)
+    {
+        position = default;
+        if (packet.Length != 11 || packet[0] != 0x90 || packet[1] != 0x50 || packet[^1] != Terminator
+            || !TryReadNibbles(packet, 2, out var pan) || !TryReadNibbles(packet, 6, out var tilt))
+        {
+            return false;
+        }
+
+        position = new PanTiltPosition((short)pan, (short)tilt);
+        return true;
+    }
+
+    public static bool TryReadLensPosition(byte[] packet, out int position)
+    {
+        position = 0;
+        return packet.Length == 7 && packet[0] == 0x90 && packet[1] == 0x50 && packet[^1] == Terminator
+            && TryReadNibbles(packet, 2, out position);
+    }
 
     public static bool IsColorInquiry(ViscaCategory category) =>
         category is ViscaCategory.WhiteBalanceInquiry or ViscaCategory.RedGainInquiry or ViscaCategory.BlueGainInquiry;
@@ -177,6 +252,44 @@ public static class ViscaPacket
             : (byte)((speed > 0 ? 0x20 : 0x30) | (magnitude - 1));
 
         return [Header, Command, CategoryCamera, operation, instruction, Terminator];
+    }
+
+    private static byte[] LensDirect(byte operation, int position)
+    {
+        var packet = new byte[9];
+        packet[0] = Header;
+        packet[1] = Command;
+        packet[2] = CategoryCamera;
+        packet[3] = operation;
+        WriteNibbles(packet, 4, position);
+        packet[8] = Terminator;
+        return packet;
+    }
+
+    private static void WriteNibbles(byte[] packet, int offset, int value)
+    {
+        var word = value & 0xFFFF;
+        for (var index = 0; index < 4; index++)
+        {
+            packet[offset + index] = (byte)((word >> (12 - (4 * index))) & 0x0F);
+        }
+    }
+
+    private static bool TryReadNibbles(byte[] packet, int offset, out int value)
+    {
+        value = 0;
+        for (var index = 0; index < 4; index++)
+        {
+            var nibble = packet[offset + index];
+            if (nibble > 0x0F)
+            {
+                return false;
+            }
+
+            value = (value << 4) | nibble;
+        }
+
+        return true;
     }
 
     private static byte[] WhiteBalanceMode(byte mode) => [Header, Command, CategoryCamera, 0x35, mode, Terminator];

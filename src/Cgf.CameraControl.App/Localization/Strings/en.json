@@ -1,7 +1,8 @@
 {
   "menu": {
     "file": "File",
-    "help": "Help"
+    "help": "Help",
+    "scenes": "Scenes"
   },
   "app": {
     "title": "Camera Control"
@@ -129,5 +130,33 @@
     "input": "Input {0}",
     "alt": "Hold for alt",
     "altLower": "Hold for alt lower"
+  },
+  "scene": {
+    "new": "New scene…",
+    "edit": "Edit scene…",
+    "newTitle": "New scene",
+    "editTitle": "Edit scene",
+    "name": "Name",
+    "startFrom": "Start from",
+    "startEmpty": "Nothing",
+    "scene": "Scene",
+    "frameStep": "Frame",
+    "includeStep": "Include",
+    "goToStored": "Go to stored framing",
+    "cancelNote": "Cancel keeps the cameras where they are and stores nothing.",
+    "checking": "checking…",
+    "noAnswer": "did not answer the position inquiry",
+    "noPosition": "cannot move to stored positions",
+    "focusNote": "A stored focus switches the camera to manual focus when the scene is recalled.",
+    "next": "Next",
+    "back": "Back",
+    "delete": "Delete scene…",
+    "nameEmpty": "Enter a name.",
+    "nameTaken": "Another scene is already named {0}.",
+    "captureFailed": "{0} did not report its {1}.",
+    "deleteQuestion": "Delete scene {0}?",
+    "deleteReferences": "These functions recall it and will recall nothing:",
+    "selectCamera": "Choose a camera on the left to frame it.",
+    "saveFailed": "The configuration file could not be written. Nothing was stored."
   }
 }

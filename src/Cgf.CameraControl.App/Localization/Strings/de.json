@@ -1,7 +1,8 @@
 {
   "menu": {
     "file": "Datei",
-    "help": "Hilfe"
+    "help": "Hilfe",
+    "scenes": "Szenen"
   },
   "app": {
     "title": "Kamerasteuerung"
@@ -129,5 +130,33 @@
     "input": "Eingang {0}",
     "alt": "Halten für alt",
     "altLower": "Halten für alt lower"
+  },
+  "scene": {
+    "new": "Neue Szene…",
+    "edit": "Szene bearbeiten…",
+    "newTitle": "Neue Szene",
+    "editTitle": "Szene bearbeiten",
+    "name": "Name",
+    "startFrom": "Ausgehend von",
+    "startEmpty": "Nichts",
+    "scene": "Szene",
+    "frameStep": "Ausrichten",
+    "includeStep": "Übernehmen",
+    "goToStored": "Zur gespeicherten Einstellung fahren",
+    "cancelNote": "Abbrechen lässt die Kameras, wo sie sind, und speichert nichts.",
+    "checking": "wird geprüft…",
+    "noAnswer": "hat die Positionsabfrage nicht beantwortet",
+    "noPosition": "kann keine gespeicherten Positionen anfahren",
+    "focusNote": "Ein gespeicherter Fokus schaltet die Kamera beim Abrufen der Szene auf manuellen Fokus.",
+    "next": "Weiter",
+    "back": "Zurück",
+    "delete": "Szene löschen…",
+    "nameEmpty": "Gib einen Namen ein.",
+    "nameTaken": "Eine andere Szene heisst bereits {0}.",
+    "captureFailed": "{0} hat {1} nicht gemeldet.",
+    "deleteQuestion": "Szene {0} löschen?",
+    "deleteReferences": "Diese Funktionen rufen sie ab und rufen danach nichts mehr ab:",
+    "selectCamera": "Wähle links eine Kamera, um sie auszurichten.",
+    "saveFailed": "Die Konfigurationsdatei konnte nicht geschrieben werden. Es wurde nichts gespeichert."
   }
 }

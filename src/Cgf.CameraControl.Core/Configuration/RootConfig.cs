@@ -1,3 +1,5 @@
+using Cgf.CameraControl.Core.Scenes;
+
 namespace Cgf.CameraControl.Core.Configuration;
 
 /// The whole file: one list per section, each entry typed by the record its `type` names, or kept as
@@ -8,4 +10,6 @@ public sealed record RootConfig(
     IReadOnlyList<InterfaceConfiguration> Interfaces)
 {
     public static RootConfig Empty { get; } = new([], [], []);
+
+    public IReadOnlyList<CameraScene> Scenes { get; init; } = [];
 }

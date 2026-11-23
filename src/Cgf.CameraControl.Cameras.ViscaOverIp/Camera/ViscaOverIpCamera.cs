@@ -4,10 +4,14 @@ using System.Reactive.Subjects;
 
 namespace Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 
-public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
+public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl, ICameraPositionControl
 {
     /// A camera that never answers must not wedge the gate shut for the rest of the service.
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(5);
+
+    /// An absolute move completes when the camera arrives, which a long, slow pan takes a while to do.
+    /// A camera that never reports arriving must still not hold back the next move forever.
+    private static readonly TimeSpan PositionTimeout = TimeSpan.FromSeconds(30);
 
     private readonly ViscaOverIpCameraConfiguration _config;
     private readonly IViscaTransport _transport;
@@ -17,9 +21,14 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
     private readonly ITimer _expiry;
     private readonly ITimer _colorCompletionExpiry;
     private readonly ITimer _inquiryExpiry;
+    private readonly ITimer _positionCompletionExpiry;
     private readonly List<Command> _queue = [];
     private readonly Dictionary<int, Command> _sockets = [];
     private readonly HashSet<int> _expiredColorSockets = [];
+
+    /// Buffers whose stored-position move timed out. Their late completion belongs to that move,
+    /// not to whatever went out after it.
+    private readonly HashSet<int> _expiredPositionSockets = [];
     private readonly Dictionary<ViscaCategory, byte[]> _accepted = [];
     private readonly BehaviorSubject<CameraColorState?> _color = new(null);
     private readonly IDisposable _replies;
@@ -37,6 +46,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
     private int? _redGain;
     private int? _blueGain;
     private bool _refreshPending;
+    private PositionRead? _positionRead;
 
     public ViscaOverIpCamera(
         ViscaOverIpCameraConfiguration config,
@@ -51,6 +61,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         _expiry = _time.CreateTimer(_ => Expire(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         _colorCompletionExpiry = _time.CreateTimer(_ => ExpireColorCompletion(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         _inquiryExpiry = _time.CreateTimer(_ => ExpireInquiry(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        _positionCompletionExpiry = _time.CreateTimer(_ => ExpirePositionCompletion(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         _replies = transport.Received.Subscribe(OnReceived);
         _connection = transport.WhenConnectedChanged.Subscribe(OnConnectionChanged);
         transport.Start();
@@ -123,6 +134,83 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
 
     public void SetBlueGain(int value) => SetColorGain(ViscaCategory.BlueGain, ViscaPacket.BlueGain(value), value);
 
+    /// The three inquiries go out one after another through the inquiry slot. A part the camera
+    /// refuses, never answers, or answers with something unreadable comes back null, so the result is
+    /// also the answer to which parts this camera supports.
+    public Task<CameraPosition> ReadPositionAsync(CancellationToken cancellationToken)
+    {
+        Task<CameraPosition> reading;
+        lock (_gate)
+        {
+            if (!_connected)
+            {
+                return Task.FromResult(CameraPosition.None);
+            }
+
+            if (_positionRead is null)
+            {
+                _positionRead = new PositionRead();
+                _queue.Add(new Command(ViscaCategory.PanTiltPositionInquiry, ViscaPacket.PanTiltPositionInquiry(), 0));
+                _queue.Add(new Command(ViscaCategory.ZoomPositionInquiry, ViscaPacket.ZoomPositionInquiry(), 0));
+                _queue.Add(new Command(ViscaCategory.FocusPositionInquiry, ViscaPacket.FocusPositionInquiry(), 0));
+            }
+
+            reading = _positionRead.Completion.Task;
+        }
+
+        Pump();
+        return reading.WaitAsync(cancellationToken);
+    }
+
+    /// Queued in the order the camera runs them best: framing, then zoom, then focus, which only
+    /// holds in manual focus. A newer move for the same part replaces one still waiting to go out.
+    public void MoveTo(CameraPosition target)
+    {
+        lock (_gate)
+        {
+            if (!_connected)
+            {
+                _logger.Error("ViscaOverIpCamera", $"({_config.Ip}) cannot move to a stored position while disconnected");
+                return;
+            }
+
+            if (target.PanTilt is { } panTilt)
+            {
+                QueueMove(ViscaCategory.PanTiltPosition, ViscaPacket.PanTiltAbsolute(
+                    (int)Math.Round(PanTiltMaximum(ViscaPacket.MaximumPanSpeed)),
+                    (int)Math.Round(PanTiltMaximum(ViscaPacket.MaximumTiltSpeed)),
+                    panTilt));
+            }
+
+            if (target.Zoom is { } zoom)
+            {
+                QueueMove(ViscaCategory.ZoomPosition, ViscaPacket.ZoomDirect(zoom));
+            }
+
+            if (target.Focus is { } focus)
+            {
+                QueueMove(ViscaCategory.FocusMode, ViscaPacket.ManualFocus());
+                QueueMove(ViscaCategory.FocusPosition, ViscaPacket.FocusDirect(focus));
+            }
+        }
+
+        Pump();
+    }
+
+    /// Called with _gate held.
+    private void QueueMove(ViscaCategory category, byte[] packet)
+    {
+        var queued = _queue.FindIndex(command => command.Category == category);
+        if (queued >= 0)
+        {
+            _queue[queued] = new Command(category, packet, 0);
+        }
+        else
+        {
+            _queue.Add(new Command(category, packet, 0));
+        }
+    }
+
     private void SetColorGain(ViscaCategory category, byte[] packet, int value)
     {
         lock (_gate)
@@ -184,7 +272,12 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         _expiry.Dispose();
         _colorCompletionExpiry.Dispose();
         _inquiryExpiry.Dispose();
+        _positionCompletionExpiry.Dispose();
         await _transport.DisposeAsync().ConfigureAwait(false);
+        lock (_gate)
+        {
+            FinishPositionRead();
+        }
         _color.Dispose();
     }
 
@@ -211,7 +304,14 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
             {
                 last = null;
             }
-            if (!ViscaPacket.IsColorInquiry(category) && last is not null && last.AsSpan().SequenceEqual(packet))
+            // An operator steering an axis takes it back from a recall that has not gone out yet.
+            if (!IsMovementStop(category, packet) && _queue.RemoveAll(command => Recalls(category, command.Category)) != 0)
+            {
+                queuedIndex = _queue.FindLastIndex(command => command.Category == category);
+                barrier = gain ? _queue.FindLastIndex(command => command.Category == ViscaCategory.ColorAction) : -1;
+            }
+
+            if (!ViscaPacket.IsInquiry(category) && last is not null && last.AsSpan().SequenceEqual(packet))
             {
                 if (queuedIndex > barrier)
                 {
@@ -256,9 +356,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         {
             while (_inFlight is null && _connected && _queue.Count != 0)
             {
-                var index = _inquiry is not null || _sockets.Values.Any(command => IsColorCorrection(command.Category))
-                    ? _queue.FindIndex(command => !IsColorCategory(command.Category))
-                    : 0;
+                var index = _queue.FindIndex(CanSend);
                 if (index < 0)
                 {
                     return;
@@ -270,7 +368,8 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                     _accepted.Remove(ViscaCategory.RedGain);
                     _accepted.Remove(ViscaCategory.BlueGain);
                 }
-                if (ViscaPacket.IsColorInquiry(command.Category))
+                ForgetDriveRecalledBy(command.Category);
+                if (ViscaPacket.IsInquiry(command.Category))
                 {
                     _inquiry = command with { SentAt = _time.GetTimestamp() };
                     _inquiryExpiry.Change(CommandTimeout, Timeout.InfiniteTimeSpan);
@@ -349,6 +448,10 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
             {
                 Requeue(inquiry);
             }
+            else if (ViscaPacket.IsPositionInquiry(inquiry.Category))
+            {
+                SettlePositionInquiry();
+            }
             StartPendingReadback();
         }
 
@@ -381,6 +484,12 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         {
             var colorIndex = _queue.FindIndex(queued => IsColorCategory(queued.Category));
             _queue.Insert(colorIndex < 0 ? _queue.Count : colorIndex, command);
+        }
+        else if (command.Category == ViscaCategory.FocusMode
+            && _queue.FindIndex(queued => queued.Category == ViscaCategory.FocusPosition) is var target and >= 0)
+        {
+            // A focus target only holds in manual focus, so the switch goes out first again.
+            _queue.Insert(target, command);
         }
         else
         {
@@ -449,6 +558,13 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         ViscaCategory.WhiteBalanceInquiry => "the white balance inquiry",
         ViscaCategory.RedGainInquiry => "the red gain inquiry",
         ViscaCategory.BlueGainInquiry => "the blue gain inquiry",
+        ViscaCategory.PanTiltPositionInquiry => "the pan and tilt position inquiry",
+        ViscaCategory.ZoomPositionInquiry => "the zoom position inquiry",
+        ViscaCategory.FocusPositionInquiry => "the focus position inquiry",
+        ViscaCategory.PanTiltPosition => "the pan and tilt position command",
+        ViscaCategory.ZoomPosition => "the zoom position command",
+        ViscaCategory.FocusMode => "the manual focus command",
+        ViscaCategory.FocusPosition => "the focus position command",
         _ => "a command",
     };
 
@@ -467,9 +583,14 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                             break;
                         }
                         _sockets[socket] = accepted;
+                        _expiredPositionSockets.Remove(socket);
                         if (IsColorCorrection(accepted.Category))
                         {
                             _colorCompletionExpiry.Change(CommandTimeout, CommandTimeout);
+                        }
+                        else if (ViscaPacket.IsPositionMove(accepted.Category))
+                        {
+                            _positionCompletionExpiry.Change(PositionTimeout, PositionTimeout);
                         }
                         Release(resend: false);
                     }
@@ -488,6 +609,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                             completed = buffered;
                         }
                         acknowledged |= _expiredColorSockets.Contains(socket);
+                        acknowledged |= _expiredPositionSockets.Remove(socket);
                     }
 
                     if (!acknowledged)
@@ -519,17 +641,28 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                         $"{ViscaPacket.Describe(packet)} (reply {Convert.ToHexString(packet)})");
                     break;
                 default:
-                    ReadColor(packet);
+                    ReadInquiry(packet);
                     break;
             }
         }
     }
 
-    private void ReadColor(byte[] packet)
+    private void ReadInquiry(byte[] packet)
     {
         lock (_gate)
         {
-            if (_inquiry is not { } command || !ViscaPacket.TryReadColor(command.Category, packet, out var value))
+            if (_inquiry is not { } command)
+            {
+                return;
+            }
+
+            if (ViscaPacket.IsPositionInquiry(command.Category))
+            {
+                ReadPosition(command.Category, packet);
+                return;
+            }
+
+            if (!ViscaPacket.TryReadColor(command.Category, packet, out var value))
             {
                 return;
             }
@@ -558,6 +691,75 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         }
     }
 
+    /// Called with _gate held. A reply that does not read as this inquiry's answer is left for the
+    /// expiry, as the color inquiries do.
+    private void ReadPosition(ViscaCategory category, byte[] packet)
+    {
+        var read = _positionRead;
+        switch (category)
+        {
+            case ViscaCategory.PanTiltPositionInquiry when ViscaPacket.TryReadPanTilt(packet, out var panTilt):
+                read?.PanTilt = panTilt;
+                break;
+            case ViscaCategory.ZoomPositionInquiry when ViscaPacket.TryReadLensPosition(packet, out var zoom):
+                read?.Zoom = zoom;
+                break;
+            case ViscaCategory.FocusPositionInquiry when ViscaPacket.TryReadLensPosition(packet, out var focus):
+                read?.Focus = focus;
+                break;
+            default:
+                return;
+        }
+
+        ReleaseInquiry(resend: false);
+    }
+
+    /// Called with _gate held, once per position inquiry that will not be sent again.
+    private void SettlePositionInquiry()
+    {
+        if (_positionRead is { } read && --read.Outstanding == 0)
+        {
+            FinishPositionRead();
+        }
+    }
+
+    /// Called with _gate held. Continuations run elsewhere, so a caller awaiting the read cannot
+    /// re-enter the camera while the gate is held.
+    private void FinishPositionRead()
+    {
+        if (_positionRead is not { } read)
+        {
+            return;
+        }
+
+        _positionRead = null;
+        read.Completion.TrySetResult(new CameraPosition(read.PanTilt, read.Zoom, read.Focus));
+    }
+
+    private void ExpirePositionCompletion()
+    {
+        lock (_gate)
+        {
+            var lost = _sockets.Where(entry => ViscaPacket.IsPositionMove(entry.Value.Category)
+                && _time.GetElapsedTime(entry.Value.SentAt) >= PositionTimeout).ToArray();
+            foreach (var entry in lost)
+            {
+                _sockets.Remove(entry.Key);
+                _expiredPositionSockets.Add(entry.Key);
+                _logger.Error(
+                    "ViscaOverIpCamera",
+                    $"({_config.Ip}) no completion for {Name(entry.Value.Category)} within {PositionTimeout.TotalSeconds:0} seconds");
+            }
+
+            if (!_sockets.Values.Any(command => ViscaPacket.IsPositionMove(command.Category)))
+            {
+                _positionCompletionExpiry.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            }
+        }
+
+        Pump();
+    }
+
     /// A refusal that follows an acknowledgement is reported against the buffer that holds the
     /// command, not against whatever is in flight now, so the buffer is what names it. Any other
     /// refusal is for the command in flight.
@@ -568,12 +770,32 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         var ambiguousStop = false;
         lock (_gate)
         {
-            if (!_sockets.Remove(socket, out buffered))
+            if (!_sockets.ContainsKey(socket))
             {
                 if (_expiredColorSockets.Contains(socket))
                 {
                     return ViscaCategory.ColorAction;
                 }
+
+                // A late refusal for a move that already timed out says nothing about what went
+                // out after it.
+                if (_expiredPositionSockets.Remove(socket))
+                {
+                    return null;
+                }
+            }
+
+            // A focus target only holds in manual focus, so it goes when the camera will not switch.
+            var refusedFocusMode = _sockets.TryGetValue(socket, out var held)
+                ? held.Category == ViscaCategory.FocusMode
+                : !(socket == 0 && _inquiry is not null) && _inFlight is { Category: ViscaCategory.FocusMode };
+            if (!resend && refusedFocusMode)
+            {
+                _queue.RemoveAll(command => command.Category == ViscaCategory.FocusPosition);
+            }
+
+            if (!_sockets.Remove(socket, out buffered))
+            {
                 buffered = default;
                 // Inquiries use socket 0 and left before anything now in flight. A lost inquiry
                 // reply makes that guess unsafe, so a stop in flight is resent with it.
@@ -647,7 +869,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                 if (_inFlight is { } lost)
                 {
                     _inFlight = null;
-                    if (!IsColorCategory(lost.Category))
+                    if (!IsColorCategory(lost.Category) && !ViscaPacket.IsPositionMove(lost.Category))
                     {
                         Requeue(lost);
                     }
@@ -655,8 +877,16 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
                 _inquiry = null;
                 _inquiryExpiry.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
+                // A recall that resumed once the camera came back would move it long after anyone
+                // asked, and a position read is answered with what arrived before the camera left.
+                _queue.RemoveAll(command => ViscaPacket.IsPositionMove(command.Category)
+                    || ViscaPacket.IsPositionInquiry(command.Category));
+                _positionCompletionExpiry.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                FinishPositionRead();
+
                 _sockets.Clear();
                 _expiredColorSockets.Clear();
+                _expiredPositionSockets.Clear();
                 _colorCompletionExpiry.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
                 // A camera that went away may come back having forgotten everything, so nothing it
@@ -690,6 +920,55 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
             && (includeInquiries || !ViscaPacket.IsColorInquiry(command.Category)));
     }
 
+    /// Called with _gate held. One inquiry at a time, because a reply does not say what it answers.
+    /// A color correction or a stored-position move holds a buffer until it completes, and only one
+    /// of either may at a time, so the other buffer stays free for the sticks: a drive refused for
+    /// full buffers is resent at once, and two long moves would turn that into a flood.
+    private bool CanSend(Command command)
+    {
+        var colorBusy = _sockets.Values.Any(buffered => IsColorCorrection(buffered.Category));
+        var longBusy = colorBusy || _sockets.Values.Any(buffered => ViscaPacket.IsPositionMove(buffered.Category));
+        if (ViscaPacket.IsColorInquiry(command.Category))
+        {
+            return _inquiry is null && !colorBusy;
+        }
+
+        if (ViscaPacket.IsPositionInquiry(command.Category))
+        {
+            return _inquiry is null;
+        }
+
+        if (IsColorCorrection(command.Category))
+        {
+            return _inquiry is null && !longBusy;
+        }
+
+        return !ViscaPacket.IsPositionMove(command.Category) || !longBusy;
+    }
+
+    /// A recall that goes out ends the drive the camera held on that axis, so the same drive has to
+    /// be sent again. A stop stays known: sending it again would cut the recall short.
+    /// Called with _gate held.
+    private void ForgetDriveRecalledBy(ViscaCategory move)
+    {
+        foreach (var drive in (ReadOnlySpan<ViscaCategory>)[ViscaCategory.PanTilt, ViscaCategory.Zoom, ViscaCategory.Focus])
+        {
+            if (Recalls(drive, move) && _accepted.TryGetValue(drive, out var level) && !IsMovementStop(drive, level))
+            {
+                _accepted.Remove(drive);
+            }
+        }
+    }
+
+    /// Whether steering with a drive of the first category drops a queued move of the second.
+    private static bool Recalls(ViscaCategory drive, ViscaCategory queued) => drive switch
+    {
+        ViscaCategory.PanTilt => queued == ViscaCategory.PanTiltPosition,
+        ViscaCategory.Zoom => queued == ViscaCategory.ZoomPosition,
+        ViscaCategory.Focus => queued is ViscaCategory.FocusMode or ViscaCategory.FocusPosition,
+        _ => false,
+    };
+
     private static bool IsColorCorrection(ViscaCategory category) =>
         category is ViscaCategory.ColorAction or ViscaCategory.RedGain or ViscaCategory.BlueGain;
 
@@ -711,4 +990,18 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         || category is ViscaCategory.Zoom or ViscaCategory.Focus && packet[4] == 0;
 
     private readonly record struct Command(ViscaCategory Category, byte[] Packet, long SentAt);
+
+    private sealed class PositionRead
+    {
+        public TaskCompletionSource<CameraPosition> Completion { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public int Outstanding { get; set; } = 3;
+
+        public PanTiltPosition? PanTilt { get; set; }
+
+        public int? Zoom { get; set; }
+
+        public int? Focus { get; set; }
+    }
 }

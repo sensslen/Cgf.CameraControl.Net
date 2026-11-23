@@ -3,12 +3,13 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Cgf.CameraControl.Core.Configuration;
+using Cgf.CameraControl.Core.Scenes;
 
 namespace Cgf.CameraControl.App.Configuration;
 
-/// Writes a configuration back out as the three arrays it was read from, each entry from its typed
+/// Writes a configuration back out as the arrays it was read from, each entry from its typed
 /// record with `type` first and its unset settings left out. An entry the loader could not read is
-/// written from the JSON it arrived as, so nothing in the file is lost by opening and saving it.
+/// written from the JSON it arrived as. A scene the loader could not read is left out.
 ///
 /// Comments do not come back. The loader parses with them skipped, so they are not in memory to write.
 public static class ConfigWriter
@@ -25,6 +26,20 @@ public static class ConfigWriter
             Section(writer, "cams", config.Cams, ConfigurationSections.Cameras);
             Section(writer, "videoMixers", config.VideoMixers, ConfigurationSections.VideoMixers);
             Section(writer, "interfaces", config.Interfaces, ConfigurationSections.Interfaces);
+            if (config.Scenes.Count != 0)
+            {
+                writer.WriteStartArray("scenes");
+                foreach (var scene in config.Scenes)
+                {
+                    JsonSerializer.Serialize(
+                        writer,
+                        scene with { Cameras = new SortedDictionary<int, ScenePosition>(scene.Cameras.ToDictionary()) },
+                        ConfigurationContext.Default.CameraScene);
+                }
+
+                writer.WriteEndArray();
+            }
+
             writer.WriteEndObject();
         }
 

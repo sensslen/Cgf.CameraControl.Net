@@ -51,6 +51,13 @@ public static class InterfaceValidation
                     Validate.NonNegative(index, $"{config}.functions.{name}.indexes");
                 }
             }
+
+            // Scenes are saved from the window after the file is loaded, so the name is only
+            // checked for being one at all.
+            if (function is SceneSpecialFunctionConfiguration scene && string.IsNullOrWhiteSpace(scene.Name))
+            {
+                throw new ConfigValidationException($"{config}.functions.{name}.name", "expected the name of a scene");
+            }
         }
     }
 

@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Cgf.CameraControl.Core.Configuration;
+using Cgf.CameraControl.Core.Scenes;
 
 namespace Cgf.CameraControl.App.Configuration;
 
@@ -40,7 +41,10 @@ public static class ConfigLoader
                 ReadSection(root, "videoMixers", ConfigurationSections.VideoMixers, collected,
                     (type, json, problem) => new InvalidVideoMixerConfiguration(type, json, problem)),
                 ReadSection(root, "interfaces", ConfigurationSections.Interfaces, collected,
-                    (type, json, problem) => new InvalidInterfaceConfiguration(type, json, problem)));
+                    (type, json, problem) => new InvalidInterfaceConfiguration(type, json, problem)))
+            {
+                Scenes = ReadScenes(root, collected),
+            };
 
             issues = collected;
             return config;
@@ -111,6 +115,121 @@ public static class ConfigLoader
         }
 
         return entries;
+    }
+
+    private static List<CameraScene> ReadScenes(JsonElement root, List<string> issues)
+    {
+        var scenes = new List<CameraScene>();
+        if (!root.TryGetProperty("scenes", out var section))
+        {
+            return scenes;
+        }
+
+        if (section.ValueKind != JsonValueKind.Array)
+        {
+            issues.Add($"'scenes' must be an array, found {section.ValueKind}");
+            return scenes;
+        }
+
+        var index = 0;
+        foreach (var element in section.EnumerateArray())
+        {
+            var position = $"scenes[{index++}]";
+            try
+            {
+                var scene = ReadScene(element, position);
+                if (scenes.Any(existing => CameraScene.SameName(existing.Name, scene.Name)))
+                {
+                    throw new ConfigValidationException($"{position}.name", $"another scene is already named {scene.Name}");
+                }
+
+                scenes.Add(scene);
+            }
+            catch (ConfigValidationException ex)
+            {
+                issues.Add(ex.Message);
+            }
+        }
+
+        return scenes;
+    }
+
+    private static CameraScene ReadScene(JsonElement element, string position)
+    {
+        CameraScene? scene;
+        try
+        {
+            scene = element.Deserialize(ConfigurationContext.Default.CameraScene);
+        }
+        catch (JsonException ex)
+        {
+            throw new ConfigValidationException(Locate(position, ex.Path), Explain(ex.Message));
+        }
+
+        if (scene is null)
+        {
+            throw new ConfigValidationException(position, "is empty");
+        }
+
+        if (string.IsNullOrWhiteSpace(scene.Name))
+        {
+            throw new ConfigValidationException($"{position}.name", "expected a non-empty name");
+        }
+
+        // The keys are read as numbers, so "1" and "01" would land on one camera without an error.
+        var listed = new HashSet<int>();
+        foreach (var camera in element.GetProperty("cameras").EnumerateObject())
+        {
+            var instance = int.Parse(camera.Name, CultureInfo.InvariantCulture);
+            if (!listed.Add(instance))
+            {
+                throw new ConfigValidationException($"{position}.cameras.{camera.Name}", $"camera {instance} is listed twice");
+            }
+        }
+
+        foreach (var (instance, stored) in scene.Cameras)
+        {
+            CheckPosition(instance, stored, $"{position}.cameras.{instance.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        return scene with { Name = scene.Name.Trim() };
+    }
+
+    // VISCA carries each position in 16 bits: pan and tilt signed, zoom and focus unsigned.
+    private static void CheckPosition(int instance, ScenePosition? stored, string path)
+    {
+        if (instance <= 0)
+        {
+            throw new ConfigValidationException(path, "expected a positive camera instance");
+        }
+
+        if (stored is null)
+        {
+            throw new ConfigValidationException(path, "expected an object, found null");
+        }
+
+        InRange(stored.Pan, short.MinValue, short.MaxValue, $"{path}.pan");
+        InRange(stored.Tilt, short.MinValue, short.MaxValue, $"{path}.tilt");
+        InRange(stored.Zoom, 0, ushort.MaxValue, $"{path}.zoom");
+        InRange(stored.Focus, 0, ushort.MaxValue, $"{path}.focus");
+
+        if (stored.Pan.HasValue != stored.Tilt.HasValue)
+        {
+            throw new ConfigValidationException(path, "'pan' and 'tilt' are stored together");
+        }
+
+        if (stored.Position.IsEmpty)
+        {
+            throw new ConfigValidationException(path, "stores nothing");
+        }
+    }
+
+    private static void InRange(int? value, int minimum, int maximum, string path)
+    {
+        if (value is { } stored && (stored < minimum || stored > maximum))
+        {
+            throw new ConfigValidationException(path, $"expected a number in {minimum} .. {maximum}, found {stored}");
+        }
     }
 
     /// What keeps an entry from being named in an error at all.

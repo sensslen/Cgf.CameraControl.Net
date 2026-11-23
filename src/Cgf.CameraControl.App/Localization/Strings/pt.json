@@ -1,7 +1,8 @@
 {
   "menu": {
     "file": "Arquivo",
-    "help": "Ajuda"
+    "help": "Ajuda",
+    "scenes": "Cenas"
   },
   "app": {
     "title": "Controle de câmeras"
@@ -129,5 +130,33 @@
     "input": "Entrada {0}",
     "alt": "Segure para alt",
     "altLower": "Segure para alt lower"
+  },
+  "scene": {
+    "new": "Nova cena…",
+    "edit": "Editar cena…",
+    "newTitle": "Nova cena",
+    "editTitle": "Editar cena",
+    "name": "Nome",
+    "startFrom": "Partir de",
+    "startEmpty": "Nada",
+    "scene": "Cena",
+    "frameStep": "Enquadrar",
+    "includeStep": "Incluir",
+    "goToStored": "Ir para o enquadramento guardado",
+    "cancelNote": "Cancelar deixa as câmaras onde estão e não guarda nada.",
+    "checking": "a verificar…",
+    "noAnswer": "não respondeu à consulta de posição",
+    "noPosition": "não consegue ir para posições guardadas",
+    "focusNote": "Um foco guardado muda a câmara para foco manual quando a cena é chamada.",
+    "next": "Seguinte",
+    "back": "Voltar",
+    "delete": "Eliminar cena…",
+    "nameEmpty": "Introduza um nome.",
+    "nameTaken": "Outra cena já se chama {0}.",
+    "captureFailed": "{0} não indicou o seu {1}.",
+    "deleteQuestion": "Eliminar a cena {0}?",
+    "deleteReferences": "Estas funções chamam-na e deixarão de chamar algo:",
+    "selectCamera": "Escolha uma câmara à esquerda para a enquadrar.",
+    "saveFailed": "Não foi possível escrever o ficheiro de configuração. Nada foi guardado."
   }
 }

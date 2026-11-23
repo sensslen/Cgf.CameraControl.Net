@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using Cgf.CameraControl.Core.CameraConnection;
 using Cgf.CameraControl.Core.Hmi;
 using Cgf.CameraControl.Core.Logger;
+using Cgf.CameraControl.Core.Scenes;
 using Cgf.CameraControl.Core.VideoMixer;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.SpecialFunctions;
@@ -13,6 +14,11 @@ namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 public sealed class Gamepad : IHmi
 {
     private static readonly ConditionalWeakTable<ICameraConnection, Dictionary<Gamepad, TallyState>> CameraTallies = new();
+
+    /// Which interfaces see each camera on their program bus, kept apart from tally because a mixer
+    /// that reports no tally still puts a camera on air. A scene recall from any desk leaves a camera
+    /// alone while any desk has it on program.
+    private static readonly ConditionalWeakTable<ICameraConnection, HashSet<Gamepad>> CameraPrograms = new();
 
     // Long enough to feel through a thumb resting on the pad, short enough not to blur into the next
     // one when an operator works a fast sequence of cuts.
@@ -35,6 +41,8 @@ public sealed class Gamepad : IHmi
     private readonly HashSet<Task> _running = [];
     private readonly object _steeringGate = new();
     private readonly PadBindings? _pad;
+    private readonly Func<int, ICameraConnection?> _resolveCamera;
+    private readonly SceneLibrary? _scenes;
 
     private bool _disposed;
     private AltKeyConfiguration _modifiers;
@@ -54,7 +62,8 @@ public sealed class Gamepad : IHmi
         ILogger logger,
         PadBindings? pad = null,
         IObservable<string>? functions = null,
-        IObservable<int>? inputs = null)
+        IObservable<int>? inputs = null,
+        SceneLibrary? scenes = null)
     {
         _config = config;
         _device = device;
@@ -62,6 +71,8 @@ public sealed class Gamepad : IHmi
         _mixer = mixer;
         _connectionChange = ConnectionChangeFactory.Get(config.ConnectionChange);
         _pad = pad;
+        _resolveCamera = resolveCamera;
+        _scenes = scenes;
 
         foreach (var (input, cameraInstance) in config.CameraMap)
         {
@@ -73,7 +84,7 @@ public sealed class Gamepad : IHmi
 
         foreach (var (name, definition) in config.Functions ?? new Dictionary<string, SpecialFunctionConfiguration>())
         {
-            _functions[name] = SpecialFunctionFactory.Get(definition);
+            _functions[name] = SpecialFunctionFactory.Get(definition, RecallScene);
         }
 
         if (mixer.TallyMode != MixerTallyMode.PreviewProgram)
@@ -163,6 +174,8 @@ public sealed class Gamepad : IHmi
             {
                 RemoveTally(camera);
             }
+
+            SetProgram(_selectedOnAirCamera, onProgram: false);
         }
         Task[] running;
         lock (_running)
@@ -365,12 +378,81 @@ public sealed class Gamepad : IHmi
             SetTally(_selectedPreviewCamera, TallyState.Preview);
         }
 
+        SetProgram(_selectedOnAirCamera, onProgram: false);
         _selectedOnAirCamera = onAir;
+        SetProgram(_selectedOnAirCamera, onProgram: true);
         SetTally(_selectedOnAirCamera, TallyState.Program);
 
         if (onAir is not null)
         {
             Rumble(0.7, OnAirPulse);
+        }
+    }
+
+    /// Every camera the scene stores is driven to its framing, except one that any interface has on
+    /// program: moving the shot on air is the one thing a recall must never do.
+    private void RecallScene(string name)
+    {
+        if (_scenes?.Find(name) is not { } scene)
+        {
+            LogError($"no scene named {name} is saved");
+            return;
+        }
+
+        foreach (var (instance, position) in scene.Cameras.OrderBy(entry => entry.Key))
+        {
+            if (_resolveCamera(instance) is not { } camera)
+            {
+                LogError($"scene {scene.Name} stores camera {instance}, which is not configured");
+            }
+            else if (IsOnProgram(camera))
+            {
+                Log($"scene {scene.Name} leaves {camera.ConnectionString} where it is, it is on program");
+            }
+            else if (camera.PositionControl is not { } control)
+            {
+                LogError($"scene {scene.Name} stores {camera.ConnectionString}, which cannot move to a stored position");
+            }
+            else
+            {
+                control.MoveTo(position.Position);
+            }
+        }
+
+        Log($"recalled scene {scene.Name}");
+    }
+
+    private static bool IsOnProgram(ICameraConnection camera)
+    {
+        if (!CameraPrograms.TryGetValue(camera, out var programs))
+        {
+            return false;
+        }
+
+        lock (programs)
+        {
+            return programs.Count != 0;
+        }
+    }
+
+    private void SetProgram(ICameraConnection? camera, bool onProgram)
+    {
+        if (camera is null)
+        {
+            return;
+        }
+
+        var programs = CameraPrograms.GetOrCreateValue(camera);
+        lock (programs)
+        {
+            if (onProgram)
+            {
+                programs.Add(this);
+            }
+            else
+            {
+                programs.Remove(this);
+            }
         }
     }
 

@@ -43,8 +43,8 @@ public sealed class AppHost : IAsyncDisposable
         Core.CameraFactory.AddBuilder(new ObservingCameraBuilder(new ViscaOverIpCameraBuilder(Logger), _cameras));
         Core.MixerFactory.AddBuilder(new AtemBuilder(Logger, atemServices));
         Core.MixerFactory.AddBuilder(new PassthroughBuilder(Logger));
-        Core.HmiFactory.AddBuilder(new GamepadBuilder(Gamepads, Core.MixerFactory, Core.CameraFactory, Logger, HidGamepads));
-        Core.HmiFactory.AddBuilder(new KeyboardBuilder(Core.MixerFactory, Core.CameraFactory, _surfaces, Logger));
+        Core.HmiFactory.AddBuilder(new GamepadBuilder(Gamepads, Core.MixerFactory, Core.CameraFactory, Logger, HidGamepads, Core.Scenes));
+        Core.HmiFactory.AddBuilder(new KeyboardBuilder(Core.MixerFactory, Core.CameraFactory, _surfaces, Logger, Core.Scenes));
     }
 
     public UiLogger Logger { get; } = new();
@@ -127,6 +127,21 @@ public sealed class AppHost : IAsyncDisposable
         }
 
         Logger.Log("Configuration", $"wrote {path}");
+        return true;
+    }
+
+    /// Writes a configuration whose only change is to its scenes and hands those to the running desk.
+    /// Nothing is reloaded, so cameras and mixers stay connected and a recall picks the new scenes up
+    /// on its next press.
+    public bool SaveScenes(RootConfig config)
+    {
+        if (ConfigPath is not { } path || !Save(config, path))
+        {
+            return false;
+        }
+
+        Configuration = config;
+        Core.Scenes.Replace(config.Scenes);
         return true;
     }
 

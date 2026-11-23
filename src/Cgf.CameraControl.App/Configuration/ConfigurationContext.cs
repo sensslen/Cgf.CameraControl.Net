@@ -6,6 +6,7 @@ using Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
 using Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 using Cgf.CameraControl.Cameras.WebsocketPtzLanc.Camera;
 using Cgf.CameraControl.Core.Configuration;
+using Cgf.CameraControl.Core.Scenes;
 using Cgf.CameraControl.Core.VideoMixer;
 using Cgf.CameraControl.Core.VideoMixer.Passthrough;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
@@ -36,6 +37,7 @@ namespace Cgf.CameraControl.App.Configuration;
 [JsonSerializable(typeof(LogitechF710Configuration))]
 [JsonSerializable(typeof(LogitechRumblepad2Configuration))]
 [JsonSerializable(typeof(KeyboardConfiguration))]
+[JsonSerializable(typeof(CameraScene))]
 [JsonSerializable(typeof(MixerTallyMode))]
 [JsonSerializable(typeof(ViscaTallyMode))]
 [JsonSerializable(typeof(GamepadBackend))]

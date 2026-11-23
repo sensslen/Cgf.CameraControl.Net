@@ -1,6 +1,7 @@
 using Cgf.CameraControl.App.Configuration;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.Core.Configuration;
+using Cgf.CameraControl.Core.Scenes;
 
 namespace Cgf.CameraControl.App;
 
@@ -32,7 +33,7 @@ public static class AotProbes
         return atem.RegistryAlive && signalr.Alive && localization.Alive && configuration.Alive ? 0 : 1;
     }
 
-    /// One entry of every registered type, read, written and read again.
+    /// One entry of every registered type and a scene, read, written and read again.
     private static (bool Alive, string Report) ProbeConfiguration()
     {
         const string Desk =
@@ -50,7 +51,7 @@ public static class AotProbes
               "interfaces": [
                 { "type": "gamepad", "instance": 1, "videoMixer": 1, "cameraMap": { "1": 1 },
                   "connectionChange": { "type": "direct", "default": { "up": 1 } },
-                  "functions": { "wide": { "type": "key", "index": 1 } }, "pad": { "default": { "up": "wide" } } },
+                  "functions": { "wide": { "type": "key", "index": 1 }, "sermon": { "type": "scene", "name": "sermon" } }, "pad": { "default": { "up": "wide" } } },
                 { "type": "logitech/F310", "instance": 2, "videoMixer": 1, "cameraMap": {},
                   "connectionChange": { "type": "directional", "directions": { "1": { "right": 2 } } } },
                 { "type": "logitech/F710", "instance": 3, "videoMixer": 1, "cameraMap": {},
@@ -59,6 +60,9 @@ public static class AotProbes
                   "connectionChange": { "type": "direct", "default": {} } },
                 { "type": "keyboard", "instance": 5, "videoMixer": 1, "cameraMap": {}, "keys": { "cut": "Enter" },
                   "connectionChange": { "type": "direct", "default": {} } }
+              ],
+              "scenes": [
+                { "name": "sermon", "cameras": { "1": { "pan": -1, "tilt": 2, "zoom": 3, "focus": 4 } } }
               ]
             }
             """;
@@ -71,8 +75,9 @@ public static class AotProbes
                 .Select(entry => entry.Type)
                 .ToList();
             var problems = issues.Concat(reissues).ToList();
-            return problems.Count == 0 && types.Count == 10
-                ? (true, $"configuration {types.Count} types -> OK: all read and written")
+            var scene = again.Scenes.SingleOrDefault()?.Cameras.GetValueOrDefault(1);
+            return problems.Count == 0 && types.Count == 10 && scene == new ScenePosition(-1, 2, 3, 4)
+                ? (true, $"configuration {types.Count} types and a scene -> OK: all read and written")
                 : (false, $"configuration -> FAIL: {string.Join("; ", problems)}");
         }
         catch (Exception ex)

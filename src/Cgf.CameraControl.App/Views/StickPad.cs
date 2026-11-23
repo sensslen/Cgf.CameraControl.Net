@@ -11,6 +11,9 @@ namespace Cgf.CameraControl.App.Views;
 /// of that stick as a slider on a track, for a pair of controls that have nothing to do with each
 /// other.
 ///
+/// With ArrowKeys, the arrow keys hold it to the edge while they are down, for an operator without
+/// a mouse.
+///
 /// Springing back is the whole point. A camera driven by a control that stays where it was left
 /// keeps moving after the operator has stopped paying attention to it, which is how a shot ends up
 /// pointing at the ceiling.
@@ -30,8 +33,10 @@ public sealed class StickPad : Border
         Fill = Brushes.SteelBlue,
     };
 
+    private readonly HashSet<Key> _held = [];
     private double _x;
     private double _y;
+    private TopLevel? _topLevel;
 
     public StickPad()
     {
@@ -50,6 +55,9 @@ public sealed class StickPad : Border
 
     /// One axis only: a track with a mark at its middle, a knob that rides it, and Y always zero.
     public bool Horizontal { get; set; }
+
+    /// Off where the window's own key handling owns the arrow keys.
+    public bool ArrowKeys { get; set; }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
@@ -83,12 +91,88 @@ public sealed class StickPad : Border
         Release();
     }
 
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (!Steers(e.Key))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        if (_held.Add(e.Key))
+        {
+            Hold();
+        }
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        base.OnKeyUp(e);
+        if (_held.Remove(e.Key))
+        {
+            e.Handled = true;
+            Hold();
+        }
+    }
+
+    /// A key that is down while focus or the window goes elsewhere never reports going up here.
+    protected override void OnLostFocus(FocusChangedEventArgs e)
+    {
+        base.OnLostFocus(e);
+        LetGo();
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _topLevel = TopLevel.GetTopLevel(this);
+        if (_topLevel is WindowBase window)
+        {
+            window.Deactivated += OnDeactivated;
+        }
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        if (_topLevel is WindowBase window)
+        {
+            window.Deactivated -= OnDeactivated;
+        }
+
+        _topLevel = null;
+        LetGo();
+    }
+
     /// The knob is placed in pixels, so it has to be placed again whenever the pad is resized.
     protected override Size ArrangeOverride(Size finalSize)
     {
         var arranged = base.ArrangeOverride(finalSize);
         Place();
         return arranged;
+    }
+
+    private void OnDeactivated(object? sender, EventArgs e) => LetGo();
+
+    private bool Steers(Key key) =>
+        ArrowKeys && (key is Key.Left or Key.Right || (!Horizontal && key is Key.Up or Key.Down));
+
+    private void Hold()
+    {
+        _x = (_held.Contains(Key.Right) ? 1 : 0) - (_held.Contains(Key.Left) ? 1 : 0);
+        _y = (_held.Contains(Key.Up) ? 1 : 0) - (_held.Contains(Key.Down) ? 1 : 0);
+        Place();
+        Moved?.Invoke(_x, _y);
+    }
+
+    private void LetGo()
+    {
+        if (_held.Count != 0)
+        {
+            _held.Clear();
+            Release();
+        }
     }
 
     private void Release()

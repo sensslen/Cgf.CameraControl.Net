@@ -163,6 +163,7 @@ Functions are bound by name. Names label keyboard buttons and gamepad controls.
   "wide":  { "type": "key", "index": 1 },
   "sweep": { "type": "macroLoop", "indexes": [1, 2, 3] },
   "iso":   { "type": "connectionChange", "index": 4 },
+  "pulpit": { "type": "scene", "name": "pulpit" },
   "lower": {
     "type": "macroToggle",
     "indexOn": 23,
@@ -178,6 +179,7 @@ Functions are bound by name. Names label keyboard buttons and gamepad controls.
 | `connectionChange` | select input `index` |
 | `macroLoop` | run the next macro in `indexes` each press, wrapping round |
 | `macroToggle` | run `indexOn` or `indexOff` depending on `condition` |
+| `scene` | recall the [scene](../Scenes.md#recalling) `name` |
 
 A `macroToggle` condition is either `{ "type": "key", "key": n }`, which asks whether upstream key
 `n` is set, or `{ "type": "aux_selection", "aux": n, "selection": m }`, which asks whether auxiliary

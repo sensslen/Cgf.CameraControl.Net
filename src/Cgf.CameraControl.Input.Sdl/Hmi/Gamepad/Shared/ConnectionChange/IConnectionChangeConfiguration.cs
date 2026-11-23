@@ -27,13 +27,22 @@ public sealed record DirectionalConnectionChangeConfiguration : ConnectionChange
     public IReadOnlyDictionary<int, IReadOnlyDictionary<ButtonDirection, int>> Directions { get; set; } = null!;
 }
 
-/// specialFunctionDefinitionConfigurationSchema and its four refinements.
+/// specialFunctionDefinitionConfigurationSchema and its four refinements, plus scene recall.
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(KeySpecialFunctionConfiguration), "key")]
 [JsonDerivedType(typeof(MacroLoopSpecialFunctionConfiguration), "macroLoop")]
 [JsonDerivedType(typeof(ConnectionChangeSpecialFunctionConfiguration), "connectionChange")]
 [JsonDerivedType(typeof(MacroToggleSpecialFunctionConfiguration), "macroToggle")]
+[JsonDerivedType(typeof(SceneSpecialFunctionConfiguration), "scene")]
 public abstract record SpecialFunctionConfiguration;
+
+/// Recalls a scene by name. The scene is looked up when the button is pressed, so one saved after
+/// the configuration was loaded is recalled without a reload.
+public sealed record SceneSpecialFunctionConfiguration : SpecialFunctionConfiguration
+{
+    [JsonRequired]
+    public string Name { get; set; } = null!;
+}
 
 public sealed record KeySpecialFunctionConfiguration : SpecialFunctionConfiguration
 {

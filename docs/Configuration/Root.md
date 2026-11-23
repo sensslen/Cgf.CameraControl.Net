@@ -1,14 +1,17 @@
 # The file
 
-The top level accepts three lists:
+The top level accepts four lists:
 
 ```json
 {
   "cams": [],
   "videoMixers": [],
-  "interfaces": []
+  "interfaces": [],
+  "scenes": []
 }
 ```
+
+`scenes` holds stored camera framings and is written by the scene wizard. See [scenes](../Scenes.md#in-the-file).
 
 ## What every entry carries
 

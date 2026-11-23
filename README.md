@@ -16,6 +16,7 @@ the headless TypeScript implementation.
 
 - Steers the preview camera and stops it when preview changes.
 - Runs cut, auto, keyer toggles and macros, including conditional macro toggles.
+- Stores camera framings as scenes and recalls them on every camera not on program.
 - Combines camera tally from preview and program buses.
 - Shows live controller bindings, connection lamps and a component-filtered log.
 - Provides configurable keyboard and mouse controls.
@@ -86,6 +87,15 @@ white balance and manual red/blue gain corrections.
 
 See [color correction](docs/ColorCorrection.md) for controls, screenshots and troubleshooting,
 and [camera compatibility](docs/CameraCompatibility.md) for hardware verification.
+
+### Scenes
+
+**Scenes → New scene…** and **Scenes → Edit scene…** open a wizard that frames VISCA cameras and
+stores their pan/tilt, zoom and focus under a name. A `scene` function recalls it.
+
+![Scene wizard frame step](docs/images/scene-frame.png)
+
+See [scenes](docs/Scenes.md) for supported cameras, the wizard and recall behavior.
 
 ### Controller bindings
 

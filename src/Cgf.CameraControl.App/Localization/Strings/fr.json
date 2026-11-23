@@ -1,7 +1,8 @@
 {
   "menu": {
     "file": "Fichier",
-    "help": "Aide"
+    "help": "Aide",
+    "scenes": "Scènes"
   },
   "app": {
     "title": "Contrôle des caméras"
@@ -129,5 +130,33 @@
     "input": "Entrée {0}",
     "alt": "Maintenir pour alt",
     "altLower": "Maintenir pour alt lower"
+  },
+  "scene": {
+    "new": "Nouvelle scène…",
+    "edit": "Modifier la scène…",
+    "newTitle": "Nouvelle scène",
+    "editTitle": "Modifier la scène",
+    "name": "Nom",
+    "startFrom": "Partir de",
+    "startEmpty": "Rien",
+    "scene": "Scène",
+    "frameStep": "Cadrer",
+    "includeStep": "Inclure",
+    "goToStored": "Aller au cadrage enregistré",
+    "cancelNote": "Annuler laisse les caméras où elles sont et n'enregistre rien.",
+    "checking": "vérification…",
+    "noAnswer": "n'a pas répondu à la demande de position",
+    "noPosition": "ne peut pas rejoindre une position enregistrée",
+    "focusNote": "Une mise au point enregistrée passe la caméra en mise au point manuelle au rappel de la scène.",
+    "next": "Suivant",
+    "back": "Retour",
+    "delete": "Supprimer la scène…",
+    "nameEmpty": "Saisissez un nom.",
+    "nameTaken": "Une autre scène s'appelle déjà {0}.",
+    "captureFailed": "{0} n'a pas indiqué sa valeur {1}.",
+    "deleteQuestion": "Supprimer la scène {0} ?",
+    "deleteReferences": "Ces fonctions la rappellent et ne rappelleront plus rien :",
+    "selectCamera": "Choisissez une caméra à gauche pour la cadrer.",
+    "saveFailed": "Le fichier de configuration n'a pas pu être écrit. Rien n'a été enregistré."
   }
 }
