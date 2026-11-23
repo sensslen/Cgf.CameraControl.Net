@@ -34,9 +34,12 @@ public abstract record ControlInterfaceConfiguration(string Type) : InterfaceCon
 
     public bool? EnableChangingProgram { get; set; }
 
+    // System.Text.Json does not apply nullable annotations to dictionary values, so null arrives.
     private protected IEnumerable<ValueProblem> FunctionProblems() =>
         (Functions ?? new Dictionary<string, SpecialFunctionConfiguration>())
-        .SelectMany(pair => pair.Value.Validate().Select(problem => problem.Under($"functions.{pair.Key}")));
+        .SelectMany(pair => pair.Value is { } function
+            ? function.Validate().Select(problem => problem.Under($"functions.{pair.Key}"))
+            : [new ValueProblem($"functions.{pair.Key}", "expected an object, found null")]);
 }
 
 /// A pad has four face buttons and no more, so the way past four is the modifier sets.

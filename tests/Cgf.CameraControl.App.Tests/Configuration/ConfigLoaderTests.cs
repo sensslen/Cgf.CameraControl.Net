@@ -136,6 +136,9 @@ public class ConfigLoaderTests
     [InlineData(
         """{ "type": "gamepad", "instance": 1, "videoMixer": 1, "cameraMap": {}, "connectionChange": { "type": "direct", "default": {} }, "functions": { "pulpit": { "type": "scene", "name": " " } } }""",
         "interfaces[0]: gamepad[1].functions.pulpit.name: The name field is required.")]
+    [InlineData(
+        """{ "type": "gamepad", "instance": 1, "videoMixer": 1, "cameraMap": {}, "connectionChange": { "type": "direct", "default": {} }, "functions": { "loop": null } }""",
+        "interfaces[0]: gamepad[1].functions.loop: expected an object, found null")]
     public void AnInterfaceValueTheRecordRefusesIsReportedAtItsPath(string entry, string expected)
     {
         var config = ConfigLoader.Load($$"""{ "interfaces": [ {{entry}} ] }""", out var issues);
