@@ -203,6 +203,23 @@ public class ViscaPositionTests : IAsyncDisposable
         }
 
         [Fact]
+        public void TheDriveARecallEndedIsSentAgain()
+        {
+            _camera.Pan(1);
+            _transport.Acknowledge();
+            _transport.Complete();
+            _camera.MoveTo(new CameraPosition(new PanTiltPosition(1, 1), null, null));
+            _transport.Acknowledge();
+            _transport.Complete();
+            var before = _transport.Sent.Count;
+
+            _camera.Pan(1);
+
+            Assert.Equal(before + 1, _transport.Sent.Count);
+            Assert.Equal(ViscaPacket.PanTilt(12, 0), _transport.Sent[^1]);
+        }
+
+        [Fact]
         public void RecallingTheSameSceneAgainMovesAgain()
         {
             var target = new CameraPosition(null, 0x1000, null);

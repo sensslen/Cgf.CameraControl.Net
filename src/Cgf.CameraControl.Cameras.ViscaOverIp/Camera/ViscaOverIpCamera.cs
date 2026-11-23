@@ -368,6 +368,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl, 
                     _accepted.Remove(ViscaCategory.RedGain);
                     _accepted.Remove(ViscaCategory.BlueGain);
                 }
+                ForgetDriveRecalledBy(command.Category);
                 if (ViscaPacket.IsInquiry(command.Category))
                 {
                     _inquiry = command with { SentAt = _time.GetTimestamp() };
@@ -943,6 +944,20 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl, 
         }
 
         return !ViscaPacket.IsPositionMove(command.Category) || !longBusy;
+    }
+
+    /// A recall that goes out ends the drive the camera held on that axis, so the same drive has to
+    /// be sent again. A stop stays known: sending it again would cut the recall short.
+    /// Called with _gate held.
+    private void ForgetDriveRecalledBy(ViscaCategory move)
+    {
+        foreach (var drive in (ReadOnlySpan<ViscaCategory>)[ViscaCategory.PanTilt, ViscaCategory.Zoom, ViscaCategory.Focus])
+        {
+            if (Recalls(drive, move) && _accepted.TryGetValue(drive, out var level) && !IsMovementStop(drive, level))
+            {
+                _accepted.Remove(drive);
+            }
+        }
     }
 
     /// Whether steering with a drive of the first category drops a queued move of the second.
