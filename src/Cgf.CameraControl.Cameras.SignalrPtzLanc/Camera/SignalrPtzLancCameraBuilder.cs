@@ -12,7 +12,6 @@ public sealed class SignalrPtzLancCameraBuilder(ILogger logger) : IBuilder<ICame
 
     private ICameraConnection Build(SignalrPtzLancCameraConfiguration config)
     {
-        Validate.HttpUrl(config.ConnectionUrl, $"{config}.connectionUrl");
         var transport = new SignalrStateTransport(config.ConnectionUrl, config.ConnectionPort, logger);
         return new SignalrPtzLancCamera(config, transport, logger);
     }

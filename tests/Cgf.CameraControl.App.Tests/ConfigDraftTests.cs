@@ -530,11 +530,11 @@ public class ConfigDraftTests
         [InlineData("logitech/Rumblepad2")]
         public void OnlyTheF310OffersTheHidBackend(string type)
         {
-            var draft = Draft(Desk.Replace("\"type\": \"gamepad\"", $"\"type\": \"{type}\", \"backend\": \"hid\""));
+            var draft = Draft(Desk.Replace("\"type\": \"gamepad\"", $"\"type\": \"{type}\""));
 
             var backend = draft.Interfaces[0].Fields.OfType<ChoiceField>().Single(field => field.Key == "backend");
             Assert.Equal(["sdl"], backend.Options);
-            Assert.Equal("hid", backend.Value);
+            backend.Value = "hid";
             Assert.False(draft.CanSave);
         }
 
@@ -545,6 +545,96 @@ public class ConfigDraftTests
 
             draft.Interfaces[0].Fields.OfType<FractionField>().Single(field => field.Key == "deadzone").Value = double.NaN.ToString(System.Globalization.CultureInfo.CurrentUICulture);
 
+            Assert.False(draft.CanSave);
+        }
+    }
+
+    public class WhatTheRecordsRulesRefuse : ConfigDraftTests
+    {
+        [Fact]
+        public void ARefusedValueIsShownOnTheFieldThatWroteIt()
+        {
+            var draft = Draft(Desk);
+            var port = draft.Cameras[1].Fields.OfType<NumberField>().Single(field => field.Key == "port");
+
+            port.Value = "70000";
+
+            Assert.Equal("The field port must be between 1 and 65535.", port.Error);
+            Assert.Equal(["viscaoverip [2]: The field port must be between 1 and 65535."], draft.Issues);
+        }
+
+        [Fact]
+        public void TheInstanceIsHeldToTheSameRuleAsEveryOtherProperty()
+        {
+            var draft = Draft(Desk);
+            var instance = Assert.IsType<NumberField>(draft.Cameras[0].InstanceField);
+
+            instance.Value = "0";
+
+            Assert.Equal("The field instance must be between 1 and 2147483647.", instance.Error);
+            Assert.False(draft.CanSave);
+        }
+
+        [Fact]
+        public void AnEmptyRequiredTextIsRefusedByTheRecord()
+        {
+            var draft = Draft(Desk);
+
+            Address(draft.Cameras[0]).Value = string.Empty;
+
+            Assert.Equal("The ip field is required.", Address(draft.Cameras[0]).Error);
+        }
+
+        [Fact]
+        public void TextThatIsNotANumberStaysTheFieldsOwnError()
+        {
+            var draft = Draft(Desk);
+            var port = draft.Cameras[1].Fields.OfType<NumberField>().Single(field => field.Key == "port");
+
+            port.Value = "many";
+
+            Assert.Equal(new Localizer().Text("edit.notANumber"), port.Error);
+            Assert.False(draft.CanSave);
+        }
+
+        [Fact]
+        public void ADeadzoneOverHalfTheTravelIsRefused()
+        {
+            var draft = Draft(Desk);
+            var deadzone = draft.Interfaces[0].Fields.OfType<FractionField>().Single(field => field.Key == "deadzone");
+
+            deadzone.Value = 0.7.ToString(System.Globalization.CultureInfo.CurrentUICulture);
+
+            Assert.Equal("The field deadzone must be between 0 and 0.5.", deadzone.Error);
+            Assert.False(draft.CanSave);
+        }
+
+        [Fact]
+        public void TheSerialNumberIsRefusedOnceTheBackendNeedsIt()
+        {
+            var draft = Draft(Desk);
+            var serial = draft.Interfaces[0].Fields.OfType<TextField>().Single(field => field.Key == "serialNumber");
+            Assert.Null(serial.Error);
+
+            draft.Interfaces[0].Fields.OfType<ChoiceField>().Single(field => field.Key == "backend").Value = "hid";
+
+            Assert.Equal("The HID backend requires a serial number.", serial.Error);
+        }
+
+        [Fact]
+        public void AValueNoFieldShowsIsListedWithItsPath()
+        {
+            var pad = Assert.IsType<GamepadConfiguration>(Load(Desk, out _).Interfaces[0]);
+            pad.Functions = new Dictionary<string, Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange.SpecialFunctionConfiguration>
+            {
+                ["wide"] = new Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange.MacroLoopSpecialFunctionConfiguration { Indexes = [] },
+            };
+
+            var draft = ConfigDraft.From(new Localizer(), new RootConfig([], [], [pad]));
+
+            Assert.Contains(
+                "gamepad [1]: functions.wide.indexes: The field indexes must hold at least one entry.",
+                draft.Issues);
             Assert.False(draft.CanSave);
         }
     }

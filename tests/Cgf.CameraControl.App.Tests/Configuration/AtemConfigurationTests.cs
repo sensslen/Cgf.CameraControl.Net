@@ -30,8 +30,6 @@ public class AtemConfigurationTests
         Assert.Contains("'ip'", error, StringComparison.Ordinal);
     }
 
-    // The converter runs while reading, so the reported path comes from the reader rather than from
-    // anything the validation has to reconstruct.
     [Fact]
     public void RejectsAnAddressThatIsNeitherHostNorIp()
     {
@@ -47,7 +45,7 @@ public class AtemConfigurationTests
         var error = Rejected("""{ "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": -1 }""");
 
         Assert.Contains("blackmagicdesign/atem[1].mixEffectBlock: ", error, StringComparison.Ordinal);
-        Assert.Contains("non-negative", error, StringComparison.Ordinal);
+        Assert.Contains("must be between 0 and", error, StringComparison.Ordinal);
     }
 
     [Fact]

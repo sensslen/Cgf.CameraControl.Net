@@ -1,6 +1,7 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Cgf.CameraControl.Core.Configuration;
-using Cgf.CameraControl.Core.Configuration.Converters;
+using Microsoft.Extensions.Options;
 
 namespace Cgf.CameraControl.Cameras.WebsocketPtzLanc.Camera;
 
@@ -14,13 +15,19 @@ public sealed record WebsocketPtzLancCameraConfiguration() : CameraConfiguration
     public const string TypeName = "Websocket.PtzLanc";
 
     [JsonRequired]
-    [JsonConverter(typeof(HostConverter))]
+    [Required]
+    [Host]
     public string Ip { get; set; } = string.Empty;
 
     public bool? PanTiltInvert { get; set; }
 
-    [JsonConverter(typeof(PercentConverter))]
+    [Range(1, 100)]
     public int? PanTiltSpeedPercent { get; set; }
 
     public bool? ShowTallyLight { get; set; }
+
+    public override IEnumerable<ValueProblem> Validate() => ValueProblem.Of(new WebsocketPtzLancCameraConfigurationValidator(), this);
 }
+
+[OptionsValidator]
+internal sealed partial class WebsocketPtzLancCameraConfigurationValidator : IValidateOptions<WebsocketPtzLancCameraConfiguration>;

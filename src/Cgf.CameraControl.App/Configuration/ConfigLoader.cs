@@ -10,8 +10,8 @@ namespace Cgf.CameraControl.App.Configuration;
 public sealed class ConfigFormatException(string message) : Exception(message);
 
 /// Reads a configuration into its typed records, one entry at a time, so an entry that is malformed
-/// is reported on its own instead of failing the file, and is kept as an invalid entry rather than
-/// dropped, so saving the file does not lose it.
+/// or holds a value its record's rules refuse is reported on its own instead of failing the file, and
+/// is kept as an invalid entry rather than dropped, so saving the file does not lose it.
 public static class ConfigLoader
 {
     public static RootConfig Load(string json, out IReadOnlyList<string> issues)
@@ -89,8 +89,15 @@ public static class ConfigLoader
             {
                 try
                 {
-                    entries.Add(Read(element, type!, typeInfo));
-                    continue;
+                    var read = Read(element, type!, typeInfo);
+                    var refused = read.Validate().Select(value => $"{read}.{value.Path}: {value.Message}").ToList();
+                    if (refused.Count == 0)
+                    {
+                        entries.Add(read);
+                        continue;
+                    }
+
+                    problem = $"{position}: {string.Join("; ", refused)}";
                 }
                 catch (ConfigValidationException ex)
                 {
@@ -138,6 +145,13 @@ public static class ConfigLoader
             try
             {
                 var scene = ReadScene(element, position);
+                var refused = scene.Validate().Select(problem => $"{position}.{problem.Path}: {problem.Message}").ToList();
+                if (refused.Count != 0)
+                {
+                    issues.Add(string.Join("; ", refused));
+                    continue;
+                }
+
                 if (scenes.Any(existing => CameraScene.SameName(existing.Name, scene.Name)))
                 {
                     throw new ConfigValidationException($"{position}.name", $"another scene is already named {scene.Name}");
@@ -171,11 +185,6 @@ public static class ConfigLoader
             throw new ConfigValidationException(position, "is empty");
         }
 
-        if (string.IsNullOrWhiteSpace(scene.Name))
-        {
-            throw new ConfigValidationException($"{position}.name", "expected a non-empty name");
-        }
-
         // The keys are read as numbers, so "1" and "01" would land on one camera without an error.
         var listed = new HashSet<int>();
         foreach (var camera in element.GetProperty("cameras").EnumerateObject())
@@ -187,49 +196,7 @@ public static class ConfigLoader
             }
         }
 
-        foreach (var (instance, stored) in scene.Cameras)
-        {
-            CheckPosition(instance, stored, $"{position}.cameras.{instance.ToString(CultureInfo.InvariantCulture)}");
-        }
-
         return scene with { Name = scene.Name.Trim() };
-    }
-
-    // VISCA carries each position in 16 bits: pan and tilt signed, zoom and focus unsigned.
-    private static void CheckPosition(int instance, ScenePosition? stored, string path)
-    {
-        if (instance <= 0)
-        {
-            throw new ConfigValidationException(path, "expected a positive camera instance");
-        }
-
-        if (stored is null)
-        {
-            throw new ConfigValidationException(path, "expected an object, found null");
-        }
-
-        InRange(stored.Pan, short.MinValue, short.MaxValue, $"{path}.pan");
-        InRange(stored.Tilt, short.MinValue, short.MaxValue, $"{path}.tilt");
-        InRange(stored.Zoom, 0, ushort.MaxValue, $"{path}.zoom");
-        InRange(stored.Focus, 0, ushort.MaxValue, $"{path}.focus");
-
-        if (stored.Pan.HasValue != stored.Tilt.HasValue)
-        {
-            throw new ConfigValidationException(path, "'pan' and 'tilt' are stored together");
-        }
-
-        if (stored.Position.IsEmpty)
-        {
-            throw new ConfigValidationException(path, "stores nothing");
-        }
-    }
-
-    private static void InRange(int? value, int minimum, int maximum, string path)
-    {
-        if (value is { } stored && (stored < minimum || stored > maximum))
-        {
-            throw new ConfigValidationException(path, $"expected a number in {minimum} .. {maximum}, found {stored}");
-        }
     }
 
     /// What keeps an entry from being named in an error at all.

@@ -15,7 +15,8 @@ public enum EntryKind
 }
 
 /// One entry of the configuration while it is being edited: a copy of its record, and the fields that
-/// read and write it.
+/// read and write it. After every edit the record's own rules run against it, and what they refuse is
+/// shown on the field that wrote the value, so the editor and the loader cannot disagree.
 ///
 /// The type is fixed once the entry exists. Changing it would replace every field on the form and
 /// leave the values that belonged to the old shape with nowhere to go, so a type that turns out to be
@@ -39,17 +40,17 @@ public abstract partial class EntryDraft : ViewModelBase
         }
         else
         {
-            InstanceField = new NumberField(strings, "instance", "edit.instance", required: true, minimum: 1,
+            InstanceField = new NumberField(strings, "instance", "edit.instance", required: true,
                 () => _entry.Instance, value => _entry.Instance = value ?? 0);
             Fields = [InstanceField, .. EntrySchema.Fields(strings, _entry, pads ?? [])];
         }
 
         foreach (var field in Fields)
         {
-            field.Validate();
             field.Edited += OnFieldEdited;
         }
 
+        CheckRules();
         Title = Describe();
     }
 
@@ -84,6 +85,9 @@ public abstract partial class EntryDraft : ViewModelBase
     public partial string? Problem { get; set; }
 
     public bool HasFields => Fields.Count > 1;
+
+    /// What the record's rules refuse in a value no field shows, such as a function's index.
+    public IReadOnlyList<ValueProblem> Refusals { get; private set; } = [];
 
     public event EventHandler? Edited;
 
@@ -138,14 +142,21 @@ public abstract partial class EntryDraft : ViewModelBase
             : name;
     }
 
-    private void OnFieldEdited(object? sender, EventArgs e)
+    private void CheckRules()
     {
-        // A field's rule can depend on another field, as the serial number does on the backend.
-        foreach (var field in Fields.Where(field => field != sender))
+        var problems = _entry.Validate().ToList();
+        foreach (var field in Fields)
         {
-            field.Validate();
+            field.Refuse(problems.FirstOrDefault(problem => problem.Path == field.Key)?.Message);
         }
 
+        Refusals = [.. problems.Where(problem => Fields.All(field => field.Key != problem.Path))];
+    }
+
+    private void OnFieldEdited(object? sender, EventArgs e)
+    {
+        // A rule can depend on another field, as the serial number does on the backend.
+        CheckRules();
         Title = Describe();
         Edited?.Invoke(this, EventArgs.Empty);
     }

@@ -38,7 +38,7 @@ camera framing.
 | --- | --- | --- |
 | `backend` | `sdl` | `sdl` for SDL's controller mappings; `hid` for direct, serial-addressed F310 input |
 | `serialNumber` | absent | claim only the pad reporting this serial; absent takes the first free pad |
-| `deadzone` | `0.05` | stick travel ignored around centre, so the cameras do not drift |
+| `deadzone` | `0.05` | stick travel ignored around centre, so the cameras do not drift; `0` to `0.5` |
 | `rumble` | `true` | whether the pad is allowed to buzz |
 | `pad` | `{}` | which named function each face button runs |
 

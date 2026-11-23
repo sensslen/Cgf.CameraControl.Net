@@ -220,12 +220,24 @@ public sealed partial class ConfigDraft : ViewModelBase
         {
             foreach (var field in entry.Fields.Where(field => field.Error is not null))
             {
+                // A refusal is a sentence that names its property, a text error only a predicate.
+                Note(entry, field.Error == field.Refusal
+                    ? string.Format(CultureInfo.CurrentUICulture, _strings.Text("edit.issue.rule"), entry.Title, field.Error)
+                    : string.Format(
+                        CultureInfo.CurrentUICulture,
+                        _strings.Text("edit.issue.field"),
+                        entry.Title,
+                        _strings.Text(field.Label),
+                        field.Error));
+            }
+
+            foreach (var refusal in entry.Refusals)
+            {
                 Note(entry, string.Format(
                     CultureInfo.CurrentUICulture,
-                    _strings.Text("edit.issue.field"),
+                    _strings.Text("edit.issue.rule"),
                     entry.Title,
-                    _strings.Text(field.Label),
-                    field.Error));
+                    $"{refusal.Path}: {refusal.Message}"));
             }
         }
 

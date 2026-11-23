@@ -1,30 +1,9 @@
-using System.Text.Json;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Cgf.CameraControl.Core.Configuration;
-using Cgf.CameraControl.Core.Configuration.Converters;
+using Microsoft.Extensions.Options;
 
 namespace Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
-
-/// Tightens the plain z.string() the TypeScript schema uses for the controller address. The value is
-/// concatenated with a path and handed to an HTTP client, so a relative or malformed URL has to be
-/// reported against the field that holds it rather than as a request that never comes back.
-public sealed class ControllerUrlConverter : JsonConverter<string>
-{
-    public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        var value = reader.GetString()?.TrimEnd('/');
-        if (!Uri.TryCreate(value, UriKind.Absolute, out var parsed) ||
-            (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps))
-        {
-            throw new JsonException($"expected an http or https URL, found '{value}'");
-        }
-
-        return value!;
-    }
-
-    public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options) =>
-        writer.WriteStringValue(value);
-}
 
 /// signalrPtzLancCameraConfigurationSchema: configSchema.extend({
 ///   connectionUrl: z.string(),
@@ -35,17 +14,25 @@ public sealed record SignalrPtzLancCameraConfiguration() : CameraConfiguration(T
 {
     public const string TypeName = "Signalr.PtzLanc";
 
+    /// Paths are appended to it, so a trailing slash would double up.
     [JsonRequired]
-    [JsonConverter(typeof(ControllerUrlConverter))]
-    public string ConnectionUrl { get; set; } = string.Empty;
+    [Required]
+    [HttpUrl]
+    public string ConnectionUrl { get; set => field = value.TrimEnd('/'); } = string.Empty;
 
     /// The serial port the controller drives the camera through, named as that controller names it:
     /// "COM6" on Windows, "/dev/ttyUSB0" elsewhere. One controller can hold several.
     [JsonRequired]
+    [Required]
     public string ConnectionPort { get; set; } = string.Empty;
 
     public bool? PanTiltInvert { get; set; }
 
-    [JsonConverter(typeof(PercentConverter))]
+    [Range(1, 100)]
     public int? PanTiltSpeedPercent { get; set; }
+
+    public override IEnumerable<ValueProblem> Validate() => ValueProblem.Of(new SignalrPtzLancCameraConfigurationValidator(), this);
 }
+
+[OptionsValidator]
+internal sealed partial class SignalrPtzLancCameraConfigurationValidator : IValidateOptions<SignalrPtzLancCameraConfiguration>;

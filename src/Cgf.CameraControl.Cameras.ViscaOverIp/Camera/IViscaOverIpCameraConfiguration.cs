@@ -1,6 +1,7 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Cgf.CameraControl.Core.Configuration;
-using Cgf.CameraControl.Core.Configuration.Converters;
+using Microsoft.Extensions.Options;
 
 namespace Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 
@@ -35,16 +36,22 @@ public sealed record ViscaOverIpCameraConfiguration() : CameraConfiguration(Type
     public const int DefaultPort = 52381;
 
     [JsonRequired]
-    [JsonConverter(typeof(HostConverter))]
+    [Required]
+    [Host]
     public string Ip { get; set; } = string.Empty;
 
-    [JsonConverter(typeof(PortConverter))]
+    [Range(1, 65535)]
     public int? Port { get; set; }
 
     public bool? PanTiltInvert { get; set; }
 
-    [JsonConverter(typeof(PercentConverter))]
+    [Range(1, 100)]
     public int? PanTiltSpeedPercent { get; set; }
 
     public ViscaTallyMode? TallyMode { get; set; }
+
+    public override IEnumerable<ValueProblem> Validate() => ValueProblem.Of(new ViscaOverIpCameraConfigurationValidator(), this);
 }
+
+[OptionsValidator]
+internal sealed partial class ViscaOverIpCameraConfigurationValidator : IValidateOptions<ViscaOverIpCameraConfiguration>;
