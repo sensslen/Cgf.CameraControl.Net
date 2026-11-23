@@ -153,9 +153,9 @@ public class SceneConfigurationTests
             """,
             out _);
 
-        var written = ConfigLoader.Load(ConfigWriter.Write(config with { Scenes = [] }), out var issues);
+        var written = ConfigLoader.Load(ConfigWriter.Write(config), out var issues);
 
-        Assert.Empty(written.Scenes);
+        Assert.Equal("Sermon", Assert.Single(written.Scenes).Name);
         Assert.Empty(issues);
     }
 }
