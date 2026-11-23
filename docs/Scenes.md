@@ -15,8 +15,8 @@ camera:
 | Focus | `8x 09 04 48 FF` | `8x 01 04 38 03 FF` manual focus, then `8x 01 04 48 …` direct focus |
 
 Cameras differ in which of these they answer. The wizard asks each camera when it opens and offers
-only the parts that camera answered. A camera that answers none is listed with the reason and
-cannot be included.
+the parts that camera answered, plus any part the edited or starting scene already stores for it.
+A camera that answers none is listed with the reason and cannot be included.
 
 ## Creating and editing scenes
 
@@ -57,7 +57,9 @@ with the ticks kept. **Save** writes the scene:
 | moved in the frame step, or with nothing stored yet | read from the camera at Save |
 | otherwise | kept from the edited or starting scene |
 
-A camera that does not report a ticked part blocks Save and is named under the buttons.
+A camera that does not report a part read at Save blocks Save and is named under the buttons.
+A scene keeps the cameras it stores that are not configured or did not answer, and can be saved
+with only those.
 
 ### Leaving without saving
 

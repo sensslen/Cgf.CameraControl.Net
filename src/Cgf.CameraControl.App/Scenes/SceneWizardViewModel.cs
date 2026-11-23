@@ -136,7 +136,9 @@ public sealed partial class SceneWizardViewModel : ViewModelBase, IDisposable
 
     public bool CanSave => CanNext && !IsSaving
         && Cameras.All(camera => !camera.IsChecking)
-        && Cameras.Any(camera => camera.WillStore);
+        && (Cameras.Any(camera => camera.WillStore) || Kept().Any());
+
+    private CameraScene? Seed => IsEditing ? SelectedScene : SelectedBase?.Scene;
 
     /// The probe runs once per opening and in parallel, each camera on its own queue. Choices that
     /// depend on it stay unavailable until its camera has answered.
@@ -279,7 +281,7 @@ public sealed partial class SceneWizardViewModel : ViewModelBase, IDisposable
         }
 
         var name = Name.Trim();
-        var seed = IsEditing ? SelectedScene : SelectedBase?.Scene;
+        var kept = Kept().ToList();
         var replaced = IsEditing ? SelectedScene?.Name : null;
         var closing = _closing.Token;
         IsSaving = true;
@@ -295,14 +297,9 @@ public sealed partial class SceneWizardViewModel : ViewModelBase, IDisposable
                 }
             }
 
-            // A camera that is not configured, or did not answer the probe, could not be framed or
-            // chosen here, so whatever the scene held for it stays.
-            foreach (var (instance, position) in seed?.Cameras ?? new Dictionary<int, ScenePosition>())
+            foreach (var (instance, position) in kept)
             {
-                if (Cameras.FirstOrDefault(camera => camera.Instance == instance) is not { CanFrame: true })
-                {
-                    stored[instance] = position;
-                }
+                stored[instance] = position;
             }
 
             return new SceneWizardOutcome(new CameraScene(name, stored), replaced, Deleted: false);
@@ -336,6 +333,12 @@ public sealed partial class SceneWizardViewModel : ViewModelBase, IDisposable
 
         _closing.Dispose();
     }
+
+    /// A camera that is not configured, or did not answer the probe, could not be framed or chosen
+    /// here, so whatever the scene held for it stays.
+    private IEnumerable<KeyValuePair<int, ScenePosition>> Kept() =>
+        (Seed?.Cameras ?? new Dictionary<int, ScenePosition>()).Where(stored =>
+            Cameras.FirstOrDefault(camera => camera.Instance == stored.Key) is not { CanFrame: true });
 
     private void Use(CameraScene? scene)
     {

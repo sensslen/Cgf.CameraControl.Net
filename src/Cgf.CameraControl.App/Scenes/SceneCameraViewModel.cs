@@ -67,7 +67,7 @@ public sealed partial class SceneCameraViewModel : ViewModelBase
 
     /// The framing the edited or base scene holds for this camera, if any.
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasStored))]
+    [NotifyPropertyChangedFor(nameof(HasStored), nameof(CanStorePanTilt), nameof(CanStoreZoom), nameof(CanStoreFocus))]
     public partial CameraPosition? Stored { get; private set; }
 
     public bool HasStored => Stored is not null;
@@ -78,11 +78,13 @@ public sealed partial class SceneCameraViewModel : ViewModelBase
     /// be stored.
     public bool CanFrame => Probe == PositionProbe.Supported;
 
-    public bool CanStorePanTilt => Include && SupportsPanTilt;
+    /// A stored part the camera does not answer for can still be kept, because keeping it needs no
+    /// answer.
+    public bool CanStorePanTilt => Include && (SupportsPanTilt || Stored?.PanTilt is not null);
 
-    public bool CanStoreZoom => Include && SupportsZoom;
+    public bool CanStoreZoom => Include && (SupportsZoom || Stored?.Zoom is not null);
 
-    public bool CanStoreFocus => Include && SupportsFocus;
+    public bool CanStoreFocus => Include && (SupportsFocus || Stored?.Focus is not null);
 
     public bool WillStore => Include && (StorePanTilt || StoreZoom || StoreFocus);
 
@@ -107,7 +109,7 @@ public sealed partial class SceneCameraViewModel : ViewModelBase
     };
 
     /// Asks the camera where it is. What it answers is what it supports, and a part it does not
-    /// answer for cannot be stored.
+    /// answer for can only be kept as the scene stores it.
     public async Task ProbeAsync(CancellationToken cancellationToken)
     {
         if (_camera.PositionControl is not { } control)
@@ -119,9 +121,9 @@ public sealed partial class SceneCameraViewModel : ViewModelBase
         SupportsPanTilt = position.PanTilt is not null;
         SupportsZoom = position.Zoom is not null;
         SupportsFocus = position.Focus is not null;
-        StorePanTilt &= SupportsPanTilt;
-        StoreZoom &= SupportsZoom;
-        StoreFocus &= SupportsFocus;
+        StorePanTilt &= SupportsPanTilt || Stored?.PanTilt is not null;
+        StoreZoom &= SupportsZoom || Stored?.Zoom is not null;
+        StoreFocus &= SupportsFocus || Stored?.Focus is not null;
         Include &= !position.IsEmpty;
         Probe = position.IsEmpty ? PositionProbe.Unsupported : PositionProbe.Supported;
     }
@@ -131,9 +133,9 @@ public sealed partial class SceneCameraViewModel : ViewModelBase
     {
         Stored = stored;
         Include = stored is not null && Probe != PositionProbe.Unsupported;
-        StorePanTilt = stored?.PanTilt is not null && (IsChecking || SupportsPanTilt);
-        StoreZoom = stored?.Zoom is not null && (IsChecking || SupportsZoom);
-        StoreFocus = stored?.Focus is not null && (IsChecking || SupportsFocus);
+        StorePanTilt = stored?.PanTilt is not null;
+        StoreZoom = stored?.Zoom is not null;
+        StoreFocus = stored?.Focus is not null;
         MovedPanTilt = MovedZoom = MovedFocus = false;
         _newPanTilt = _newZoom = _newFocus = false;
     }

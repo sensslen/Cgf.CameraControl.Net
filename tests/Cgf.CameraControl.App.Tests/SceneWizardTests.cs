@@ -61,16 +61,24 @@ public class SceneWizardTests
         }
 
         [Fact]
-        public void NothingCanBeSavedWhileACameraIsStillBeingChecked()
+        public async Task NothingCanBeSavedWhileACameraIsStillBeingChecked()
         {
             Camera(1, Here);
-            _positions[1].ReadPositionAsync(Arg.Any<CancellationToken>()).Returns(new TaskCompletionSource<CameraPosition>().Task);
+            Camera(2, Here);
+            var answer = new TaskCompletionSource<CameraPosition>();
+            _positions[2].ReadPositionAsync(Arg.Any<CancellationToken>()).Returns(answer.Task);
             using var wizard = New();
             wizard.Name = "a";
-            _ = wizard.ProbeAsync();
-            wizard.Cameras[0].Include = true;
+            var probing = wizard.ProbeAsync();
+            wizard.Cameras[0].Lens(1, 0);
+            wizard.NextCommand.Execute(null);
 
             Assert.False(wizard.CanSave);
+
+            answer.SetResult(Here);
+            await probing;
+
+            Assert.True(wizard.CanSave);
         }
     }
 
@@ -299,6 +307,59 @@ public class SceneWizardTests
             var outcome = await wizard.BuildAsync();
 
             Assert.Equal(Stored, outcome!.Saved!.Cameras[2].Position);
+        }
+
+        [Fact]
+        public async Task ASceneWithOnlyUnconfiguredCamerasCanBeRenamed()
+        {
+            Camera(1, Here);
+            using var wizard = Edit(new CameraScene("sermon", new Dictionary<int, ScenePosition> { [9] = ScenePosition.From(Stored) }));
+            await wizard.ProbeAsync();
+            wizard.Name = "preach";
+            wizard.NextCommand.Execute(null);
+
+            Assert.True(wizard.CanSave);
+            var outcome = await wizard.BuildAsync();
+
+            Assert.Equal(Stored, outcome!.Saved!.Cameras[9].Position);
+        }
+
+        [Fact]
+        public void ANewSceneWithNothingToStoreCannotBeSaved()
+        {
+            Camera(1, Here);
+            using var wizard = New();
+            wizard.Name = "wide";
+            wizard.NextCommand.Execute(null);
+
+            Assert.False(wizard.CanSave);
+        }
+
+        [Fact]
+        public async Task KeepsAStoredPartTheCameraDoesNotAnswer()
+        {
+            Camera(1, new CameraPosition(null, 700, null));
+            using var wizard = Edit(new CameraScene("sermon", new Dictionary<int, ScenePosition> { [1] = ScenePosition.From(Stored) }));
+            await wizard.ProbeAsync();
+            wizard.Name = "preach";
+            wizard.NextCommand.Execute(null);
+
+            var outcome = await wizard.BuildAsync();
+
+            Assert.Equal(Stored, outcome!.Saved!.Cameras[1].Position);
+        }
+
+        [Fact]
+        public async Task MovingAStoredPartTheCameraDoesNotAnswerBlocksTheSave()
+        {
+            Camera(1, new CameraPosition(null, 700, null));
+            using var wizard = Edit(new CameraScene("sermon", new Dictionary<int, ScenePosition> { [1] = ScenePosition.From(Stored) }));
+            await wizard.ProbeAsync();
+            wizard.Cameras[0].Move(1, 0);
+            wizard.NextCommand.Execute(null);
+
+            Assert.Null(await wizard.BuildAsync());
+            Assert.Contains("camera-1", wizard.SaveError, StringComparison.Ordinal);
         }
 
         [Fact]
