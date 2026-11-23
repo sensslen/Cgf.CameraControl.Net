@@ -67,11 +67,12 @@ public sealed class ObservedCamera(ICameraConnection inner) : ICameraConnection
 public sealed class ObservingCameraBuilder(IBuilder<ICameraConnection, CameraConfiguration> inner, ICollection<ObservedCamera> built)
     : IBuilder<ICameraConnection, CameraConfiguration>
 {
-    public IReadOnlyCollection<string> SupportedTypes => inner.SupportedTypes;
+    public Task<ICameraConnection>? BuildAsync(CameraConfiguration entry, CancellationToken cancellationToken) =>
+        inner.BuildAsync(entry, cancellationToken) is { } building ? ObserveAsync(building) : null;
 
-    public async Task<ICameraConnection> BuildAsync(CameraConfiguration entry, CancellationToken cancellationToken)
+    private async Task<ICameraConnection> ObserveAsync(Task<ICameraConnection> building)
     {
-        var camera = new ObservedCamera(await inner.BuildAsync(entry, cancellationToken).ConfigureAwait(false));
+        var camera = new ObservedCamera(await building.ConfigureAwait(false));
         built.Add(camera);
         return camera;
     }

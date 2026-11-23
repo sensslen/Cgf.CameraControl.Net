@@ -1,4 +1,5 @@
 using System.Reactive.Linq;
+using Cgf.CameraControl.App.Configuration;
 using Cgf.CameraControl.App.Editing;
 using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.Localization;
@@ -56,7 +57,7 @@ public class ConfigDraftTests
 
             Assert.Empty(issues);
             Assert.False(draft.IsDirty);
-            Assert.Equal("wide", Assert.IsType<GamepadConfiguration>(written.Interfaces[0]).Pad.Default[ButtonDirection.Up]);
+            Assert.Equal("wide", Assert.IsType<GamepadConfiguration>(written.Interfaces[0]).Pad!.Default![ButtonDirection.Up]);
             Assert.Equal(Write(Load(Desk, out _)), Write(draft.ToConfig()));
         }
 
@@ -83,9 +84,9 @@ public class ConfigDraftTests
 
             Address(draft.Cameras[0]).Value = "10.0.0.9";
 
-            Assert.Equal("10.0.0.1", ((ViscaOverIpCameraConfiguration)loaded.Cams[0]).Ip);
-            Assert.Equal("10.0.0.1", ((ViscaOverIpCameraConfiguration)earlier.Cams[0]).Ip);
-            Assert.Equal("10.0.0.9", ((ViscaOverIpCameraConfiguration)draft.ToConfig().Cams[0]).Ip);
+            Assert.Equal("10.0.0.1", Assert.IsType<ViscaOverIpCameraConfiguration>(loaded.Cams[0]).Ip);
+            Assert.Equal("10.0.0.1", Assert.IsType<ViscaOverIpCameraConfiguration>(earlier.Cams[0]).Ip);
+            Assert.Equal("10.0.0.9", Assert.IsType<ViscaOverIpCameraConfiguration>(draft.ToConfig().Cams[0]).Ip);
         }
     }
 
@@ -107,7 +108,7 @@ public class ConfigDraftTests
             Assert.Equal(policy, field.SelectedOption.Value);
             Assert.True(draft.CanSave);
             Assert.False(draft.IsDirty);
-            Assert.Equal(expected, TallyMode(draft.ToConfig().VideoMixers[0]));
+            Assert.Equal<MixerTallyMode?>(expected, TallyMode(draft.ToConfig().VideoMixers[0]));
         }
 
         /// The desk refuses a policy it does not know, in any other case too, so the editor shows the
@@ -116,7 +117,6 @@ public class ConfigDraftTests
         [InlineData("blackmagicdesign/atem", "\"PROGRAM\"")]
         [InlineData("blackmagicdesign/atem", "\"invalid\"")]
         [InlineData("passthrough/default", "42")]
-        [InlineData("passthrough/default", "null")]
         public void AnUnknownStoredChoiceLeavesTheEntryUnreadable(string type, string value)
         {
             var draft = Draft(Mixer(type, $$""", "tallyMode": {{value}} """));
@@ -157,7 +157,7 @@ public class ConfigDraftTests
             {
                 field.SelectedOption = option;
                 Assert.Equal(option.Value, field.Value);
-                Assert.Equal(Policies[option.Value], TallyMode(draft.ToConfig().VideoMixers[0]));
+                Assert.Equal<MixerTallyMode?>(Policies[option.Value], TallyMode(draft.ToConfig().VideoMixers[0]));
             }
         }
 
@@ -206,7 +206,7 @@ public class ConfigDraftTests
             ["none"] = MixerTallyMode.None,
         };
 
-        private static MixerTallyMode TallyMode(VideoMixerConfiguration mixer) => mixer switch
+        private static MixerTallyMode? TallyMode(VideoMixerConfiguration mixer) => mixer switch
         {
             AtemConfiguration atem => atem.TallyMode,
             PassthroughConfiguration passthrough => passthrough.TallyMode,
@@ -286,7 +286,7 @@ public class ConfigDraftTests
         public void AChoiceThatIsNotAnOptionBlocksTheSaveUntilCorrected(string key)
         {
             var draft = Draft(Desk);
-            var entry = key == "backend" ? draft.Interfaces[0] : draft.Cameras[0];
+            EntryDraft entry = key == "backend" ? draft.Interfaces[0] : draft.Cameras[0];
             var field = Assert.Single(entry.Fields.OfType<ChoiceField>());
 
             field.Value = "unknown";
@@ -467,7 +467,7 @@ public class ConfigDraftTests
             port.Value = string.Empty;
 
             Assert.True(draft.CanSave);
-            Assert.Equal(52381, Assert.IsType<ViscaOverIpCameraConfiguration>(draft.ToConfig().Cams[1]).Port);
+            Assert.Null(Assert.IsType<ViscaOverIpCameraConfiguration>(draft.ToConfig().Cams[1]).Port);
             Assert.DoesNotContain("port", Write(draft.ToConfig()), StringComparison.Ordinal);
         }
 
@@ -631,9 +631,9 @@ public class ConfigDraftTests
     }
 
     private static RootConfig Load(string json, out IReadOnlyList<string> issues) =>
-        ConfigLoader.Load(json, AppHost.Schema, out issues);
+        ConfigLoader.Load(json, out issues);
 
-    private static string Write(RootConfig config) => ConfigWriter.Write(config, AppHost.Schema);
+    private static string Write(RootConfig config) => ConfigWriter.Write(config);
 
     private static ConfigDraft Draft(string json) => ConfigDraft.From(new Localizer(), Load(json, out _));
 

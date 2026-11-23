@@ -1,12 +1,12 @@
 using Cgf.CameraControl.Cameras.WebsocketPtzLanc.Camera;
 
-namespace Cgf.CameraControl.Cameras.WebsocketPtzLanc.Tests;
+namespace Cgf.CameraControl.App.Tests.Configuration;
 
 public class WebsocketPtzLancCameraConfigurationTests
 {
     [Fact]
-    public void PanTiltSpeedDefaultsToFullSpeed() =>
-        Assert.Equal(100, Read("""{ "type": "Websocket.PtzLanc", "instance": 1, "ip": "10.0.0.1" }""").PanTiltSpeedPercent);
+    public void AnAbsentPanTiltSpeedIsLeftUnset() =>
+        Assert.Null(Read("""{ "type": "Websocket.PtzLanc", "instance": 1, "ip": "10.0.0.1" }""").PanTiltSpeedPercent);
 
     [Theory]
     [InlineData(1)]
@@ -20,7 +20,6 @@ public class WebsocketPtzLancCameraConfigurationTests
     [InlineData("-1")]
     [InlineData("101")]
     [InlineData("50.5")]
-    [InlineData("null")]
     [InlineData("\"50\"")]
     public void RejectsInvalidPanTiltSpeed(string value) =>
         Rejected($$"""{ "type": "Websocket.PtzLanc", "instance": 1, "ip": "10.0.0.1", "panTiltSpeedPercent": {{value}} }""");
@@ -34,17 +33,13 @@ public class WebsocketPtzLancCameraConfigurationTests
         Assert.False(config.ShowTallyLight);
     }
 
-    // A tally light the operator never asked to disable has to stay on by default.
     [Fact]
-    public void ShowTallyLightDefaultsOn()
+    public void AbsentSwitchesAreLeftUnset()
     {
-        Assert.True(Read("""{ "type": "Websocket.PtzLanc", "instance": 1, "ip": "10.0.0.1" }""").ShowTallyLight);
-    }
+        var config = Read("""{ "type": "Websocket.PtzLanc", "instance": 1, "ip": "10.0.0.1" }""");
 
-    [Fact]
-    public void PanTiltInvertDefaultsOff()
-    {
-        Assert.False(Read("""{ "type": "Websocket.PtzLanc", "instance": 1, "ip": "10.0.0.1" }""").PanTiltInvert);
+        Assert.Null(config.ShowTallyLight);
+        Assert.Null(config.PanTiltInvert);
     }
 
     [Fact]
@@ -53,7 +48,7 @@ public class WebsocketPtzLancCameraConfigurationTests
         Rejected("""{ "type": "Websocket.PtzLanc", "instance": 1 }""");
     }
 
-    private static WebsocketPtzLancCameraConfiguration Read(string json) => TestSchema.Read<WebsocketPtzLancCameraConfiguration>("cams", json);
+    private static WebsocketPtzLancCameraConfiguration Read(string json) => ConfigurationReader.Read<WebsocketPtzLancCameraConfiguration>("cams", json);
 
-    private static string Rejected(string json) => TestSchema.Rejected("cams", json);
+    private static string Rejected(string json) => ConfigurationReader.Rejected("cams", json);
 }

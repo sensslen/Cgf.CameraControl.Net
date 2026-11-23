@@ -1,7 +1,7 @@
 ﻿using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 
-namespace Cgf.CameraControl.Input.Sdl.Tests;
+namespace Cgf.CameraControl.App.Tests.Configuration;
 
 /// A keyboard interface binds every key it answers to, so the file is the only place a shortcut
 /// exists and the panel on screen is drawn from it.
@@ -102,7 +102,7 @@ public class KeyboardConfigurationTests
         Assert.Contains("tight", failure.Message, StringComparison.Ordinal);
     }
 
-    private static KeyboardConfiguration Read(string json) => TestSchema.Read<KeyboardConfiguration>("interfaces", json);
+    private static KeyboardConfiguration Read(string json) => ConfigurationReader.Read<KeyboardConfiguration>("interfaces", json);
 
-    private static string Rejected(string json) => TestSchema.Rejected("interfaces", json);
+    private static string Rejected(string json) => ConfigurationReader.Rejected("interfaces", json);
 }

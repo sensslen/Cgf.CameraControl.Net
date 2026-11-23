@@ -7,8 +7,7 @@ namespace Cgf.CameraControl.Core.Configuration;
 /// configuration refers to it by.
 ///
 /// Core knows only the three section bases below. Each plugin derives its own records from them, and
-/// the application, the one project that references every plugin, registers those records under
-/// their type strings in a <see cref="ConfigurationSchema"/>.
+/// the application, the one project that references every plugin, reads and writes them.
 ///
 /// Two System.Text.Json rules shape how every configuration record in this solution is written, and
 /// breaking either one produces wrong values rather than an error.
@@ -56,8 +55,8 @@ public abstract record InterfaceConfiguration(string Type) : EntryConfiguration(
     public override int Instance { get; set; }
 }
 
-/// An entry the loader could not read: not an object, without a type or an instance, of a type
-/// nothing registered, or of a shape its type refuses. It is reported, never built, and written back
+/// An entry the loader could not read: not an object, without a type or an instance, of an unknown
+/// type, or of a shape its type refuses. It is reported, never built, and written back
 /// exactly as it was read, so a file is never shortened by opening and saving it.
 public interface IInvalidConfiguration
 {

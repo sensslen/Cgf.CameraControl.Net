@@ -14,7 +14,7 @@ The top level accepts three lists:
 
 | Key | Means |
 | --- | --- |
-| `type` | which builder claims the entry, and therefore which other keys it accepts; matched without regard to case, anywhere in the entry |
+| `type` | which builder claims the entry, and therefore which other keys it accepts; matched exactly, including case, anywhere in the entry |
 | `instance` | a positive number the rest of the file refers to this entry by |
 
 `instance` is unique within its list. Cameras and mixers may share a number.

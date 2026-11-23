@@ -2,7 +2,7 @@
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange;
 
-namespace Cgf.CameraControl.Input.Sdl.Tests;
+namespace Cgf.CameraControl.App.Tests.Configuration;
 
 /// A configuration file is written by hand, so what matters when one is wrong is that the operator is
 /// told which entry and which property to fix rather than being handed a serializer's own words.
@@ -66,24 +66,6 @@ public class GamepadConfigurationRejectionTests
     }
 
     [Fact]
-    public void ANullPadNamesTheProperty()
-    {
-        var failure = Rejected(
-            """
-            {
-              "type": "gamepad",
-              "instance": 4,
-              "videoMixer": 1,
-              "connectionChange": { "type": "direct", "default": { "right": 2 } },
-              "cameraMap": { "1": 1 },
-              "pad": null
-            }
-            """);
-
-        Assert.Contains("gamepad[4].pad: ", failure, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void AnEmptyMacroLoopIsRejected()
     {
         var entry = Read(
@@ -124,7 +106,7 @@ public class GamepadConfigurationRejectionTests
         Assert.StartsWith("gamepad[4].cameraMap", failure.Path, StringComparison.Ordinal);
     }
 
-    private static GamepadConfiguration Read(string json) => TestSchema.Read<GamepadConfiguration>("interfaces", json);
+    private static GamepadConfiguration Read(string json) => ConfigurationReader.Read<GamepadConfiguration>("interfaces", json);
 
-    private static string Rejected(string json) => TestSchema.Rejected("interfaces", json);
+    private static string Rejected(string json) => ConfigurationReader.Rejected("interfaces", json);
 }

@@ -19,5 +19,5 @@ public sealed record AtemConfiguration() : VideoMixerConfiguration(TypeName)
     [JsonConverter(typeof(NonNegativeIntConverter))]
     public int MixEffectBlock { get; set; }
 
-    public MixerTallyMode TallyMode { get; set; } = MixerTallyMode.PreviewProgram;
+    public MixerTallyMode? TallyMode { get; set; }
 }

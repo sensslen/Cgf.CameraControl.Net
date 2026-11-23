@@ -3,6 +3,7 @@ using System.Threading.Channels;
 using AtemSharp.DependencyInjection;
 using AtemSharp.FrameworkAbstraction;
 using Avalonia.Threading;
+using Cgf.CameraControl.App.Configuration;
 using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
@@ -46,7 +47,7 @@ public class DisconnectedMixerTests
                 }
               ]
             }
-            """, AppHost.Schema, out _);
+            """, out _);
 
         var issues = await core.BootstrapAsync(config, TestContext.Current.CancellationToken)
             .WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);

@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Avalonia.Headless" />
     <ProjectReference Include="..\..\src\Cgf.CameraControl.App\Cgf.CameraControl.App.csproj" />

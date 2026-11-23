@@ -28,16 +28,17 @@ public abstract record ControlInterfaceConfiguration(string Type) : InterfaceCon
 
     /// Named here and bound by name below, so one function reaches a face button and a key without
     /// being written twice, and so the name is available to write on the button that runs it.
-    public IReadOnlyDictionary<string, SpecialFunctionConfiguration> Functions { get; set; } =
-        new Dictionary<string, SpecialFunctionConfiguration>();
+    public IReadOnlyDictionary<string, SpecialFunctionConfiguration>? Functions { get; set; }
 
-    public bool EnableChangingProgram { get; set; } = true;
+    public bool? EnableChangingProgram { get; set; }
 }
 
 /// A pad has four face buttons and no more, so the way past four is the modifier sets.
 public record GamepadConfiguration : ControlInterfaceConfiguration
 {
     public const string TypeName = "gamepad";
+
+    public const double DefaultDeadzone = 0.05;
 
     public GamepadConfiguration()
         : this(TypeName)
@@ -53,7 +54,7 @@ public record GamepadConfiguration : ControlInterfaceConfiguration
     [JsonIgnore]
     public virtual bool SupportsHid => true;
 
-    public GamepadBackend Backend { get; set; } = GamepadBackend.Sdl;
+    public GamepadBackend? Backend { get; set; }
 
     /// When set, only the pad reporting this serial is claimed, and no other pad is ever substituted.
     /// When absent, the first pad not already claimed by another interface is used.
@@ -62,11 +63,11 @@ public record GamepadConfiguration : ControlInterfaceConfiguration
     /// Stick travel ignored around centre. The HID path this replaces had a flat spot built into its
     /// interpolation table; SDL reports raw axes, so without this the cameras drift.
     [JsonConverter(typeof(DeadzoneConverter))]
-    public double Deadzone { get; set; } = 0.05;
+    public double? Deadzone { get; set; }
 
-    public bool Rumble { get; set; } = true;
+    public bool? Rumble { get; set; }
 
-    public PadBindings Pad { get; set; } = new();
+    public PadBindings? Pad { get; set; }
 }
 
 /// The names pads were configured by before `gamepad`. Each is its own record because a type string
@@ -101,8 +102,7 @@ public enum GamepadBackend
 /// Which named function each face button runs, per modifier.
 public sealed record PadBindings
 {
-    public IReadOnlyDictionary<ButtonDirection, string> Default { get; set; } =
-        new Dictionary<ButtonDirection, string>();
+    public IReadOnlyDictionary<ButtonDirection, string>? Default { get; set; }
 
     public IReadOnlyDictionary<ButtonDirection, string>? Alt { get; set; }
 

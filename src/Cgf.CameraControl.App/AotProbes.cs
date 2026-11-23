@@ -1,4 +1,4 @@
-using Cgf.CameraControl.App.Hosting;
+using Cgf.CameraControl.App.Configuration;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.Core.Configuration;
 
@@ -65,8 +65,8 @@ public static class AotProbes
 
         try
         {
-            var read = ConfigLoader.Load(Desk, AppHost.Schema, out var issues);
-            var again = ConfigLoader.Load(ConfigWriter.Write(read, AppHost.Schema), AppHost.Schema, out var reissues);
+            var read = ConfigLoader.Load(Desk, out var issues);
+            var again = ConfigLoader.Load(ConfigWriter.Write(read), out var reissues);
             var types = again.Cams.Concat<EntryConfiguration>(again.VideoMixers).Concat(again.Interfaces)
                 .Select(entry => entry.Type)
                 .ToList();

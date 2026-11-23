@@ -32,17 +32,19 @@ public sealed record ViscaOverIpCameraConfiguration() : CameraConfiguration(Type
 {
     public const string TypeName = "viscaoverip";
 
+    public const int DefaultPort = 52381;
+
     [JsonRequired]
     [JsonConverter(typeof(HostConverter))]
     public string Ip { get; set; } = string.Empty;
 
     [JsonConverter(typeof(PortConverter))]
-    public int Port { get; set; } = 52381;
+    public int? Port { get; set; }
 
-    public bool PanTiltInvert { get; set; }
+    public bool? PanTiltInvert { get; set; }
 
     [JsonConverter(typeof(PercentConverter))]
-    public int PanTiltSpeedPercent { get; set; } = 100;
+    public int? PanTiltSpeedPercent { get; set; }
 
-    public ViscaTallyMode TallyMode { get; set; } = ViscaTallyMode.None;
+    public ViscaTallyMode? TallyMode { get; set; }
 }

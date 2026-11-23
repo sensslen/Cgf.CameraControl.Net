@@ -7,13 +7,13 @@ namespace Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 
 public sealed class ViscaOverIpCameraBuilder(ILogger logger) : IBuilder<ICameraConnection, CameraConfiguration>
 {
-    public IReadOnlyCollection<string> SupportedTypes => [ViscaOverIpCameraConfiguration.TypeName];
+    public Task<ICameraConnection>? BuildAsync(CameraConfiguration entry, CancellationToken cancellationToken) =>
+        entry is ViscaOverIpCameraConfiguration config ? Task.FromResult(Build(config)) : null;
 
-    public Task<ICameraConnection> BuildAsync(CameraConfiguration entry, CancellationToken cancellationToken)
+    private ICameraConnection Build(ViscaOverIpCameraConfiguration config)
     {
-        var config = (ViscaOverIpCameraConfiguration)entry;
-        Validate.Port(config.Port, $"{entry}.port");
-        var transport = new ViscaUdpTransport(config.Ip, config.Port, logger);
-        return Task.FromResult<ICameraConnection>(new ViscaOverIpCamera(config, transport, logger));
+        var port = Validate.Port(config.Port ?? ViscaOverIpCameraConfiguration.DefaultPort, $"{config}.port");
+        var transport = new ViscaUdpTransport(config.Ip, port, logger);
+        return new ViscaOverIpCamera(config, transport, logger);
     }
 }

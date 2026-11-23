@@ -13,42 +13,47 @@ public class FactoryTests
     [Fact]
     public async Task BuildsAnInstanceAndKeysItByInstanceNumber()
     {
-        _factory.AddBuilder(new ThingBuilder("known"));
+        _factory.AddBuilder(new ThingBuilder<KnownThing>());
 
-        Assert.Null(await Parse(7, "known"));
+        Assert.Null(await Parse(new KnownThing { Instance = 7 }));
 
         Assert.Equal(7, _factory.Get(7)?.Instance);
         Assert.Null(_factory.Get(8));
     }
 
     [Fact]
-    public async Task MatchesTheTypeStringCaseInsensitively()
+    public async Task TheFirstBuilderToClaimTheEntryBuildsIt()
     {
-        _factory.AddBuilder(new ThingBuilder("Websocket.PtzLanc"));
+        var other = new ThingBuilder<OtherThing>();
+        var known = new ThingBuilder<KnownThing>();
+        _factory.AddBuilder(other);
+        _factory.AddBuilder(known);
 
-        Assert.Null(await Parse(1, "websocket.ptzlanc"));
-        Assert.NotNull(_factory.Get(1));
+        Assert.Null(await Parse(new KnownThing { Instance = 1 }));
+
+        Assert.Equal(0, other.Built);
+        Assert.Equal(1, known.Built);
     }
 
     [Fact]
-    public async Task ReportsAnUnknownTypeAndListsWhatItDoesKnow()
+    public async Task ReportsAnEntryNoBuilderClaims()
     {
-        _factory.AddBuilder(new ThingBuilder("Signalr.PtzLanc"));
+        _factory.AddBuilder(new ThingBuilder<KnownThing>());
 
-        var issue = await Parse(1, "Cgf.PtzCamera");
+        var issue = await Parse(new OtherThing { Instance = 1 });
 
         Assert.NotNull(issue);
-        Assert.Contains("Cgf.PtzCamera", issue.Message, StringComparison.Ordinal);
-        Assert.Contains("Signalr.PtzLanc", issue.Message, StringComparison.Ordinal);
+        Assert.Contains(OtherThing.TypeName, issue.Message, StringComparison.Ordinal);
+        Assert.Empty(_factory.Instances);
     }
 
     [Fact]
     public async Task RefusesASecondEntryForTheSameInstance()
     {
-        _factory.AddBuilder(new ThingBuilder("known"));
-        await Parse(1, "known");
+        _factory.AddBuilder(new ThingBuilder<KnownThing>());
+        await Parse(new KnownThing { Instance = 1 });
 
-        var issue = await Parse(1, "known");
+        var issue = await Parse(new KnownThing { Instance = 1 });
 
         Assert.NotNull(issue);
         Assert.Contains("already configured", issue.Message, StringComparison.Ordinal);
@@ -57,45 +62,37 @@ public class FactoryTests
     [Fact]
     public async Task AFailingBuilderIsReportedAndTheNextEntryStillBuilds()
     {
-        _factory.AddBuilder(new ThingBuilder("boom") { Failure = "no route to host" });
-        _factory.AddBuilder(new ThingBuilder("fine"));
+        _factory.AddBuilder(new ThingBuilder<OtherThing> { Failure = "no route to host" });
+        _factory.AddBuilder(new ThingBuilder<KnownThing>());
 
-        var issue = await Parse(1, "boom");
+        var issue = await Parse(new OtherThing { Instance = 1 });
 
         Assert.Equal("no route to host", issue?.Message);
-        Assert.Null(await Parse(2, "fine"));
+        Assert.Null(await Parse(new KnownThing { Instance = 2 }));
         Assert.NotNull(_factory.Get(2));
-    }
-
-    [Fact]
-    public void TwoBuildersClaimingOneTypeIsAProgrammingError()
-    {
-        _factory.AddBuilder(new ThingBuilder("shared"));
-
-        Assert.Throws<InvalidOperationException>(() => _factory.AddBuilder(new ThingBuilder("shared")));
     }
 
     [Fact]
     public async Task DisposeDropsInstancesButKeepsBuildersSoAReloadWorks()
     {
-        _factory.AddBuilder(new ThingBuilder("known"));
-        await Parse(1, "known");
+        _factory.AddBuilder(new ThingBuilder<KnownThing>());
+        await Parse(new KnownThing { Instance = 1 });
         var built = _factory.Get(1);
 
         await _factory.DisposeAsync();
 
         Assert.True(built!.Disposed);
         Assert.Null(_factory.Get(1));
-        Assert.Null(await Parse(1, "known"));
+        Assert.Null(await Parse(new KnownThing { Instance = 1 }));
         Assert.NotNull(_factory.Get(1));
     }
 
     [Fact]
     public async Task DisposeKeepsGoingWhenOneInstanceThrows()
     {
-        _factory.AddBuilder(new ThingBuilder("known"));
-        await Parse(1, "known");
-        await Parse(2, "known");
+        _factory.AddBuilder(new ThingBuilder<KnownThing>());
+        await Parse(new KnownThing { Instance = 1 });
+        await Parse(new KnownThing { Instance = 2 });
         _factory.Get(1)!.ThrowOnDispose = true;
 
         await _factory.DisposeAsync();
@@ -104,18 +101,16 @@ public class FactoryTests
         _logger.Received(1).Error("cams", Arg.Is<string>(m => m.StartsWith("disposing Thing failed")));
     }
 
-    private Task<LoadIssue?> Parse(int instance, string type) =>
-        _factory.ParseConfigAsync(Entry(instance, type), _logger, TestContext.Current.CancellationToken);
-
-    private static ThingConfiguration Entry(int instance, string type) => new(type) { Instance = instance };
+    private Task<LoadIssue?> Parse(ThingConfiguration entry) =>
+        _factory.ParseConfigAsync(entry, _logger, TestContext.Current.CancellationToken);
 
     [Fact]
     public async Task AnEntryTheLoaderCouldNotReadIsNotBuiltOrReportedAgain()
     {
-        _factory.AddBuilder(new ThingBuilder("known"));
+        _factory.AddBuilder(new ThingBuilder<KnownThing>());
 
         var issue = await _factory.ParseConfigAsync(
-            new InvalidThingConfiguration("known", "{}", "cams[0] is missing a numeric 'instance'"),
+            new InvalidThingConfiguration(KnownThing.TypeName, "{}", "cams[0] is missing a numeric 'instance'"),
             _logger,
             TestContext.Current.CancellationToken);
 
@@ -123,7 +118,17 @@ public class FactoryTests
         Assert.Empty(_factory.Instances);
     }
 
-    private record ThingConfiguration(string Type) : CameraConfiguration(Type);
+    private abstract record ThingConfiguration(string Type) : CameraConfiguration(Type);
+
+    private sealed record KnownThing() : ThingConfiguration(TypeName)
+    {
+        public const string TypeName = "known";
+    }
+
+    private sealed record OtherThing() : ThingConfiguration(TypeName)
+    {
+        public const string TypeName = "other";
+    }
 
     private sealed record InvalidThingConfiguration(string Type, string Json, string Problem)
         : ThingConfiguration(Type), IInvalidConfiguration;
@@ -145,15 +150,24 @@ public class FactoryTests
         }
     }
 
-    private sealed class ThingBuilder(params string[] types) : IBuilder<Thing, ThingConfiguration>
+    private sealed class ThingBuilder<TRecord> : IBuilder<Thing, ThingConfiguration>
+        where TRecord : ThingConfiguration
     {
         public string? Failure { get; init; }
 
-        public IReadOnlyCollection<string> SupportedTypes => types;
+        public int Built { get; private set; }
 
-        public Task<Thing> BuildAsync(ThingConfiguration entry, CancellationToken cancellationToken) =>
-            Failure is null
+        public Task<Thing>? BuildAsync(ThingConfiguration entry, CancellationToken cancellationToken)
+        {
+            if (entry is not TRecord)
+            {
+                return null;
+            }
+
+            Built++;
+            return Failure is null
                 ? Task.FromResult(new Thing(entry.Instance))
                 : Task.FromException<Thing>(new InvalidOperationException(Failure));
+        }
     }
 }

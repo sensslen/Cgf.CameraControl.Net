@@ -61,7 +61,7 @@ Cameras and mixers disconnect during editing.
 | Edit | title and validation summary stay above the scrolling form; errors appear under inputs |
 | Pan/tilt speed | linked slider and percentage box |
 | Controller serial | suggestions also accept unlisted controllers |
-| Done → Save | rewrite the file, leave out values equal to their defaults, discard JSON comments and load the saved file |
+| Done → Save | rewrite the file, leave out settings that were never set, discard JSON comments and load the saved file |
 | Done → Discard | reload the file from disk |
 
 Duplicate instances, missing required fields and undefined camera, mixer or function references

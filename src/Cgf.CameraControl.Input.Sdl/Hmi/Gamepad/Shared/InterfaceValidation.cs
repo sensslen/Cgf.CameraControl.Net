@@ -10,9 +10,9 @@ public static class InterfaceValidation
 {
     public static void Bindings(GamepadConfiguration config)
     {
-        if (!Enum.IsDefined(config.Backend))
+        if (config.Backend is { } backend && !Enum.IsDefined(backend))
         {
-            throw new ConfigValidationException($"{config}.backend", $"Unknown gamepad backend {config.Backend}.");
+            throw new ConfigValidationException($"{config}.backend", $"Unknown gamepad backend {backend}.");
         }
         if (config.Backend == GamepadBackend.Hid)
         {
@@ -25,9 +25,9 @@ public static class InterfaceValidation
                 throw new ConfigValidationException($"{config}.backend", "HID backend currently supports F310 pads only.");
             }
         }
-        Names(config, "pad.default", config.Pad.Default.Values);
-        Names(config, "pad.alt", config.Pad.Alt?.Values);
-        Names(config, "pad.altLower", config.Pad.AltLower?.Values);
+        Names(config, "pad.default", config.Pad?.Default?.Values);
+        Names(config, "pad.alt", config.Pad?.Alt?.Values);
+        Names(config, "pad.altLower", config.Pad?.AltLower?.Values);
         Shared(config);
     }
 
@@ -40,7 +40,7 @@ public static class InterfaceValidation
     private static void Shared(ControlInterfaceConfiguration config)
     {
         Validate.NonNegativeMap(config.CameraMap, $"{config}.cameraMap");
-        foreach (var (name, function) in config.Functions)
+        foreach (var (name, function) in config.Functions ?? new Dictionary<string, SpecialFunctionConfiguration>())
         {
             // An empty loop is a button that logs an error on every press instead of running a macro.
             if (function is MacroLoopSpecialFunctionConfiguration loop)
@@ -59,16 +59,17 @@ public static class InterfaceValidation
         string path,
         IEnumerable<string>? bound)
     {
+        var functions = config.Functions ?? new Dictionary<string, SpecialFunctionConfiguration>();
         foreach (var name in bound ?? [])
         {
-            if (!config.Functions.ContainsKey(name))
+            if (!functions.ContainsKey(name))
             {
                 throw new ConfigValidationException(
                     $"{config}.{path}",
                     $"binds {name}, which is not one of the configured functions" +
-                    (config.Functions.Count == 0
+                    (functions.Count == 0
                         ? " (none are configured)"
-                        : $" ({string.Join(", ", config.Functions.Keys.Order())})"));
+                        : $" ({string.Join(", ", functions.Keys.Order())})"));
             }
         }
     }

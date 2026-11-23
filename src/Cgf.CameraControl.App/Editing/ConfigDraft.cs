@@ -22,11 +22,11 @@ public sealed partial class ConfigDraft : ViewModelBase
         Pads = pads;
     }
 
-    public ObservableCollection<EntryDraft> Cameras { get; } = [];
+    public ObservableCollection<EntryDraft<CameraConfiguration>> Cameras { get; } = [];
 
-    public ObservableCollection<EntryDraft> Mixers { get; } = [];
+    public ObservableCollection<EntryDraft<VideoMixerConfiguration>> Mixers { get; } = [];
 
-    public ObservableCollection<EntryDraft> Interfaces { get; } = [];
+    public ObservableCollection<EntryDraft<InterfaceConfiguration>> Interfaces { get; } = [];
 
     /// What stops a save, in the order the collections are drawn in.
     public ObservableCollection<string> Issues { get; } = [];
@@ -43,18 +43,18 @@ public sealed partial class ConfigDraft : ViewModelBase
     public static ConfigDraft From(ILocalizer strings, RootConfig config, IReadOnlyList<string>? pads = null)
     {
         var draft = new ConfigDraft(strings, pads ?? []);
-        draft.Fill(EntryKind.Camera, draft.Cameras, config.Cams);
-        draft.Fill(EntryKind.Mixer, draft.Mixers, config.VideoMixers);
-        draft.Fill(EntryKind.Interface, draft.Interfaces, config.Interfaces);
+        draft.Fill(draft.Cameras, config.Cams, entry => EntryDraft.Camera(strings, entry, draft.Pads));
+        draft.Fill(draft.Mixers, config.VideoMixers, entry => EntryDraft.Mixer(strings, entry, draft.Pads));
+        draft.Fill(draft.Interfaces, config.Interfaces, entry => EntryDraft.Interface(strings, entry, draft.Pads));
         draft.Validate();
         return draft;
     }
 
     public RootConfig ToConfig() =>
         new(
-            [.. Cameras.Select(entry => (CameraConfiguration)entry.ToEntry())],
-            [.. Mixers.Select(entry => (VideoMixerConfiguration)entry.ToEntry())],
-            [.. Interfaces.Select(entry => (InterfaceConfiguration)entry.ToEntry())]);
+            [.. Cameras.Select(entry => entry.ToEntry())],
+            [.. Mixers.Select(entry => entry.ToEntry())],
+            [.. Interfaces.Select(entry => entry.ToEntry())]);
 
     /// The lowest number nothing in that collection has taken, so a new entry is proposed one that
     /// does not collide rather than one that has to be corrected before it can be saved.
@@ -66,14 +66,27 @@ public sealed partial class ConfigDraft : ViewModelBase
 
     public EntryDraft Add(EntryKind kind, string type)
     {
-        var draft = new EntryDraft(_strings, kind, EntrySchema.NewEntry(type, NextInstance(kind)), Pads);
+        var draft = EntrySchema.NewDraft(_strings, kind, type, NextInstance(kind), Pads);
         Insert(draft);
         return draft;
     }
 
     public void Insert(EntryDraft draft)
     {
-        For(draft.Kind).Add(Attach(draft));
+        Attach(draft);
+        switch (draft)
+        {
+            case EntryDraft<CameraConfiguration> camera:
+                Cameras.Add(camera);
+                break;
+            case EntryDraft<VideoMixerConfiguration> mixer:
+                Mixers.Add(mixer);
+                break;
+            case EntryDraft<InterfaceConfiguration> control:
+                Interfaces.Add(control);
+                break;
+        }
+
         IsDirty = true;
         Validate();
     }
@@ -109,12 +122,19 @@ public sealed partial class ConfigDraft : ViewModelBase
             }
         }
 
-        For(entry.Kind).Remove(entry);
+        _ = entry switch
+        {
+            EntryDraft<CameraConfiguration> camera => Cameras.Remove(camera),
+            EntryDraft<VideoMixerConfiguration> mixer => Mixers.Remove(mixer),
+            EntryDraft<InterfaceConfiguration> control => Interfaces.Remove(control),
+            _ => false,
+        };
+
         IsDirty = true;
         Validate();
     }
 
-    private ObservableCollection<EntryDraft> For(EntryKind kind) => kind switch
+    private IReadOnlyList<EntryDraft> For(EntryKind kind) => kind switch
     {
         EntryKind.Camera => Cameras,
         EntryKind.Mixer => Mixers,
@@ -124,11 +144,16 @@ public sealed partial class ConfigDraft : ViewModelBase
     private static int? Mixer(EntryDraft entry) =>
         entry.Fields.OfType<NumberField>().FirstOrDefault(field => field.Key == "videoMixer")?.Number;
 
-    private void Fill(EntryKind kind, ObservableCollection<EntryDraft> list, IEnumerable<EntryConfiguration> entries)
+    private void Fill<TSection>(
+        ObservableCollection<EntryDraft<TSection>> list,
+        IEnumerable<TSection> entries,
+        Func<TSection, EntryDraft<TSection>> draft)
+        where TSection : EntryConfiguration
     {
         foreach (var entry in entries)
         {
-            list.Add(Attach(new EntryDraft(_strings, kind, entry, Pads)));
+            list.Add(draft(entry));
+            Attach(list[^1]);
         }
     }
 

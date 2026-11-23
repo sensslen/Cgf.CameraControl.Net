@@ -216,10 +216,10 @@ public sealed class SignalrPtzLancCamera : ICameraConnection
 
     private void Log(string message) => _logger.Log("CgfPtzCamera", $"({_config.ConnectionUrl}) {message}");
 
-    private int Invert(int value) => _config.PanTiltInvert ? -value : value;
+    private int Invert(int value) => _config.PanTiltInvert == true ? -value : value;
 
     private int ScalePanTilt(double value) =>
-        Scale(Math.Clamp(value, -1, 1) * (_config.PanTiltSpeedPercent / 100.0), 255);
+        Scale(Math.Clamp(value, -1, 1) * ((_config.PanTiltSpeedPercent ?? 100) / 100.0), 255);
 
     private static int Scale(double value, int maximum) =>
         (int)Math.Round(Math.Clamp(value * maximum, -maximum, maximum));

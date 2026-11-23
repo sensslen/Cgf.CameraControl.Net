@@ -2,8 +2,9 @@ using System.Buffers;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
+using Cgf.CameraControl.Core.Configuration;
 
-namespace Cgf.CameraControl.Core.Configuration;
+namespace Cgf.CameraControl.App.Configuration;
 
 public sealed class ConfigFormatException(string message) : Exception(message);
 
@@ -12,7 +13,7 @@ public sealed class ConfigFormatException(string message) : Exception(message);
 /// dropped, so saving the file does not lose it.
 public static class ConfigLoader
 {
-    public static RootConfig Load(string json, ConfigurationSchema schema, out IReadOnlyList<string> issues)
+    public static RootConfig Load(string json, out IReadOnlyList<string> issues)
     {
         JsonDocument document;
         try
@@ -34,11 +35,11 @@ public static class ConfigLoader
             var collected = new List<string>();
             var root = document.RootElement;
             var config = new RootConfig(
-                ReadSection<CameraConfiguration>(root, "cams", schema, collected,
+                ReadSection(root, "cams", ConfigurationSections.Cameras, collected,
                     (type, json, problem) => new InvalidCameraConfiguration(type, json, problem)),
-                ReadSection<VideoMixerConfiguration>(root, "videoMixers", schema, collected,
+                ReadSection(root, "videoMixers", ConfigurationSections.VideoMixers, collected,
                     (type, json, problem) => new InvalidVideoMixerConfiguration(type, json, problem)),
-                ReadSection<InterfaceConfiguration>(root, "interfaces", schema, collected,
+                ReadSection(root, "interfaces", ConfigurationSections.Interfaces, collected,
                     (type, json, problem) => new InvalidInterfaceConfiguration(type, json, problem)));
 
             issues = collected;
@@ -46,13 +47,13 @@ public static class ConfigLoader
         }
     }
 
-    public static RootConfig LoadFile(string path, ConfigurationSchema schema, out IReadOnlyList<string> issues) =>
-        Load(File.ReadAllText(path), schema, out issues);
+    public static RootConfig LoadFile(string path, out IReadOnlyList<string> issues) =>
+        Load(File.ReadAllText(path), out issues);
 
     private static List<T> ReadSection<T>(
         JsonElement root,
         string name,
-        ConfigurationSchema schema,
+        JsonTypeInfo<T> typeInfo,
         List<string> issues,
         Func<string, string, string, T> invalid)
         where T : EntryConfiguration
@@ -69,7 +70,6 @@ public static class ConfigLoader
             return entries;
         }
 
-        var types = schema.TypesOf<T>();
         var index = 0;
         foreach (var element in section.EnumerateArray())
         {
@@ -80,13 +80,12 @@ public static class ConfigLoader
                 ? named.GetString()!
                 : null;
 
-            var problem = Problem(element, type, types);
+            var problem = Problem(element, type);
             if (problem is null)
             {
                 try
                 {
-                    entries.Add(Read(element, types.First(known => string.Equals(known, type, StringComparison.OrdinalIgnoreCase)),
-                        (JsonTypeInfo<T>)schema.Options.GetTypeInfo(typeof(T))));
+                    entries.Add(Read(element, type!, typeInfo));
                     continue;
                 }
                 catch (ConfigValidationException ex)
@@ -114,8 +113,8 @@ public static class ConfigLoader
         return entries;
     }
 
-    /// What keeps an entry from being read at all, before its type gets to say anything about it.
-    private static string? Problem(JsonElement element, string? type, IReadOnlyList<string> types)
+    /// What keeps an entry from being named in an error at all.
+    private static string? Problem(JsonElement element, string? type)
     {
         if (element.ValueKind != JsonValueKind.Object)
         {
@@ -127,26 +126,16 @@ public static class ConfigLoader
             return "is missing a numeric 'instance'";
         }
 
-        if (type is null)
-        {
-            return "is missing a string 'type'";
-        }
-
-        return types.Any(known => string.Equals(known, type, StringComparison.OrdinalIgnoreCase))
-            ? null
-            : $"has the type '{type}', which nothing claims. Known types: {string.Join(", ", types.Order(StringComparer.Ordinal))}";
+        return type is null ? "is missing a string 'type'" : null;
     }
 
-    /// Type strings are matched without regard to case, which a discriminator is not, so the entry is
-    /// read with the registered spelling written in place of its own. Rewriting it also drops the
-    /// comments and trailing commas the document skipped, which a reader over the element would not.
     private static T Read<T>(JsonElement element, string type, JsonTypeInfo<T> typeInfo)
         where T : EntryConfiguration
     {
         var label = $"{type}[{element.GetProperty("instance").GetInt32().ToString(CultureInfo.InvariantCulture)}]";
         try
         {
-            return JsonSerializer.Deserialize(WithType(element, type), typeInfo) ?? throw new ConfigValidationException(label, "is empty");
+            return element.Deserialize(typeInfo) ?? throw new ConfigValidationException(label, "is empty");
         }
         catch (JsonException ex)
         {
@@ -160,30 +149,6 @@ public static class ConfigLoader
             // instead of which line of their file is wrong.
             throw new ConfigValidationException(Locate(label, PathIn(ex.Message)), Explain(ex.Message));
         }
-    }
-
-    private static byte[] WithType(JsonElement element, string type)
-    {
-        var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer))
-        {
-            writer.WriteStartObject();
-            foreach (var property in element.EnumerateObject())
-            {
-                if (property.NameEquals("type"))
-                {
-                    writer.WriteString("type", type);
-                }
-                else
-                {
-                    property.WriteTo(writer);
-                }
-            }
-
-            writer.WriteEndObject();
-        }
-
-        return buffer.WrittenSpan.ToArray();
     }
 
     /// The entry as JSON without the comments the file may have carried inside it.

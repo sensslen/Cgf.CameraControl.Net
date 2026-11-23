@@ -1,12 +1,12 @@
 using Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 
-namespace Cgf.CameraControl.Cameras.ViscaOverIp.Tests;
+namespace Cgf.CameraControl.App.Tests.Configuration;
 
 public class ViscaOverIpCameraConfigurationTests
 {
     [Fact]
-    public void PanTiltSpeedDefaultsToFullSpeed() =>
-        Assert.Equal(100, Read("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1" }""").PanTiltSpeedPercent);
+    public void AnAbsentPanTiltSpeedIsLeftUnset() =>
+        Assert.Null(Read("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1" }""").PanTiltSpeedPercent);
 
     [Theory]
     [InlineData(1)]
@@ -20,7 +20,6 @@ public class ViscaOverIpCameraConfigurationTests
     [InlineData("-1")]
     [InlineData("101")]
     [InlineData("50.5")]
-    [InlineData("null")]
     [InlineData("\"50\"")]
     public void RejectsInvalidPanTiltSpeed(string value) =>
         Rejected($$"""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1", "panTiltSpeedPercent": {{value}} }""");
@@ -37,9 +36,9 @@ public class ViscaOverIpCameraConfigurationTests
     }
 
     [Fact]
-    public void PortDefaultsToTheViscaOverIpPort()
+    public void AnAbsentPortIsLeftUnset()
     {
-        Assert.Equal(52381, Read("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1" }""").Port);
+        Assert.Null(Read("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1" }""").Port);
     }
 
     [Fact]
@@ -76,14 +75,12 @@ public class ViscaOverIpCameraConfigurationTests
     }
 
     [Fact]
-    public void ACameraWithNoNamedVendorDrivesNoTally()
+    public void AnAbsentVendorIsLeftUnset()
     {
-        Assert.Equal(
-            ViscaTallyMode.None,
-            Read("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1" }""").TallyMode);
+        Assert.Null(Read("""{ "type": "viscaoverip", "instance": 1, "ip": "10.0.0.1" }""").TallyMode);
     }
 
-    private static ViscaOverIpCameraConfiguration Read(string json) => TestSchema.Read<ViscaOverIpCameraConfiguration>("cams", json);
+    private static ViscaOverIpCameraConfiguration Read(string json) => ConfigurationReader.Read<ViscaOverIpCameraConfiguration>("cams", json);
 
-    private static string Rejected(string json) => TestSchema.Rejected("cams", json);
+    private static string Rejected(string json) => ConfigurationReader.Rejected("cams", json);
 }

@@ -23,15 +23,15 @@ public enum EntryKind
 ///
 /// An entry the loader could not read has no fields. It is shown with what is wrong with it and
 /// written back as it was read, so it can be deleted, or corrected in the file, but is never lost.
-public sealed partial class EntryDraft : ViewModelBase
+public abstract partial class EntryDraft : ViewModelBase
 {
     private readonly EntryConfiguration _entry;
 
-    public EntryDraft(ILocalizer strings, EntryKind kind, EntryConfiguration entry, IReadOnlyList<string>? pads = null)
+    private protected EntryDraft(ILocalizer strings, EntryKind kind, EntryConfiguration entry, IReadOnlyList<string>? pads)
     {
         Strings = strings;
         Kind = kind;
-        _entry = entry with { };
+        _entry = entry;
 
         if (_entry is IInvalidConfiguration)
         {
@@ -73,7 +73,7 @@ public sealed partial class EntryDraft : ViewModelBase
         : _entry.Instance != 0 ? _entry.Instance : (int?)null;
 
     /// Why the loader could not read this entry, or null when it could.
-    public string? Unreadable => (_entry as IInvalidConfiguration)?.Problem;
+    public string? Unreadable => _entry is IInvalidConfiguration invalid ? invalid.Problem : null;
 
     [ObservableProperty]
     public partial string Title { get; set; } = string.Empty;
@@ -87,22 +87,31 @@ public sealed partial class EntryDraft : ViewModelBase
 
     public event EventHandler? Edited;
 
+    public static EntryDraft<CameraConfiguration> Camera(ILocalizer strings, CameraConfiguration entry, IReadOnlyList<string>? pads = null) =>
+        new(strings, EntryKind.Camera, entry with { }, record => record with { }, pads);
+
+    public static EntryDraft<VideoMixerConfiguration> Mixer(ILocalizer strings, VideoMixerConfiguration entry, IReadOnlyList<string>? pads = null) =>
+        new(strings, EntryKind.Mixer, entry with { }, record => record with { }, pads);
+
+    public static EntryDraft<InterfaceConfiguration> Interface(ILocalizer strings, InterfaceConfiguration entry, IReadOnlyList<string>? pads = null) =>
+        new(strings, EntryKind.Interface, entry with { }, record => record with { }, pads);
+
     /// A copy, so an edit made after the configuration is taken does not reach into it.
-    public EntryConfiguration ToEntry() => _entry with { };
+    public abstract EntryConfiguration ToEntry();
 
     /// The names this entry binds to functions, whichever kind of interface it is. Read off the
     /// record rather than off a field, because the bindings themselves are edited on the drawing.
     public IEnumerable<string> BoundFunctionNames() => _entry switch
     {
-        GamepadConfiguration pad => pad.Pad.Default.Values
-            .Concat(pad.Pad.Alt?.Values ?? [])
-            .Concat(pad.Pad.AltLower?.Values ?? []),
+        GamepadConfiguration pad => (pad.Pad?.Default?.Values ?? [])
+            .Concat(pad.Pad?.Alt?.Values ?? [])
+            .Concat(pad.Pad?.AltLower?.Values ?? []),
         KeyboardConfiguration keyboard => keyboard.Keys.Function?.Values ?? [],
         _ => [],
     };
 
     public IEnumerable<string> DefinedFunctionNames() =>
-        (_entry as ControlInterfaceConfiguration)?.Functions.Keys ?? [];
+        _entry is ControlInterfaceConfiguration { Functions: { } functions } ? functions.Keys : [];
 
     /// The cameras this entry's map names, so the document can say which of them are not configured.
     public IEnumerable<int> MappedCameras() =>
@@ -140,4 +149,21 @@ public sealed partial class EntryDraft : ViewModelBase
         Title = Describe();
         Edited?.Invoke(this, EventArgs.Empty);
     }
+}
+
+/// The copy is passed in because a `with` expression cannot be applied to a type parameter.
+public sealed class EntryDraft<TSection> : EntryDraft
+    where TSection : EntryConfiguration
+{
+    private readonly TSection _entry;
+    private readonly Func<TSection, TSection> _copy;
+
+    internal EntryDraft(ILocalizer strings, EntryKind kind, TSection entry, Func<TSection, TSection> copy, IReadOnlyList<string>? pads)
+        : base(strings, kind, entry, pads)
+    {
+        _entry = entry;
+        _copy = copy;
+    }
+
+    public override TSection ToEntry() => _copy(_entry);
 }

@@ -71,7 +71,7 @@ public sealed class Gamepad : IHmi
             }
         }
 
-        foreach (var (name, definition) in config.Functions)
+        foreach (var (name, definition) in config.Functions ?? new Dictionary<string, SpecialFunctionConfiguration>())
         {
             _functions[name] = SpecialFunctionFactory.Get(definition);
         }
@@ -142,7 +142,7 @@ public sealed class Gamepad : IHmi
     {
         { Alt: true } when _pad?.Alt?.TryGetValue(direction, out var alt) == true => alt,
         { AltLower: true } when _pad?.AltLower?.TryGetValue(direction, out var lower) == true => lower,
-        _ => _pad?.Default.GetValueOrDefault(direction),
+        _ => _pad?.Default?.GetValueOrDefault(direction),
     };
 
     /// The input a direction would select from where the selection stands, which for a directional
@@ -289,7 +289,7 @@ public sealed class Gamepad : IHmi
 
     private void RunTransition(MixerTransition transition)
     {
-        if (!_config.EnableChangingProgram)
+        if (_config.EnableChangingProgram == false)
         {
             return;
         }

@@ -10,11 +10,11 @@ public sealed class AtemBuilder(ILogger logger, IServices services) : IBuilder<I
 {
     private readonly AtemFactory _atemFactory = new(logger, services);
 
-    public IReadOnlyCollection<string> SupportedTypes => [AtemConfiguration.TypeName];
+    public Task<IVideoMixer>? BuildAsync(VideoMixerConfiguration entry, CancellationToken cancellationToken) =>
+        entry is AtemConfiguration config ? BuildAsync(config, cancellationToken) : null;
 
-    public async Task<IVideoMixer> BuildAsync(VideoMixerConfiguration entry, CancellationToken cancellationToken)
+    private async Task<IVideoMixer> BuildAsync(AtemConfiguration config, CancellationToken cancellationToken)
     {
-        var config = (AtemConfiguration)entry;
         var atem = new Atem(config, _atemFactory);
         try
         {

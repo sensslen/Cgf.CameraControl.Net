@@ -2,7 +2,7 @@
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange;
 
-namespace Cgf.CameraControl.Input.Sdl.Tests;
+namespace Cgf.CameraControl.App.Tests.Configuration;
 
 public class GamepadConfigurationTests
 {
@@ -45,9 +45,9 @@ public class GamepadConfigurationTests
     }
 
     [Fact]
-    public void BackendDefaultsToSdlAndHidIsOptIn()
+    public void BackendIsUnsetUnlessHidIsOptedInto()
     {
-        Assert.Equal(GamepadBackend.Sdl, Read(Shipped).Backend);
+        Assert.Null(Read(Shipped).Backend);
         Assert.Equal(GamepadBackend.Hid,
             Read(Shipped.Replace("\"serialNumber\":", "\"backend\": \"hid\", \"serialNumber\":")).Backend);
     }
@@ -84,13 +84,13 @@ public class GamepadConfigurationTests
     [Fact]
     public void APadBindsAFaceButtonToAFunctionByName()
     {
-        Assert.Equal("lower", Read(Shipped).Pad.Default[ButtonDirection.Down]);
+        Assert.Equal("lower", Read(Shipped).Pad!.Default![ButtonDirection.Down]);
     }
 
     [Fact]
     public void ReadsAMacroToggleWithItsCondition()
     {
-        var special = Read(Shipped).Functions["lower"];
+        var special = Read(Shipped).Functions!["lower"];
 
         var toggle = Assert.IsType<MacroToggleSpecialFunctionConfiguration>(special);
         Assert.Equal(23, toggle.IndexOn);
@@ -104,7 +104,7 @@ public class GamepadConfigurationTests
         var special = Read(WithFunction(
             """{ "type": "macroToggle", "indexOn": 20, "indexOff": 21, "condition": { "type": "aux_selection", "aux": 5, "selection": 16 } }"""));
 
-        var toggle = Assert.IsType<MacroToggleSpecialFunctionConfiguration>(special.Functions["iso"]);
+        var toggle = Assert.IsType<MacroToggleSpecialFunctionConfiguration>(special.Functions!["iso"]);
         var condition = Assert.IsType<AuxSelectionConditionConfiguration>(toggle.Condition);
         Assert.Equal(5, condition.Aux);
         Assert.Equal(16, condition.Selection);
@@ -116,7 +116,7 @@ public class GamepadConfigurationTests
     [InlineData("""{ "type": "macroLoop", "indexes": [1, 2, 3] }""", typeof(MacroLoopSpecialFunctionConfiguration))]
     public void ReadsEverySpecialFunctionType(string json, Type expected)
     {
-        Assert.IsType(expected, Read(WithFunction(json)).Functions["iso"]);
+        Assert.IsType(expected, Read(WithFunction(json)).Functions!["iso"]);
     }
 
     [Fact]
@@ -133,24 +133,16 @@ public class GamepadConfigurationTests
     public class Defaults : GamepadConfigurationTests
     {
         [Fact]
-        public void EnableChangingProgramDefaultsOn()
-        {
-            Assert.True(Read(Minimal()).EnableChangingProgram);
-        }
-
-        [Fact]
-        public void AnAbsentSerialNumberMeansAutoDetect()
-        {
-            Assert.Null(Read(Minimal()).SerialNumber);
-        }
-
-        [Fact]
-        public void DeadzoneAndRumbleHaveWorkingDefaults()
+        public void AbsentSettingsAreLeftUnset()
         {
             var config = Read(Minimal());
 
-            Assert.Equal(0.05, config.Deadzone);
-            Assert.True(config.Rumble);
+            Assert.Null(config.EnableChangingProgram);
+            Assert.Null(config.SerialNumber);
+            Assert.Null(config.Deadzone);
+            Assert.Null(config.Rumble);
+            Assert.Null(config.Pad);
+            Assert.Null(config.Functions);
         }
     }
 
@@ -209,7 +201,7 @@ public class GamepadConfigurationTests
     private static string WithConnectionChange(string json) =>
         Minimal().Replace("""{ "type": "direct", "default": { "up": 1 } }""", json);
 
-    private static GamepadConfiguration Read(string json) => TestSchema.Read<GamepadConfiguration>("interfaces", json);
+    private static GamepadConfiguration Read(string json) => ConfigurationReader.Read<GamepadConfiguration>("interfaces", json);
 
-    private static string Rejected(string json) => TestSchema.Rejected("interfaces", json);
+    private static string Rejected(string json) => ConfigurationReader.Rejected("interfaces", json);
 }

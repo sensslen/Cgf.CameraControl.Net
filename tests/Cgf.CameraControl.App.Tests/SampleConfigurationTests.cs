@@ -1,5 +1,5 @@
 using System.Text.Json.Nodes;
-using Cgf.CameraControl.App.Hosting;
+using Cgf.CameraControl.App.Configuration;
 using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 
@@ -16,57 +16,37 @@ public class SampleConfigurationTests
     [MemberData(nameof(Samples))]
     public void TheShippedSampleLoads(string sample)
     {
-        var config = ConfigLoader.LoadFile(Path(sample), AppHost.Schema, out var issues);
+        var config = ConfigLoader.LoadFile(Path(sample), out var issues);
 
         Assert.Empty(issues);
         Assert.NotEmpty(config.Interfaces);
     }
 
-    /// Saving a sample that nobody edited says the same thing it said before, apart from the defaults
-    /// it spelled out, which the writer leaves out.
+    /// Saving a sample that nobody edited says the same thing it said before, including the settings
+    /// it spells out at their default values.
     [Theory]
     [MemberData(nameof(Samples))]
     public void TheShippedSampleIsSavedAsItWasWritten(string sample)
     {
         var original = File.ReadAllText(Path(sample));
 
-        var written = ConfigWriter.Write(ConfigLoader.Load(original, AppHost.Schema, out _), AppHost.Schema);
+        var written = ConfigWriter.Write(ConfigLoader.Load(original, out _));
 
-        Assert.True(JsonNode.DeepEquals(WithoutDefaults(JsonNode.Parse(original)!), JsonNode.Parse(written)), written);
-        Assert.Equal(written, ConfigWriter.Write(ConfigLoader.Load(written, AppHost.Schema, out _), AppHost.Schema));
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(original), JsonNode.Parse(written)), written);
+        Assert.Equal(written, ConfigWriter.Write(ConfigLoader.Load(written, out _)));
     }
 
     [Fact]
     public void ItsKeyboardInterfaceBindsEveryKeyItDraws()
     {
         var keyboard = Assert.IsType<KeyboardConfiguration>(
-            Assert.Single(ConfigLoader.LoadFile(Path("offline.json"), AppHost.Schema, out _).Interfaces));
+            Assert.Single(ConfigLoader.LoadFile(Path("offline.json"), out _).Interfaces));
 
         InterfaceValidation.Bindings(keyboard);
 
         Assert.NotNull(keyboard.Keys.Pan);
         Assert.NotEmpty(keyboard.Keys.Input!);
-        Assert.NotEmpty(keyboard.Functions);
-    }
-
-    /// The two defaults the samples spell out.
-    private static JsonNode WithoutDefaults(JsonNode root)
-    {
-        foreach (var entry in root["interfaces"]!.AsArray())
-        {
-            var interfaceEntry = entry!.AsObject();
-            if (interfaceEntry["deadzone"]?.GetValue<double>() == 0.05)
-            {
-                interfaceEntry.Remove("deadzone");
-            }
-
-            if (interfaceEntry["rumble"]?.GetValue<bool>() == true)
-            {
-                interfaceEntry.Remove("rumble");
-            }
-        }
-
-        return root;
+        Assert.NotEmpty(keyboard.Functions!);
     }
 
     /// The tests run out of the build output, and the samples are not copied there.

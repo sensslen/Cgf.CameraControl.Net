@@ -6,5 +6,5 @@ public sealed record PassthroughConfiguration() : VideoMixerConfiguration(TypeNa
 {
     public const string TypeName = "passthrough/default";
 
-    public MixerTallyMode TallyMode { get; set; } = MixerTallyMode.PreviewProgram;
+    public MixerTallyMode? TallyMode { get; set; }
 }

@@ -6,6 +6,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Cgf.CameraControl.App.Configuration;
 using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
@@ -213,7 +214,7 @@ public class MainWindowKeyboardTests
             mixer.WhenPreviewChanged.Returns(Observable.Never<PreviewChange>());
             mixer.WhenProgramChanged.Returns(Observable.Never<int>());
             mixer.WhenConnectedChanged.Returns(Observable.Return(true));
-            var config = (KeyboardConfiguration)Assert.Single(ConfigLoader.Load("""
+            var config = Assert.IsType<KeyboardConfiguration>(Assert.Single(ConfigLoader.Load("""
                 {
                   "interfaces": [{
                     "type": "keyboard", "instance": 1, "videoMixer": 1,
@@ -226,7 +227,7 @@ public class MainWindowKeyboardTests
                     }
                   }]
                 }
-                """, AppHost.Schema, out _).Interfaces);
+                """, out _).Interfaces));
             await using var hmi = new Gamepad(config, device, mixer, _ => null, Substitute.For<ILogger>());
             using var view = new InterfaceViewModel(new Localizer(), 1, hmi, new ControlSurfaceViewModel(device), [], []);
             model.Interfaces.Add(view);

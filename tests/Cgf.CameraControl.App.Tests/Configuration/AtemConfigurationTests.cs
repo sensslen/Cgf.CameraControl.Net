@@ -1,7 +1,7 @@
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 using Cgf.CameraControl.Core.VideoMixer;
 
-namespace Cgf.CameraControl.Atem.Tests;
+namespace Cgf.CameraControl.App.Tests.Configuration;
 
 public class AtemConfigurationTests
 {
@@ -59,10 +59,9 @@ public class AtemConfigurationTests
     public class TallyPolicy : AtemConfigurationTests
     {
         [Fact]
-        public void ExistingConfigurationsKeepPreviewAndProgram()
+        public void AnAbsentPolicyIsLeftUnset()
         {
-            Assert.Equal(MixerTallyMode.PreviewProgram,
-                Read("""{ "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": 0 }""").TallyMode);
+            Assert.Null(Read("""{ "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": 0 }""").TallyMode);
         }
 
         [Theory]
@@ -80,7 +79,6 @@ public class AtemConfigurationTests
         [InlineData("\"invalid\"")]
         [InlineData("0")]
         [InlineData("\"2\"")]
-        [InlineData("null")]
         public void InvalidPoliciesReportTheMixerField(string value)
         {
             var error = Rejected($$"""
@@ -90,7 +88,7 @@ public class AtemConfigurationTests
         }
     }
 
-    private static AtemConfiguration Read(string json) => TestSchema.Read<AtemConfiguration>("videoMixers", json);
+    private static AtemConfiguration Read(string json) => ConfigurationReader.Read<AtemConfiguration>("videoMixers", json);
 
-    private static string Rejected(string json) => TestSchema.Rejected("videoMixers", json);
+    private static string Rejected(string json) => ConfigurationReader.Rejected("videoMixers", json);
 }

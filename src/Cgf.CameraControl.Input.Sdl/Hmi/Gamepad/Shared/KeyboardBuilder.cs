@@ -15,27 +15,27 @@ public sealed class KeyboardBuilder(
     ICollection<ControlSurfaceDevice> surfaces,
     ILogger logger) : IBuilder<IHmi, InterfaceConfiguration>
 {
-    public IReadOnlyCollection<string> SupportedTypes => [KeyboardConfiguration.TypeName];
+    public Task<IHmi>? BuildAsync(InterfaceConfiguration entry, CancellationToken cancellationToken) =>
+        entry is KeyboardConfiguration config ? Task.FromResult(Build(config)) : null;
 
-    public Task<IHmi> BuildAsync(InterfaceConfiguration entry, CancellationToken cancellationToken)
+    private IHmi Build(KeyboardConfiguration config)
     {
-        var config = (KeyboardConfiguration)entry;
         var mixer = mixers.Get(config.VideoMixer)
                     ?? throw new ConfigValidationException(
-                        $"{entry}.videoMixer",
+                        $"{config}.videoMixer",
                         $"no video mixer is configured with instance {config.VideoMixer}");
 
         InterfaceValidation.Bindings(config);
 
-        var device = new ControlSurfaceDevice(entry.Instance);
+        var device = new ControlSurfaceDevice(config.Instance);
         surfaces.Add(device);
-        return Task.FromResult<IHmi>(new Gamepad(
+        return new Gamepad(
             config,
             device,
             mixer,
             cameras.Get,
             logger,
             functions: device.FunctionRequested,
-            inputs: device.InputRequested));
+            inputs: device.InputRequested);
     }
 }

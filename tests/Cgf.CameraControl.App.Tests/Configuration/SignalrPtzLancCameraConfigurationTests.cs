@@ -1,12 +1,12 @@
 using Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
 
-namespace Cgf.CameraControl.Cameras.SignalrPtzLanc.Tests;
+namespace Cgf.CameraControl.App.Tests.Configuration;
 
 public class SignalrPtzLancCameraConfigurationTests
 {
     [Fact]
-    public void PanTiltSpeedDefaultsToFullSpeed() =>
-        Assert.Equal(100, Read(Minimal).PanTiltSpeedPercent);
+    public void AnAbsentPanTiltSpeedIsLeftUnset() =>
+        Assert.Null(Read(Minimal).PanTiltSpeedPercent);
 
     [Theory]
     [InlineData(1)]
@@ -20,7 +20,6 @@ public class SignalrPtzLancCameraConfigurationTests
     [InlineData("-1")]
     [InlineData("101")]
     [InlineData("50.5")]
-    [InlineData("null")]
     [InlineData("\"50\"")]
     public void RejectsInvalidPanTiltSpeed(string value) =>
         Rejected(Minimal.Replace("}", $$""", "panTiltSpeedPercent": {{value}} }"""));
@@ -40,9 +39,9 @@ public class SignalrPtzLancCameraConfigurationTests
     }
 
     [Fact]
-    public void PanTiltInvertDefaultsOff()
+    public void AnAbsentPanTiltInvertIsLeftUnset()
     {
-        Assert.False(Read(Minimal).PanTiltInvert);
+        Assert.Null(Read(Minimal).PanTiltInvert);
     }
 
     [Fact]
@@ -91,7 +90,7 @@ public class SignalrPtzLancCameraConfigurationTests
     private const string Minimal =
         """{ "type": "Signalr.PtzLanc", "instance": 1, "connectionUrl": "http://10.0.0.5:5000", "connectionPort": "COM6" }""";
 
-    private static SignalrPtzLancCameraConfiguration Read(string json) => TestSchema.Read<SignalrPtzLancCameraConfiguration>("cams", json);
+    private static SignalrPtzLancCameraConfiguration Read(string json) => ConfigurationReader.Read<SignalrPtzLancCameraConfiguration>("cams", json);
 
-    private static string Rejected(string json) => TestSchema.Rejected("cams", json);
+    private static string Rejected(string json) => ConfigurationReader.Rejected("cams", json);
 }

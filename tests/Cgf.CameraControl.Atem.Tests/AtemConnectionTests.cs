@@ -10,6 +10,7 @@ using AtemSharp.DependencyInjection;
 using AtemSharp.FrameworkAbstraction;
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 using Cgf.CameraControl.Core;
+using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.Logger;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -52,14 +53,13 @@ public class AtemConnectionTests
         var logger = Substitute.For<ILogger>();
         await using var core = new CameraControlCore(logger);
         core.MixerFactory.AddBuilder(new AtemBuilder(logger, provider.GetRequiredService<IServices>()));
-        var config = TestSchema.Load("""
-            {
-              "videoMixers": [
-                { "type": "blackmagicdesign/atem", "instance": 1, "ip": "10.0.0.1", "mixEffectBlock": 0 },
-                { "type": "blackmagicdesign/atem", "instance": 2, "ip": "10.0.0.1", "mixEffectBlock": 1 }
-              ]
-            }
-            """);
+        var config = new RootConfig(
+            [],
+            [
+                new AtemConfiguration { Instance = 1, Ip = "10.0.0.1", MixEffectBlock = 0 },
+                new AtemConfiguration { Instance = 2, Ip = "10.0.0.1", MixEffectBlock = 1 },
+            ],
+            []);
 
         Assert.Empty(await core.BootstrapAsync(config, TestContext.Current.CancellationToken)
             .WaitAsync(TestTimeout, TestContext.Current.CancellationToken));

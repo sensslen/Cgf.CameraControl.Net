@@ -56,7 +56,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         transport.Start();
     }
 
-    public string ConnectionString => $"visca://{_config.Ip}:{_config.Port}";
+    public string ConnectionString => $"visca://{_config.Ip}:{_config.Port ?? ViscaOverIpCameraConfiguration.DefaultPort}";
 
     public IObservable<bool> WhenConnectedChanged => _transport.WhenConnectedChanged;
 
@@ -168,7 +168,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
 
     public void SetTally(TallyState value)
     {
-        var payload = ViscaTally.Payload(_config.TallyMode, value);
+        var payload = ViscaTally.Payload(_config.TallyMode ?? ViscaTallyMode.None, value);
         if (payload is null)
         {
             return;
@@ -682,7 +682,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         }
     }
 
-    private int Invert(int value) => _config.PanTiltInvert ? -value : value;
+    private int Invert(int value) => _config.PanTiltInvert == true ? -value : value;
 
     private void DiscardColorCommands(bool includeInquiries = false)
     {
@@ -697,7 +697,7 @@ public sealed class ViscaOverIpCamera : ICameraConnection, ICameraColorControl
         IsColorCorrection(category) || ViscaPacket.IsColorInquiry(category);
 
     // VISCA cannot move below speed 1, even when the percentage asks for less.
-    private double PanTiltMaximum(int maximum) => Math.Max(1, maximum * _config.PanTiltSpeedPercent / 100.0);
+    private double PanTiltMaximum(int maximum) => Math.Max(1, maximum * (_config.PanTiltSpeedPercent ?? 100) / 100.0);
 
     private static int Scale(double value, double maximum) =>
         (int)Math.Round(Math.Clamp(value, -1, 1) * maximum);

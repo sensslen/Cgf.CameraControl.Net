@@ -7,7 +7,7 @@ public abstract class Factory<T, TConfiguration>(string section) : IAsyncDisposa
     where T : IAsyncDisposable
     where TConfiguration : EntryConfiguration
 {
-    private readonly Dictionary<string, IBuilder<T, TConfiguration>> _builders = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<IBuilder<T, TConfiguration>> _builders = [];
     private readonly Dictionary<int, T> _instances = [];
 
     // Every instance arrives through ParseConfigAsync, so whenever there is something to dispose
@@ -18,20 +18,7 @@ public abstract class Factory<T, TConfiguration>(string section) : IAsyncDisposa
 
     public T? Get(int instance) => _instances.TryGetValue(instance, out var value) ? value : default;
 
-    /// The type strings the registered builders claim.
-    public IReadOnlyCollection<string> ClaimedTypes => _builders.Keys;
-
-    public void AddBuilder(IBuilder<T, TConfiguration> builder)
-    {
-        foreach (var type in builder.SupportedTypes)
-        {
-            if (!_builders.TryAdd(type, builder))
-            {
-                throw new InvalidOperationException(
-                    $"{section}: type '{type}' is already claimed by {_builders[type].GetType().Name}");
-            }
-        }
-    }
+    public void AddBuilder(IBuilder<T, TConfiguration> builder) => _builders.Add(builder);
 
     public async Task<LoadIssue?> ParseConfigAsync(TConfiguration entry, ILogger logger, CancellationToken cancellationToken)
     {
@@ -48,20 +35,23 @@ public abstract class Factory<T, TConfiguration>(string section) : IAsyncDisposa
             return Issue(entry, $"instance {entry.Instance} is already configured");
         }
 
-        if (!_builders.TryGetValue(entry.Type, out var builder))
-        {
-            return Issue(entry, $"no builder claims type '{entry.Type}'. Known types: {string.Join(", ", _builders.Keys.Order())}");
-        }
-
         try
         {
-            _instances[entry.Instance] = await builder.BuildAsync(entry, cancellationToken).ConfigureAwait(false);
-            return null;
+            foreach (var builder in _builders)
+            {
+                if (builder.BuildAsync(entry, cancellationToken) is { } building)
+                {
+                    _instances[entry.Instance] = await building.ConfigureAwait(false);
+                    return null;
+                }
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return Issue(entry, ex.Message);
         }
+
+        return Issue(entry, $"no builder claims type '{entry.Type}'");
 
         LoadIssue Issue(TConfiguration failed, string message)
         {

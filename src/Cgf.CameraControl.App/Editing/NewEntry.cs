@@ -19,12 +19,7 @@ public sealed partial class NewEntry : ViewModelBase
         _kind = kind;
         _instance = instance;
         _pads = pads ?? [];
-        Types = kind switch
-        {
-            EntryKind.Camera => EntrySchema.CameraTypes,
-            EntryKind.Mixer => EntrySchema.MixerTypes,
-            _ => EntrySchema.InterfaceTypes,
-        };
+        Types = EntrySchema.TypesOf(kind);
 
         SelectedType = Types[0];
         Entry = Build();
@@ -50,7 +45,7 @@ public sealed partial class NewEntry : ViewModelBase
 
     private EntryDraft Build()
     {
-        var entry = new EntryDraft(Strings, _kind, EntrySchema.NewEntry(SelectedType, _instance), _pads);
+        var entry = EntrySchema.NewDraft(Strings, _kind, SelectedType, _instance, _pads);
         entry.Edited += (_, _) => OnPropertyChanged(nameof(CanAdd));
         return entry;
     }

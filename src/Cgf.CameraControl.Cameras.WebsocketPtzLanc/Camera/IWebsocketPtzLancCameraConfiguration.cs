@@ -17,10 +17,10 @@ public sealed record WebsocketPtzLancCameraConfiguration() : CameraConfiguration
     [JsonConverter(typeof(HostConverter))]
     public string Ip { get; set; } = string.Empty;
 
-    public bool PanTiltInvert { get; set; }
+    public bool? PanTiltInvert { get; set; }
 
     [JsonConverter(typeof(PercentConverter))]
-    public int PanTiltSpeedPercent { get; set; } = 100;
+    public int? PanTiltSpeedPercent { get; set; }
 
-    public bool ShowTallyLight { get; set; } = true;
+    public bool? ShowTallyLight { get; set; }
 }

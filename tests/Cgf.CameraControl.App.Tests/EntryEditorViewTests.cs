@@ -9,6 +9,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Cgf.CameraControl.App.Configuration;
 using Cgf.CameraControl.App.Editing;
 using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.Localization;
@@ -128,7 +129,7 @@ public class EntryEditorViewTests
                     window.KeyTextInput("25");
                     Dispatcher.UIThread.RunJobs();
                     Assert.Equal(25, slider.Value);
-                    Assert.Contains($"\"{field.Key}\": 25", ConfigWriter.Write(new RootConfig([(CameraConfiguration)entry.ToEntry()], [], []), AppHost.Schema), StringComparison.Ordinal);
+                    Assert.Contains($"\"{field.Key}\": 25", ConfigWriter.Write(new RootConfig([Assert.IsType<EntryDraft<CameraConfiguration>>(entry).ToEntry()], [], [])), StringComparison.Ordinal);
 
                     box.SelectAll();
                     window.KeyTextInput("101");
