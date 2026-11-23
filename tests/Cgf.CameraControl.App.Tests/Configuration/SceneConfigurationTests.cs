@@ -90,6 +90,7 @@ public class SceneConfigurationTests
     [Theory]
     [InlineData("""{ "name": "a", "cameras": { "1": { "pan": 1 } } }""", "scenes[0].cameras.1: 'pan' and 'tilt' are stored together")]
     [InlineData("""{ "name": "a", "cameras": { "1": {} } }""", "scenes[0].cameras.1: stores nothing")]
+    [InlineData("""{ "name": "a", "cameras": { "1": null } }""", "scenes[0].cameras.1: expected an object, found null")]
     [InlineData("""{ "name": "a", "cameras": { "0": { "zoom": 1 } } }""", "scenes[0].cameras.0: expected a positive camera instance")]
     [InlineData("""{ "name": "a", "cameras": { "x": { "zoom": 1 } } }""", "scenes[0].cameras.x: ")]
     [InlineData("""{ "name": "a", "cameras": { "1": { "iris": 1 } } }""", "scenes[0].cameras.1.iris: The JSON property 'iris'")]

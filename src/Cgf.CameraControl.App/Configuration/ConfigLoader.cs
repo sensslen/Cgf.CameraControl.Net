@@ -199,11 +199,16 @@ public static class ConfigLoader
     }
 
     // VISCA carries each position in 16 bits: pan and tilt signed, zoom and focus unsigned.
-    private static void CheckPosition(int instance, ScenePosition stored, string path)
+    private static void CheckPosition(int instance, ScenePosition? stored, string path)
     {
         if (instance <= 0)
         {
             throw new ConfigValidationException(path, "expected a positive camera instance");
+        }
+
+        if (stored is null)
+        {
+            throw new ConfigValidationException(path, "expected an object, found null");
         }
 
         InRange(stored.Pan, short.MinValue, short.MaxValue, $"{path}.pan");
