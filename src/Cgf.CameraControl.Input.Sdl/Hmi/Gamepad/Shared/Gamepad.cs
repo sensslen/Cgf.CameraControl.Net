@@ -20,7 +20,7 @@ public sealed class Gamepad : IHmi
     private static readonly TimeSpan OnAirPulse = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan ConnectionLostPulse = TimeSpan.FromMilliseconds(600);
 
-    private readonly InterfaceConfiguration _config;
+    private readonly ControlInterfaceConfiguration _config;
     private readonly IGamepadDevice _device;
     private readonly ILogger _logger;
     private readonly IVideoMixer _mixer;
@@ -47,7 +47,7 @@ public sealed class Gamepad : IHmi
     /// which a pad has any way to say. They arrive as streams rather than as members on the device,
     /// so the pad path stays exactly what it was and nothing here has to ask which kind it holds.
     public Gamepad(
-        InterfaceConfiguration config,
+        ControlInterfaceConfiguration config,
         IGamepadDevice device,
         IVideoMixer mixer,
         Func<int, ICameraConnection?> resolveCamera,
@@ -71,7 +71,7 @@ public sealed class Gamepad : IHmi
             }
         }
 
-        foreach (var (name, definition) in config.Functions)
+        foreach (var (name, definition) in config.Functions ?? new Dictionary<string, SpecialFunctionConfiguration>())
         {
             _functions[name] = SpecialFunctionFactory.Get(definition);
         }
@@ -127,7 +127,7 @@ public sealed class Gamepad : IHmi
     /// The window reads these to draw the interface rather than to drive it. What is on the screen
     /// has to agree with what a press would actually do, so it is answered here, where the bindings,
     /// the modifiers and the current selection already are, rather than resolved a second time.
-    public InterfaceConfiguration Configuration => _config;
+    public ControlInterfaceConfiguration Configuration => _config;
 
     public IObservable<GamepadState> DrawnState => _device.State;
 
@@ -142,7 +142,7 @@ public sealed class Gamepad : IHmi
     {
         { Alt: true } when _pad?.Alt?.TryGetValue(direction, out var alt) == true => alt,
         { AltLower: true } when _pad?.AltLower?.TryGetValue(direction, out var lower) == true => lower,
-        _ => _pad?.Default.GetValueOrDefault(direction),
+        _ => _pad?.Default?.GetValueOrDefault(direction),
     };
 
     /// The input a direction would select from where the selection stands, which for a directional
@@ -289,7 +289,7 @@ public sealed class Gamepad : IHmi
 
     private void RunTransition(MixerTransition transition)
     {
-        if (!_config.EnableChangingProgram)
+        if (_config.EnableChangingProgram == false)
         {
             return;
         }

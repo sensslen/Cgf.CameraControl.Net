@@ -1,7 +1,7 @@
 ﻿using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 
-namespace Cgf.CameraControl.Input.Sdl.Tests;
+namespace Cgf.CameraControl.App.Tests.Configuration;
 
 /// A keyboard interface binds every key it answers to, so the file is the only place a shortcut
 /// exists and the panel on screen is drawn from it.
@@ -82,10 +82,9 @@ public class KeyboardConfigurationTests
     [Fact]
     public void ASectionOnlyAPadHasIsRejected()
     {
-        var failure = Assert.Throws<ConfigValidationException>(() =>
-            Read(Shipped.Replace("\"videoMixer\": 1,", "\"videoMixer\": 1,\n  \"deadzone\": 0.1,", StringComparison.Ordinal)));
+        var failure = Rejected(Shipped.Replace("\"videoMixer\": 1,", "\"videoMixer\": 1,\n  \"deadzone\": 0.1,", StringComparison.Ordinal));
 
-        Assert.Contains("deadzone", failure.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("deadzone", failure, StringComparison.OrdinalIgnoreCase);
     }
 
     // A name is a string, so nothing in the schema stops a binding naming a function that is not
@@ -97,19 +96,13 @@ public class KeyboardConfigurationTests
         var config = Read(Shipped.Replace("\"F5\": \"tight\"", "\"F5\": \"tigth\"", StringComparison.Ordinal));
 
         var failure = Assert.Throws<ConfigValidationException>(
-            () => InterfaceValidation.Bindings(Entry(Shipped), config));
+            () => InterfaceValidation.Bindings(config));
 
         Assert.Contains("tigth", failure.Message, StringComparison.Ordinal);
         Assert.Contains("tight", failure.Message, StringComparison.Ordinal);
     }
 
-    private static ConfigEntry Entry(string json) =>
-        Assert.Single(ConfigLoader.Load($$"""{ "interfaces": [ {{json}} ] }""", out _).Interfaces);
+    private static KeyboardConfiguration Read(string json) => ConfigurationReader.Read<KeyboardConfiguration>("interfaces", json);
 
-    private static KeyboardConfiguration Read(string json)
-    {
-        var config = ConfigLoader.Load($$"""{ "interfaces": [ {{json}} ] }""", out _);
-        return Assert.Single(config.Interfaces)
-            .Deserialize(InterfaceConfigurationContext.Default.KeyboardConfiguration);
-    }
+    private static string Rejected(string json) => ConfigurationReader.Rejected("interfaces", json);
 }

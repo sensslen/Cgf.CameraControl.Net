@@ -1,3 +1,5 @@
+using Cgf.CameraControl.App.Configuration;
+using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.Core;
 using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.Logger;

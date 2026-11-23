@@ -3,6 +3,8 @@ using System.Threading.Channels;
 using AtemSharp.DependencyInjection;
 using AtemSharp.FrameworkAbstraction;
 using Avalonia.Threading;
+using Cgf.CameraControl.App.Configuration;
+using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;

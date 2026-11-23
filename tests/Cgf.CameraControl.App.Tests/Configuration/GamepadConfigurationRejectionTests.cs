@@ -2,7 +2,7 @@
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange;
 
-namespace Cgf.CameraControl.Input.Sdl.Tests;
+namespace Cgf.CameraControl.App.Tests.Configuration;
 
 /// A configuration file is written by hand, so what matters when one is wrong is that the operator is
 /// told which entry and which property to fix rather than being handed a serializer's own words.
@@ -11,7 +11,7 @@ public class GamepadConfigurationRejectionTests
     [Fact]
     public void AConnectionChangeWithNoTypeNamesTheEntryAndTheProperty()
     {
-        var failure = Assert.Throws<ConfigValidationException>(() => Read(
+        var failure = Rejected(
             """
             {
               "type": "logitech/F710",
@@ -20,10 +20,10 @@ public class GamepadConfigurationRejectionTests
               "connectionChange": { "default": { "right": 2 } },
               "cameraMap": { "1": 1 }
             }
-            """));
+            """);
 
-        Assert.Equal("logitech/F710[4].connectionChange", failure.Path);
-        Assert.DoesNotContain("Path:", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("logitech/F710[4].connectionChange: ", failure, StringComparison.Ordinal);
+        Assert.DoesNotContain("Path:", failure, StringComparison.Ordinal);
     }
 
     // A pad cannot be driven from the window, so a keys block on one is a set of bindings that will
@@ -31,7 +31,7 @@ public class GamepadConfigurationRejectionTests
     [Fact]
     public void ASectionTheInterfaceKindCannotUseIsRejected()
     {
-        var failure = Assert.Throws<ConfigValidationException>(() => Read(
+        var failure = Rejected(
             """
             {
               "type": "gamepad",
@@ -41,16 +41,16 @@ public class GamepadConfigurationRejectionTests
               "keys": { "cut": "Enter" },
               "cameraMap": { "1": 1 }
             }
-            """));
+            """);
 
-        Assert.Contains("gamepad[4]", failure.Path, StringComparison.Ordinal);
-        Assert.Contains("keys", failure.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("gamepad[4]", failure, StringComparison.Ordinal);
+        Assert.Contains("keys", failure, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void AMisspeltKeyInsideABindingIsRejected()
     {
-        var failure = Assert.Throws<ConfigValidationException>(() => Read(
+        var failure = Rejected(
             """
             {
               "type": "gamepad",
@@ -60,33 +60,15 @@ public class GamepadConfigurationRejectionTests
               "cameraMap": { "1": 1 },
               "pad": { "altlower": {} }
             }
-            """));
+            """);
 
-        Assert.Contains("altlower", failure.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void ANullPadNamesTheProperty()
-    {
-        var failure = Assert.Throws<ConfigValidationException>(() => Read(
-            """
-            {
-              "type": "gamepad",
-              "instance": 4,
-              "videoMixer": 1,
-              "connectionChange": { "type": "direct", "default": { "right": 2 } },
-              "cameraMap": { "1": 1 },
-              "pad": null
-            }
-            """));
-
-        Assert.Equal("gamepad[4].pad", failure.Path);
+        Assert.Contains("altlower", failure, StringComparison.Ordinal);
     }
 
     [Fact]
     public void AnEmptyMacroLoopIsRejected()
     {
-        var entry = Entry(
+        var entry = Read(
             """
             {
               "type": "gamepad",
@@ -99,7 +81,7 @@ public class GamepadConfigurationRejectionTests
             """);
 
         var failure = Assert.Throws<ConfigValidationException>(() =>
-            InterfaceValidation.Bindings(entry, entry.Deserialize(InterfaceConfigurationContext.Default.GamepadConfiguration)));
+            InterfaceValidation.Bindings(entry));
 
         Assert.Equal("gamepad[4].functions.loop.indexes", failure.Path);
     }
@@ -107,7 +89,7 @@ public class GamepadConfigurationRejectionTests
     [Fact]
     public void ANegativeCameraMapEntryIsRejected()
     {
-        var entry = Entry(
+        var entry = Read(
             """
             {
               "type": "gamepad",
@@ -119,17 +101,12 @@ public class GamepadConfigurationRejectionTests
             """);
 
         var failure = Assert.Throws<ConfigValidationException>(() =>
-            InterfaceValidation.Bindings(entry, entry.Deserialize(InterfaceConfigurationContext.Default.GamepadConfiguration)));
+            InterfaceValidation.Bindings(entry));
 
         Assert.StartsWith("gamepad[4].cameraMap", failure.Path, StringComparison.Ordinal);
     }
 
-    private static ConfigEntry Entry(string json) =>
-        Assert.Single(ConfigLoader.Load($$"""{ "interfaces": [ {{json}} ] }""", out _).Interfaces);
+    private static GamepadConfiguration Read(string json) => ConfigurationReader.Read<GamepadConfiguration>("interfaces", json);
 
-    private static GamepadConfiguration Read(string json)
-    {
-        var config = ConfigLoader.Load($$"""{ "interfaces": [ {{json}} ] }""", out _);
-        return Assert.Single(config.Interfaces).Deserialize(InterfaceConfigurationContext.Default.GamepadConfiguration);
-    }
+    private static string Rejected(string json) => ConfigurationReader.Rejected("interfaces", json);
 }

@@ -1,4 +1,5 @@
 ﻿using AtemSharp.DependencyInjection;
+using Cgf.CameraControl.App.Configuration;
 using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
 using Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
 using Cgf.CameraControl.Cameras.ViscaOverIp.Camera;

@@ -9,9 +9,15 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Cgf.CameraControl.App.Configuration;
 using Cgf.CameraControl.App.Editing;
+using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.Views;
+using Cgf.CameraControl.Atem.VideoMixer.Blackmagicdesign;
+using Cgf.CameraControl.Core.Configuration;
+using Cgf.CameraControl.Core.VideoMixer;
+using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 
 [assembly: AvaloniaTestApplication(typeof(Cgf.CameraControl.App.Tests.EntryEditorViewTests))]
 
@@ -123,7 +129,7 @@ public class EntryEditorViewTests
                     window.KeyTextInput("25");
                     Dispatcher.UIThread.RunJobs();
                     Assert.Equal(25, slider.Value);
-                    Assert.Equal(25, entry.ToEntry().Raw.GetProperty(field.Key).GetInt32());
+                    Assert.Contains($"\"{field.Key}\": 25", ConfigWriter.Write(new RootConfig([Assert.IsType<EntryDraft<CameraConfiguration>>(entry).ToEntry()], [], [])), StringComparison.Ordinal);
 
                     box.SelectAll();
                     window.KeyTextInput("101");
@@ -192,7 +198,7 @@ public class EntryEditorViewTests
                     choice.SelectedItem = field.Items[1];
                     Dispatcher.UIThread.RunJobs();
                     Assert.Equal("program", field.Value);
-                    Assert.Equal("program", entry.ToEntry().Raw.GetProperty("tallyMode").GetString());
+                    Assert.Equal(MixerTallyMode.Program, Assert.IsType<AtemConfiguration>(entry.ToEntry()).TallyMode);
                     Assert.Null(field.Error);
                     Assert.False(error.IsVisible);
                     var caption = field.Items[1].Caption.FirstAsync().Wait();
@@ -319,7 +325,7 @@ public class EntryEditorViewTests
                     picker.Text = "offline-pad";
                     Dispatcher.UIThread.RunJobs();
                     Assert.Equal("offline-pad", serial.Value);
-                    Assert.Equal("offline-pad", entry.ToEntry().Raw.GetProperty("serialNumber").GetString());
+                    Assert.Equal("offline-pad", Assert.IsType<GamepadConfiguration>(entry.ToEntry()).SerialNumber);
 
                     var add = Assert.Single(editor.GetVisualDescendants().OfType<Button>(),
                         button => button.Command == map.AddRowCommand);

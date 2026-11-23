@@ -162,7 +162,7 @@ public sealed partial class InterfaceViewModel : ViewModelBase, IDisposable
         var byFunction = config.Keys.Function ?? new Dictionary<string, string>();
         Functions =
         [
-            .. config.Functions.Keys.Order().Select(name => new KeyButtonViewModel(
+            .. (config.Functions?.Keys ?? []).Order().Select(name => new KeyButtonViewModel(
                 name,
                 Parse(byFunction.FirstOrDefault(entry => entry.Value == name).Key),
                 new RelayCommand(() => surface.Run(name)))),
@@ -193,7 +193,7 @@ public sealed partial class InterfaceViewModel : ViewModelBase, IDisposable
                         surface.SelectInput(entry.Value);
                         surface.Transition(MixerTransition.Cut);
                     },
-                    () => config.EnableChangingProgram))),
+                    () => config.EnableChangingProgram != false))),
         ];
 
         Keys = new InterfaceKeys(

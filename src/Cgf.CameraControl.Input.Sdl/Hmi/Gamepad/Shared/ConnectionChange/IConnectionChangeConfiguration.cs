@@ -13,7 +13,7 @@ public abstract record ConnectionChangeConfiguration;
 public sealed record DirectConnectionChangeConfiguration : ConnectionChangeConfiguration
 {
     [JsonRequired]
-    public IReadOnlyDictionary<ButtonDirection, int> Default { get; set; } = null!;
+    public IReadOnlyDictionary<ButtonDirection, int> Default { get; set; } = new Dictionary<ButtonDirection, int>();
 
     public IReadOnlyDictionary<ButtonDirection, int>? Alt { get; set; }
 

@@ -30,8 +30,8 @@ including when interfaces share a mixer.
 Set **Tally signals** in the mixer editor. The camera also needs a supported
 [tally protocol](Cameras.md#tallymode); no camera protocol means no tally commands.
 
-Invalid values leave the editor selection empty and block saving. Valid values are case-insensitive
-and unchanged on opening.
+Values are matched exactly. Any other value makes the entry
+[invalid](Root.md#when-an-entry-is-wrong).
 
 ![Mixer editor configured for program-only tally](../images/mixer-tally.png)
 

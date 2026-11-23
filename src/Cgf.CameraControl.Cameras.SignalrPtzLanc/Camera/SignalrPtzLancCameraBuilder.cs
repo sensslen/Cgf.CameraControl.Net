@@ -5,15 +5,15 @@ using Cgf.CameraControl.Core.Logger;
 
 namespace Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
 
-public sealed class SignalrPtzLancCameraBuilder(ILogger logger) : IBuilder<ICameraConnection>
+public sealed class SignalrPtzLancCameraBuilder(ILogger logger) : IBuilder<ICameraConnection, CameraConfiguration>
 {
-    public IReadOnlyCollection<string> SupportedTypes => ["Signalr.PtzLanc"];
+    public Task<ICameraConnection>? BuildAsync(CameraConfiguration entry, CancellationToken cancellationToken) =>
+        entry is SignalrPtzLancCameraConfiguration config ? Task.FromResult(Build(config)) : null;
 
-    public Task<ICameraConnection> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken)
+    private ICameraConnection Build(SignalrPtzLancCameraConfiguration config)
     {
-        var config = entry.Deserialize(SignalrPtzLancCameraConfigurationContext.Default.SignalrPtzLancCameraConfiguration);
-        Validate.HttpUrl(config.ConnectionUrl, $"{entry}.connectionUrl");
+        Validate.HttpUrl(config.ConnectionUrl, $"{config}.connectionUrl");
         var transport = new SignalrStateTransport(config.ConnectionUrl, config.ConnectionPort, logger);
-        return Task.FromResult<ICameraConnection>(new SignalrPtzLancCamera(config, transport, logger));
+        return new SignalrPtzLancCamera(config, transport, logger);
     }
 }

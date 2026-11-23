@@ -47,7 +47,7 @@ public sealed class WebsocketPtzLancCamera : ICameraConnection
 
     public void SetTally(TallyState value)
     {
-        if (!_config.ShowTallyLight)
+        if (_config.ShowTallyLight == false)
         {
             return;
         }
@@ -101,7 +101,7 @@ public sealed class WebsocketPtzLancCamera : ICameraConnection
         WebsocketPtzLancCameraSpeedState toSend;
         lock (_gate)
         {
-            if (echoed.Matches(_requested, _config.ShowTallyLight))
+            if (echoed.Matches(_requested, _config.ShowTallyLight ?? true))
             {
                 _canSend = true;
                 return;
@@ -117,10 +117,10 @@ public sealed class WebsocketPtzLancCamera : ICameraConnection
     private void Send(WebsocketPtzLancCameraSpeedState state) =>
         _transport.Send(JsonSerializer.Serialize(state, WebsocketPtzLancCameraStateContext.Default.WebsocketPtzLancCameraSpeedState));
 
-    private int InvertIfNecessary(int value) => _config.PanTiltInvert ? -value : value;
+    private int InvertIfNecessary(int value) => _config.PanTiltInvert == true ? -value : value;
 
     private int ScalePanTilt(double value) =>
-        MultiplyRoundAndCrop(Interpolate(Math.Clamp(value, -1, 1)) * 255 * (_config.PanTiltSpeedPercent / 100.0), 255);
+        MultiplyRoundAndCrop(Interpolate(Math.Clamp(value, -1, 1)) * 255 * ((_config.PanTiltSpeedPercent ?? 100) / 100.0), 255);
 
     /// Squares the stick position while keeping its sign, so small movements are fine grained.
     private static double Interpolate(double value) => value > 0 ? value * value : -(value * value);

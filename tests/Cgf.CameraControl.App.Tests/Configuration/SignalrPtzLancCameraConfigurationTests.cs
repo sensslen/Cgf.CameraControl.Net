@@ -1,13 +1,12 @@
 using Cgf.CameraControl.Cameras.SignalrPtzLanc.Camera;
-using Cgf.CameraControl.Core.Configuration;
 
-namespace Cgf.CameraControl.Cameras.SignalrPtzLanc.Tests;
+namespace Cgf.CameraControl.App.Tests.Configuration;
 
 public class SignalrPtzLancCameraConfigurationTests
 {
     [Fact]
-    public void PanTiltSpeedDefaultsToFullSpeed() =>
-        Assert.Equal(100, Read(Minimal).PanTiltSpeedPercent);
+    public void AnAbsentPanTiltSpeedIsLeftUnset() =>
+        Assert.Null(Read(Minimal).PanTiltSpeedPercent);
 
     [Theory]
     [InlineData(1)]
@@ -21,11 +20,9 @@ public class SignalrPtzLancCameraConfigurationTests
     [InlineData("-1")]
     [InlineData("101")]
     [InlineData("50.5")]
-    [InlineData("null")]
     [InlineData("\"50\"")]
     public void RejectsInvalidPanTiltSpeed(string value) =>
-        Assert.Throws<ConfigValidationException>(() =>
-            Read(Minimal.Replace("}", $$""", "panTiltSpeedPercent": {{value}} }""")));
+        Rejected(Minimal.Replace("}", $$""", "panTiltSpeedPercent": {{value}} }"""));
 
     [Fact]
     public void ReadsTheShippedShape()
@@ -42,23 +39,21 @@ public class SignalrPtzLancCameraConfigurationTests
     }
 
     [Fact]
-    public void PanTiltInvertDefaultsOff()
+    public void AnAbsentPanTiltInvertIsLeftUnset()
     {
-        Assert.False(Read(Minimal).PanTiltInvert);
+        Assert.Null(Read(Minimal).PanTiltInvert);
     }
 
     [Fact]
     public void RequiresTheControllerUrl()
     {
-        Assert.Throws<ConfigValidationException>(() =>
-            Read("""{ "type": "Signalr.PtzLanc", "instance": 1, "connectionPort": "COM6" }"""));
+        Rejected("""{ "type": "Signalr.PtzLanc", "instance": 1, "connectionPort": "COM6" }""");
     }
 
     [Fact]
     public void RequiresTheSerialPort()
     {
-        Assert.Throws<ConfigValidationException>(() =>
-            Read("""{ "type": "Signalr.PtzLanc", "instance": 1, "connectionUrl": "http://10.0.0.5:5000" }"""));
+        Rejected("""{ "type": "Signalr.PtzLanc", "instance": 1, "connectionUrl": "http://10.0.0.5:5000" }""");
     }
 
     // The value is concatenated with a path and requested, so a host on its own never reaches
@@ -69,8 +64,7 @@ public class SignalrPtzLancCameraConfigurationTests
     [InlineData("")]
     public void RejectsSomethingThatIsNotAnHttpUrl(string url)
     {
-        Assert.Throws<ConfigValidationException>(() =>
-            Read($$"""{ "type": "Signalr.PtzLanc", "instance": 1, "connectionUrl": "{{url}}", "connectionPort": "COM6" }"""));
+        Rejected($$"""{ "type": "Signalr.PtzLanc", "instance": 1, "connectionUrl": "{{url}}", "connectionPort": "COM6" }""");
     }
 
     // The paths are appended to it, so one trailing slash would otherwise double up.
@@ -96,10 +90,7 @@ public class SignalrPtzLancCameraConfigurationTests
     private const string Minimal =
         """{ "type": "Signalr.PtzLanc", "instance": 1, "connectionUrl": "http://10.0.0.5:5000", "connectionPort": "COM6" }""";
 
-    private static SignalrPtzLancCameraConfiguration Read(string json)
-    {
-        var config = ConfigLoader.Load($$"""{ "cams": [ {{json}} ] }""", out _);
-        return Assert.Single(config.Cams)
-            .Deserialize(SignalrPtzLancCameraConfigurationContext.Default.SignalrPtzLancCameraConfiguration);
-    }
+    private static SignalrPtzLancCameraConfiguration Read(string json) => ConfigurationReader.Read<SignalrPtzLancCameraConfiguration>("cams", json);
+
+    private static string Rejected(string json) => ConfigurationReader.Rejected("cams", json);
 }

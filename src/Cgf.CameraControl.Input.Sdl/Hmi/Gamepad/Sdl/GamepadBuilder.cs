@@ -14,42 +14,41 @@ public sealed class GamepadBuilder(
     VideoMixerFactory mixers,
     CameraConnectionFactory cameras,
     ILogger logger,
-    HidGamepadSystem? hid = null) : IBuilder<IHmi>
+    HidGamepadSystem? hid = null) : IBuilder<IHmi, InterfaceConfiguration>
 {
-    /// The legacy names still select gamepad interfaces. HID decoding is explicitly opt-in;
-    /// existing configurations retain SDL's controller mappings.
-    public IReadOnlyCollection<string> SupportedTypes =>
-        ["gamepad", "logitech/F310", "logitech/F710", "logitech/Rumblepad2"];
+    /// The legacy pad records derive from GamepadConfiguration, so one claim covers them all.
+    public Task<IHmi>? BuildAsync(InterfaceConfiguration entry, CancellationToken cancellationToken) =>
+        entry is GamepadConfiguration config ? BuildAsync(config, cancellationToken) : null;
 
-    public async Task<IHmi> BuildAsync(ConfigEntry entry, CancellationToken cancellationToken)
+    private async Task<IHmi> BuildAsync(GamepadConfiguration config, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var config = entry.Deserialize(InterfaceConfigurationContext.Default.GamepadConfiguration);
         var mixer = mixers.Get(config.VideoMixer)
                     ?? throw new ConfigValidationException(
-                        $"{entry}.videoMixer",
+                        $"{config}.videoMixer",
                         $"no video mixer is configured with instance {config.VideoMixer}");
 
-        InterfaceValidation.Bindings(entry, config);
+        InterfaceValidation.Bindings(config);
 
+        var deadzone = config.Deadzone ?? GamepadConfiguration.DefaultDeadzone;
         IGamepadDevice device;
         if (config.Backend == GamepadBackend.Hid)
         {
             if (hid is null)
             {
-                throw new ConfigValidationException($"{entry}.backend", "HID backend is not registered.");
+                throw new ConfigValidationException($"{config}.backend", "HID backend is not registered.");
             }
             var serial = config.SerialNumber
-                ?? throw new ConfigValidationException($"{entry}.serialNumber", "HID backend requires a serial number.");
-            device = hid.Claim(entry.ToString(), serial, config.Deadzone);
+                ?? throw new ConfigValidationException($"{config}.serialNumber", "HID backend requires a serial number.");
+            device = hid.Claim(config.ToString(), serial, deadzone);
         }
-        else if (config.Backend == GamepadBackend.Sdl)
+        else if (config.Backend is null or GamepadBackend.Sdl)
         {
-            device = system.Claim(entry.ToString(), config.SerialNumber, config.Deadzone, config.Rumble);
+            device = system.Claim(config.ToString(), config.SerialNumber, deadzone, config.Rumble ?? true);
         }
         else
         {
-            throw new ConfigValidationException($"{entry}.backend", $"Unknown gamepad backend {config.Backend}.");
+            throw new ConfigValidationException($"{config}.backend", $"Unknown gamepad backend {config.Backend}.");
         }
         try
         {

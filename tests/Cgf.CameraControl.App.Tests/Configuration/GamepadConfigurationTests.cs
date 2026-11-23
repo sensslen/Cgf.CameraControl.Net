@@ -2,7 +2,7 @@
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange;
 
-namespace Cgf.CameraControl.Input.Sdl.Tests;
+namespace Cgf.CameraControl.App.Tests.Configuration;
 
 public class GamepadConfigurationTests
 {
@@ -45,9 +45,9 @@ public class GamepadConfigurationTests
     }
 
     [Fact]
-    public void BackendDefaultsToSdlAndHidIsOptIn()
+    public void BackendIsUnsetUnlessHidIsOptedInto()
     {
-        Assert.Equal(GamepadBackend.Sdl, Read(Shipped).Backend);
+        Assert.Null(Read(Shipped).Backend);
         Assert.Equal(GamepadBackend.Hid,
             Read(Shipped.Replace("\"serialNumber\":", "\"backend\": \"hid\", \"serialNumber\":")).Backend);
     }
@@ -55,8 +55,7 @@ public class GamepadConfigurationTests
     [Fact]
     public void UnknownBackendIsRejected()
     {
-        Assert.Throws<ConfigValidationException>(() =>
-            Read(Shipped.Replace("\"serialNumber\":", "\"backend\": \"guessed\", \"serialNumber\":")));
+        Rejected(Shipped.Replace("\"serialNumber\":", "\"backend\": \"guessed\", \"serialNumber\":"));
     }
 
     [Theory]
@@ -65,12 +64,10 @@ public class GamepadConfigurationTests
     [InlineData("----")]
     public void HidBackendRequiresAnIdentifyingSerial(string? serial)
     {
-        var config = ConfigLoader.Load($$"""{ "interfaces": [ {{Shipped}} ] }""", out _);
-        var entry = Assert.Single(config.Interfaces);
-        var pad = entry.Deserialize(InterfaceConfigurationContext.Default.GamepadConfiguration);
+        var pad = Read(Shipped);
         pad.Backend = GamepadBackend.Hid;
         pad.SerialNumber = serial;
-        var error = Assert.Throws<ConfigValidationException>(() => InterfaceValidation.Bindings(entry, pad));
+        var error = Assert.Throws<ConfigValidationException>(() => InterfaceValidation.Bindings(pad));
         Assert.EndsWith(".serialNumber", error.Path, StringComparison.Ordinal);
     }
 
@@ -87,13 +84,13 @@ public class GamepadConfigurationTests
     [Fact]
     public void APadBindsAFaceButtonToAFunctionByName()
     {
-        Assert.Equal("lower", Read(Shipped).Pad.Default[ButtonDirection.Down]);
+        Assert.Equal("lower", Read(Shipped).Pad!.Default![ButtonDirection.Down]);
     }
 
     [Fact]
     public void ReadsAMacroToggleWithItsCondition()
     {
-        var special = Read(Shipped).Functions["lower"];
+        var special = Read(Shipped).Functions!["lower"];
 
         var toggle = Assert.IsType<MacroToggleSpecialFunctionConfiguration>(special);
         Assert.Equal(23, toggle.IndexOn);
@@ -107,7 +104,7 @@ public class GamepadConfigurationTests
         var special = Read(WithFunction(
             """{ "type": "macroToggle", "indexOn": 20, "indexOff": 21, "condition": { "type": "aux_selection", "aux": 5, "selection": 16 } }"""));
 
-        var toggle = Assert.IsType<MacroToggleSpecialFunctionConfiguration>(special.Functions["iso"]);
+        var toggle = Assert.IsType<MacroToggleSpecialFunctionConfiguration>(special.Functions!["iso"]);
         var condition = Assert.IsType<AuxSelectionConditionConfiguration>(toggle.Condition);
         Assert.Equal(5, condition.Aux);
         Assert.Equal(16, condition.Selection);
@@ -119,7 +116,7 @@ public class GamepadConfigurationTests
     [InlineData("""{ "type": "macroLoop", "indexes": [1, 2, 3] }""", typeof(MacroLoopSpecialFunctionConfiguration))]
     public void ReadsEverySpecialFunctionType(string json, Type expected)
     {
-        Assert.IsType(expected, Read(WithFunction(json)).Functions["iso"]);
+        Assert.IsType(expected, Read(WithFunction(json)).Functions!["iso"]);
     }
 
     [Fact]
@@ -136,24 +133,16 @@ public class GamepadConfigurationTests
     public class Defaults : GamepadConfigurationTests
     {
         [Fact]
-        public void EnableChangingProgramDefaultsOn()
-        {
-            Assert.True(Read(Minimal()).EnableChangingProgram);
-        }
-
-        [Fact]
-        public void AnAbsentSerialNumberMeansAutoDetect()
-        {
-            Assert.Null(Read(Minimal()).SerialNumber);
-        }
-
-        [Fact]
-        public void DeadzoneAndRumbleHaveWorkingDefaults()
+        public void AbsentSettingsAreLeftUnset()
         {
             var config = Read(Minimal());
 
-            Assert.Equal(0.05, config.Deadzone);
-            Assert.True(config.Rumble);
+            Assert.Null(config.EnableChangingProgram);
+            Assert.Null(config.SerialNumber);
+            Assert.Null(config.Deadzone);
+            Assert.Null(config.Rumble);
+            Assert.Null(config.Pad);
+            Assert.Null(config.Functions);
         }
     }
 
@@ -162,30 +151,29 @@ public class GamepadConfigurationTests
         [Fact]
         public void VideoMixerMustBePositive()
         {
-            var error = Assert.Throws<ConfigValidationException>(() => Read(Minimal().Replace("\"videoMixer\": 1", "\"videoMixer\": 0")));
+            var error = Rejected(Minimal().Replace("\"videoMixer\": 1", "\"videoMixer\": 0"));
 
-            Assert.Contains("positive", error.Message, StringComparison.Ordinal);
+            Assert.Contains("positive", error, StringComparison.Ordinal);
         }
 
         [Fact]
         public void AKeyIndexMustBePositive()
         {
-            Assert.Throws<ConfigValidationException>(() => Read(WithFunction("""{ "type": "key", "index": 0 }""")));
+            Rejected(WithFunction("""{ "type": "key", "index": 0 }"""));
         }
 
         [Fact]
         public void AnUnknownSpecialFunctionTypeIsRejected()
         {
-            var error = Assert.Throws<ConfigValidationException>(() => Read(WithFunction("""{ "type": "explode" }""")));
+            var error = Rejected(WithFunction("""{ "type": "explode" }"""));
 
-            Assert.Contains("explode", error.Message, StringComparison.Ordinal);
+            Assert.Contains("explode", error, StringComparison.Ordinal);
         }
 
         [Fact]
         public void AnUnknownButtonIsRejected()
         {
-            Assert.Throws<ConfigValidationException>(() =>
-                Read(Minimal().Replace("\"up\": 1", "\"sideways\": 1")));
+            Rejected(Minimal().Replace("\"up\": 1", "\"sideways\": 1"));
         }
     }
 
@@ -213,9 +201,7 @@ public class GamepadConfigurationTests
     private static string WithConnectionChange(string json) =>
         Minimal().Replace("""{ "type": "direct", "default": { "up": 1 } }""", json);
 
-    private static GamepadConfiguration Read(string json)
-    {
-        var config = ConfigLoader.Load($$"""{ "interfaces": [ {{json}} ] }""", out _);
-        return Assert.Single(config.Interfaces).Deserialize(InterfaceConfigurationContext.Default.GamepadConfiguration);
-    }
+    private static GamepadConfiguration Read(string json) => ConfigurationReader.Read<GamepadConfiguration>("interfaces", json);
+
+    private static string Rejected(string json) => ConfigurationReader.Rejected("interfaces", json);
 }

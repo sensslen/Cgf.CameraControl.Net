@@ -25,6 +25,8 @@
       empty. Trim warnings in this repository's own code still fail the build.
     -->
     <NoWarn>$(NoWarn);IL2104</NoWarn>
+    <!-- A serializer call that would fall back to reflection throws in every build, not only once published. -->
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
 
   <ItemGroup>

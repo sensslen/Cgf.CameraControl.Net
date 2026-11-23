@@ -1,10 +1,9 @@
-using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.Logger;
 using Cgf.CameraControl.Core.VideoMixer;
 using Cgf.CameraControl.Core.VideoMixer.Passthrough;
 using NSubstitute;
 
-namespace Cgf.CameraControl.Core.Tests;
+namespace Cgf.CameraControl.App.Tests.Configuration;
 
 public class PassthroughConfigurationTests
 {
@@ -14,8 +13,7 @@ public class PassthroughConfigurationTests
         public async Task AnExistingMixerKeepsPreviewAndProgram()
         {
             var builder = new PassthroughBuilder(Substitute.For<ILogger>());
-            await using var mixer = await builder.BuildAsync(
-                Read("""{"type":"passthrough/default","instance":1}"""), TestContext.Current.CancellationToken);
+            await using var mixer = await Build(builder, Read("""{"type":"passthrough/default","instance":1}"""));
             Assert.Equal(MixerTallyMode.PreviewProgram, mixer.TallyMode);
         }
 
@@ -26,8 +24,7 @@ public class PassthroughConfigurationTests
         public async Task BuilderCarriesThePolicyWithoutFilteringSelection(string value, MixerTallyMode expected)
         {
             var builder = new PassthroughBuilder(Substitute.For<ILogger>());
-            await using var mixer = await builder.BuildAsync(
-                Read($$"""{"type":"passthrough/default","instance":1,"tallyMode":"{{value}}"}"""), TestContext.Current.CancellationToken);
+            await using var mixer = await Build(builder, Read($$"""{"type":"passthrough/default","instance":1,"tallyMode":"{{value}}"}"""));
             var preview = new List<PreviewChange>();
             var program = new List<int>();
             using var previewSubscription = mixer.WhenPreviewChanged.Subscribe(preview.Add);
@@ -44,9 +41,9 @@ public class PassthroughConfigurationTests
         public async Task CommentsAndTrailingCommasRemainSupported()
         {
             var builder = new PassthroughBuilder(Substitute.For<ILogger>());
-            await using var mixer = await builder.BuildAsync(Read("""
+            await using var mixer = await Build(builder, Read("""
                 {"type":"passthrough/default","instance":1, /* camera-only desk */ "tallyMode":"program",}
-                """), TestContext.Current.CancellationToken);
+                """));
             Assert.Equal(MixerTallyMode.Program, mixer.TallyMode);
         }
 
@@ -54,21 +51,17 @@ public class PassthroughConfigurationTests
         [InlineData("\"invalid\"")]
         [InlineData("0")]
         [InlineData("\"2\"")]
-        [InlineData("null")]
-        public async Task InvalidPoliciesReportTheMixerField(string value)
+        public void InvalidPoliciesReportTheMixerField(string value)
         {
-            var builder = new PassthroughBuilder(Substitute.For<ILogger>());
-            var error = await Assert.ThrowsAsync<ConfigValidationException>(() => builder.BuildAsync(
-                Read($$"""{"type":"passthrough/default","instance":1,"tallyMode":{{value}}}"""), TestContext.Current.CancellationToken));
-            Assert.Equal("passthrough/default[1].tallyMode", error.Path);
+            var problem = ConfigurationReader.Rejected(
+                "videoMixers", $$"""{"type":"passthrough/default","instance":1,"tallyMode":{{value}}}""");
+            Assert.StartsWith("videoMixers[0]: passthrough/default[1].tallyMode: ", problem, StringComparison.Ordinal);
         }
     }
 
-    private static ConfigEntry Read(string entry)
-    {
-        var config = ConfigLoader.Load($$"""
-            {"videoMixers":[{{entry}}]}
-            """, out _);
-        return Assert.Single(config.VideoMixers);
-    }
+    private static PassthroughConfiguration Read(string entry) =>
+        ConfigurationReader.Read<PassthroughConfiguration>("videoMixers", entry);
+
+    private static Task<IVideoMixer> Build(PassthroughBuilder builder, PassthroughConfiguration entry) =>
+        builder.BuildAsync(entry, TestContext.Current.CancellationToken) ?? throw new InvalidOperationException("the builder did not claim the entry");
 }

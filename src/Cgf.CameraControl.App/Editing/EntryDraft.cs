@@ -1,9 +1,8 @@
 using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Cgf.CameraControl.App.Localization;
 using Cgf.CameraControl.App.ViewModels;
 using Cgf.CameraControl.Core.Configuration;
+using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Cgf.CameraControl.App.Editing;
@@ -15,25 +14,35 @@ public enum EntryKind
     Interface,
 }
 
-/// One entry of the configuration while it is being edited: the JSON it will be written back as, and
-/// the fields that reach into it.
+/// One entry of the configuration while it is being edited: a copy of its record, and the fields that
+/// read and write it.
 ///
 /// The type is fixed once the entry exists. Changing it would replace every field on the form and
 /// leave the values that belonged to the old shape with nowhere to go, so a type that turns out to be
 /// wrong is deleted and added again.
-public sealed partial class EntryDraft : ViewModelBase
+///
+/// An entry the loader could not read has no fields. It is shown with what is wrong with it and
+/// written back as it was read, so it can be deleted, or corrected in the file, but is never lost.
+public abstract partial class EntryDraft : ViewModelBase
 {
-    private readonly JsonObject _entry;
+    private readonly EntryConfiguration _entry;
 
-    public EntryDraft(ILocalizer strings, EntryKind kind, string type, JsonObject entry, IReadOnlyList<string>? pads = null)
+    private protected EntryDraft(ILocalizer strings, EntryKind kind, EntryConfiguration entry, IReadOnlyList<string>? pads)
     {
         Strings = strings;
         Kind = kind;
-        Type = type;
         _entry = entry;
 
-        InstanceField = new NumberField(strings, entry, "instance", "edit.instance", required: true, minimum: 1);
-        Fields = [InstanceField, .. EntrySchema.Fields(strings, type, entry, pads ?? [])];
+        if (_entry is IInvalidConfiguration)
+        {
+            Fields = [];
+        }
+        else
+        {
+            InstanceField = new NumberField(strings, "instance", "edit.instance", required: true, minimum: 1,
+                () => _entry.Instance, value => _entry.Instance = value ?? 0);
+            Fields = [InstanceField, .. EntrySchema.Fields(strings, _entry, pads ?? [])];
+        }
 
         foreach (var field in Fields)
         {
@@ -48,15 +57,23 @@ public sealed partial class EntryDraft : ViewModelBase
 
     public EntryKind Kind { get; }
 
-    public string Type { get; }
+    public string Type => _entry.Type;
 
-    public NumberField InstanceField { get; }
+    /// Null for an entry the loader could not read, whose instance cannot be changed here.
+    public NumberField? InstanceField { get; }
 
     public IReadOnlyList<Field> Fields { get; }
 
     /// Null while the box is empty or holds something that is not a number, which is exactly when the
-    /// entry cannot be told apart from another one.
-    public int? Instance => InstanceField.Number;
+    /// entry cannot be told apart from another one. An entry the loader could not read keeps the
+    /// number it was written with, so what refers to it, and what would collide with it once it is
+    /// corrected, is still seen.
+    public int? Instance => InstanceField is { } instance
+        ? instance.Number
+        : _entry.Instance != 0 ? _entry.Instance : (int?)null;
+
+    /// Why the loader could not read this entry, or null when it could.
+    public string? Unreadable => _entry is IInvalidConfiguration invalid ? invalid.Problem : null;
 
     [ObservableProperty]
     public partial string Title { get; set; } = string.Empty;
@@ -70,32 +87,31 @@ public sealed partial class EntryDraft : ViewModelBase
 
     public event EventHandler? Edited;
 
-    public ConfigEntry ToEntry() =>
-        new(Instance ?? 0, Type, JsonDocument.Parse(_entry.ToJsonString()).RootElement.Clone());
+    public static EntryDraft<CameraConfiguration> Camera(ILocalizer strings, CameraConfiguration entry, IReadOnlyList<string>? pads = null) =>
+        new(strings, EntryKind.Camera, entry with { }, record => record with { }, pads);
 
-    /// The names this entry binds to functions, whichever kind of interface it is. Read out of the
-    /// JSON rather than off a field, because the bindings themselves are edited on the drawing.
-    public IEnumerable<string> BoundFunctionNames()
+    public static EntryDraft<VideoMixerConfiguration> Mixer(ILocalizer strings, VideoMixerConfiguration entry, IReadOnlyList<string>? pads = null) =>
+        new(strings, EntryKind.Mixer, entry with { }, record => record with { }, pads);
+
+    public static EntryDraft<InterfaceConfiguration> Interface(ILocalizer strings, InterfaceConfiguration entry, IReadOnlyList<string>? pads = null) =>
+        new(strings, EntryKind.Interface, entry with { }, record => record with { }, pads);
+
+    /// A copy, so an edit made after the configuration is taken does not reach into it.
+    public abstract EntryConfiguration ToEntry();
+
+    /// The names this entry binds to functions, whichever kind of interface it is. Read off the
+    /// record rather than off a field, because the bindings themselves are edited on the drawing.
+    public IEnumerable<string> BoundFunctionNames() => _entry switch
     {
-        if (_entry["pad"] is JsonObject pad)
-        {
-            foreach (var name in pad.SelectMany(set => Values(set.Value)))
-            {
-                yield return name;
-            }
-        }
-
-        if (_entry["keys"] is JsonObject keys && keys["function"] is JsonObject functions)
-        {
-            foreach (var name in Values(functions))
-            {
-                yield return name;
-            }
-        }
-    }
+        GamepadConfiguration pad => (pad.Pad?.Default?.Values ?? [])
+            .Concat(pad.Pad?.Alt?.Values ?? [])
+            .Concat(pad.Pad?.AltLower?.Values ?? []),
+        KeyboardConfiguration keyboard => keyboard.Keys.Function?.Values ?? [],
+        _ => [],
+    };
 
     public IEnumerable<string> DefinedFunctionNames() =>
-        _entry["functions"] is JsonObject functions ? functions.Select(pair => pair.Key) : [];
+        _entry is ControlInterfaceConfiguration { Functions: { } functions } ? functions.Keys : [];
 
     /// The cameras this entry's map names, so the document can say which of them are not configured.
     public IEnumerable<int> MappedCameras() =>
@@ -114,16 +130,13 @@ public sealed partial class EntryDraft : ViewModelBase
         }
     }
 
-    private static IEnumerable<string> Values(JsonNode? node) =>
-        node is JsonObject map
-            ? map.Select(pair => pair.Value is JsonValue value && value.TryGetValue<string>(out var name) ? name : null)
-                .OfType<string>()
-            : [];
-
-    private string Describe() =>
-        Instance is { } instance
-            ? string.Format(CultureInfo.CurrentUICulture, "{0} [{1}]", Type, instance)
-            : Type;
+    private string Describe()
+    {
+        var name = Type.Length == 0 ? "?" : Type;
+        return Instance is { } instance
+            ? string.Format(CultureInfo.CurrentUICulture, "{0} [{1}]", name, instance)
+            : name;
+    }
 
     private void OnFieldEdited(object? sender, EventArgs e)
     {
@@ -136,4 +149,21 @@ public sealed partial class EntryDraft : ViewModelBase
         Title = Describe();
         Edited?.Invoke(this, EventArgs.Empty);
     }
+}
+
+/// The copy is passed in because a `with` expression cannot be applied to a type parameter.
+public sealed class EntryDraft<TSection> : EntryDraft
+    where TSection : EntryConfiguration
+{
+    private readonly TSection _entry;
+    private readonly Func<TSection, TSection> _copy;
+
+    internal EntryDraft(ILocalizer strings, EntryKind kind, TSection entry, Func<TSection, TSection> copy, IReadOnlyList<string>? pads)
+        : base(strings, kind, entry, pads)
+    {
+        _entry = entry;
+        _copy = copy;
+    }
+
+    public override TSection ToEntry() => _copy(_entry);
 }

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Cgf.CameraControl.Core.Configuration;
 using Cgf.CameraControl.Core.Configuration.Converters;
 using Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared.ConnectionChange;
 
@@ -10,42 +11,50 @@ namespace Cgf.CameraControl.Input.Sdl.Hmi.Gamepad.Shared;
 /// The two kinds carry separate schemas rather than one schema with unused halves. A `keys` block on
 /// a pad, or a `deadzone` on a keyboard, is a binding that will never fire, and an operator wants to
 /// be told about it rather than left wondering why the key does nothing.
-/// On the `get; set;` and [JsonRequired] conventions, see WebsocketPtzLancCameraConfiguration.
-public abstract record InterfaceConfiguration
+/// On the `get; set;` and [JsonRequired] conventions, see EntryConfiguration.
+public abstract record ControlInterfaceConfiguration(string Type) : InterfaceConfiguration(Type)
 {
-    /// Every entry carries these two, and an unmapped member is an error, so leaving them off here
-    /// would make every interface in the file fail on its own type.
-    [JsonRequired]
-    public string Type { get; set; } = null!;
-
-    [JsonRequired]
-    [JsonConverter(typeof(PositiveIntConverter))]
-    public int Instance { get; set; }
-
     [JsonRequired]
     [JsonConverter(typeof(PositiveIntConverter))]
     public int VideoMixer { get; set; }
 
     [JsonRequired]
-    public ConnectionChangeConfiguration ConnectionChange { get; set; } = null!;
+    public ConnectionChangeConfiguration ConnectionChange { get; set; } =
+        new DirectConnectionChangeConfiguration();
 
     /// Maps the mixer's input channel to a camera instance in the configuration.
     [JsonRequired]
-    public IReadOnlyDictionary<int, int> CameraMap { get; set; } = null!;
+    public IReadOnlyDictionary<int, int> CameraMap { get; set; } = new Dictionary<int, int>();
 
     /// Named here and bound by name below, so one function reaches a face button and a key without
     /// being written twice, and so the name is available to write on the button that runs it.
-    public IReadOnlyDictionary<string, SpecialFunctionConfiguration> Functions { get; set; } =
-        new Dictionary<string, SpecialFunctionConfiguration>();
+    public IReadOnlyDictionary<string, SpecialFunctionConfiguration>? Functions { get; set; }
 
-    public bool EnableChangingProgram { get; set; } = true;
+    public bool? EnableChangingProgram { get; set; }
 }
 
 /// A pad has four face buttons and no more, so the way past four is the modifier sets.
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record GamepadConfiguration : InterfaceConfiguration
+public record GamepadConfiguration : ControlInterfaceConfiguration
 {
-    public GamepadBackend Backend { get; set; } = GamepadBackend.Sdl;
+    public const string TypeName = "gamepad";
+
+    public const double DefaultDeadzone = 0.05;
+
+    public GamepadConfiguration()
+        : this(TypeName)
+    {
+    }
+
+    protected GamepadConfiguration(string type)
+        : base(type)
+    {
+    }
+
+    /// The HID decoder reads only the F310's reports.
+    [JsonIgnore]
+    public virtual bool SupportsHid => true;
+
+    public GamepadBackend? Backend { get; set; }
 
     /// When set, only the pad reporting this serial is claimed, and no other pad is ever substituted.
     /// When absent, the first pad not already claimed by another interface is used.
@@ -54,11 +63,32 @@ public sealed record GamepadConfiguration : InterfaceConfiguration
     /// Stick travel ignored around centre. The HID path this replaces had a flat spot built into its
     /// interpolation table; SDL reports raw axes, so without this the cameras drift.
     [JsonConverter(typeof(DeadzoneConverter))]
-    public double Deadzone { get; set; } = 0.05;
+    public double? Deadzone { get; set; }
 
-    public bool Rumble { get; set; } = true;
+    public bool? Rumble { get; set; }
 
-    public PadBindings Pad { get; set; } = new();
+    public PadBindings? Pad { get; set; }
+}
+
+/// The names pads were configured by before `gamepad`. Each is its own record because a type string
+/// is what the file is written back with, and one record can be written back as only one of them.
+public sealed record LogitechF310Configuration() : GamepadConfiguration(TypeName)
+{
+    public new const string TypeName = "logitech/F310";
+}
+
+public sealed record LogitechF710Configuration() : GamepadConfiguration(TypeName)
+{
+    public new const string TypeName = "logitech/F710";
+
+    public override bool SupportsHid => false;
+}
+
+public sealed record LogitechRumblepad2Configuration() : GamepadConfiguration(TypeName)
+{
+    public new const string TypeName = "logitech/Rumblepad2";
+
+    public override bool SupportsHid => false;
 }
 
 public enum GamepadBackend
@@ -72,8 +102,7 @@ public enum GamepadBackend
 /// Which named function each face button runs, per modifier.
 public sealed record PadBindings
 {
-    public IReadOnlyDictionary<ButtonDirection, string> Default { get; set; } =
-        new Dictionary<ButtonDirection, string>();
+    public IReadOnlyDictionary<ButtonDirection, string>? Default { get; set; }
 
     public IReadOnlyDictionary<ButtonDirection, string>? Alt { get; set; }
 
@@ -82,11 +111,12 @@ public sealed record PadBindings
 
 /// A keyboard and mouse surface. Nothing is bound unless it is named here, and nothing named here is
 /// left off the screen, so the panel and the file say the same thing.
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record KeyboardConfiguration : InterfaceConfiguration
+public sealed record KeyboardConfiguration() : ControlInterfaceConfiguration(TypeName)
 {
+    public const string TypeName = "keyboard";
+
     [JsonRequired]
-    public KeyBindings Keys { get; set; } = null!;
+    public KeyBindings Keys { get; set; } = new();
 }
 
 /// Key names are Avalonia's, so `D1` rather than `1` and `LeftShift` rather than `Shift`. They are
@@ -145,16 +175,3 @@ public sealed record FocusKeys
 
     public string? Near { get; set; }
 }
-
-/// Unmapped members are refused at every depth, not only on the entry, so a misspelt key in a binding
-/// or a function is reported rather than silently doing nothing, and a `null` where an object is
-/// required is reported against its path rather than surfacing later as a bare null reference.
-[JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-    DictionaryKeyPolicy = JsonKnownNamingPolicy.CamelCase,
-    UseStringEnumConverter = true,
-    UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-    RespectNullableAnnotations = true)]
-[JsonSerializable(typeof(GamepadConfiguration))]
-[JsonSerializable(typeof(KeyboardConfiguration))]
-public sealed partial class InterfaceConfigurationContext : JsonSerializerContext;

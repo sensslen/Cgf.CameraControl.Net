@@ -1,5 +1,6 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using Cgf.CameraControl.App.Configuration;
 using Cgf.CameraControl.App.Hosting;
 using Cgf.CameraControl.Cameras.ViscaOverIp.Camera;
 using Cgf.CameraControl.Core.CameraConnection;
@@ -48,7 +49,8 @@ public class MixerTallyProtocolTests
             var entry = Assert.Single(ConfigLoader.Load($$"""
                 {"videoMixers":[{"type":"passthrough/default","instance":1,"tallyMode":"{{mode}}"}]}
                 """, out _).VideoMixers);
-            await using var mixer = await new PassthroughBuilder(logger).BuildAsync(entry, TestContext.Current.CancellationToken);
+            await using var mixer = await (new PassthroughBuilder(logger).BuildAsync(entry, TestContext.Current.CancellationToken)
+                ?? throw new InvalidOperationException("passthrough did not claim the entry"));
             await using var device = new ControlSurfaceDevice(1);
             await using var keyboard = new Gamepad(
                 new KeyboardConfiguration
