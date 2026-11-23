@@ -41,7 +41,7 @@ viscaoverip[7].port: expected a number in ]0 .. 65535], found 70000
 
 Unknown properties are errors.
 
-The editor lists an invalid entry with its error and without fields. It does not block saving and is
-saved unchanged.
+The editor lists an invalid entry with its error and without fields. It is saved unchanged and blocks
+saving only when its `instance` repeats another entry's in the same list.
 
 Loaded cameras and mixers appear in the window even if no interface references them.
